@@ -5,7 +5,6 @@ import {
   FileCheck2, Stethoscope, Moon, Sun, Lock, Users
 } from 'lucide-react';
 import type { AnalysisResult, Biomarker } from '../types';
-import { demoAnalysisResult } from '../data/demo';
 import { simulateAnalysis } from '../utils/analysisEngine';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
@@ -53,7 +52,10 @@ const AnalysesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const { activeMember, lockApp } = useFamily();
   const [showFamilyModal, setShowFamilyModal] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(demoAnalysisResult);
+  const [result, setResult] = useState<AnalysisResult | null>(() => {
+    const saved = localStorage.getItem('app-last-analysis');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +73,7 @@ const AnalysesPage: React.FC = () => {
     setLoadingStep('Сравнение показателей и генерация клинической сводки...');
     const res = await simulateAnalysis(name);
     setResult(res);
+    localStorage.setItem('app-last-analysis', JSON.stringify(res));
     setLoading(false);
   };
 

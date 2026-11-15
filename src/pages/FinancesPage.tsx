@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector,
 } from 'recharts';
@@ -28,7 +28,10 @@ const FinancesPage: React.FC = () => {
 
   // Combine expenses across all months for state
   const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
-  const [expenses, setExpenses] = useState<Expense[]>(monthsData[0].expenses);
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem('app-expenses-list');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,6 +49,10 @@ const FinancesPage: React.FC = () => {
       setExpenses(m.expenses);
     }
   };
+
+  useEffect(() => {
+    localStorage.setItem('app-expenses-list', JSON.stringify(expenses));
+  }, [expenses]);
 
   const filteredExpenses = selectedCategory === 'all'
     ? expenses
@@ -286,118 +293,150 @@ const FinancesPage: React.FC = () => {
           )}
         </div>
 
-        {/* Donut Container with Centered Information Hole */}
-        <div className="relative h-[180px] w-full flex items-center justify-center overflow-hidden">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                shape={renderSectorShape}
-                data={categoryTotals}
-                cx="50%"
-                cy="50%"
-                innerRadius={48}
-                outerRadius={70}
-                paddingAngle={4}
-                cornerRadius={4}
-                dataKey="value"
-                onClick={handlePieClick}
+        {/* Donut Container with Centered Information Hole or Empty State */}
+        {expenses.length === 0 ? (
+          <div className="py-7 text-center flex flex-col items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2 border border-purple-100 dark:border-purple-900/40">
+              <Wallet size={22} />
+            </div>
+            <p className="text-xs font-bold text-gray-900 dark:text-white mb-0.5">
+              Расходов за выбранный период нет
+            </p>
+            <p className="text-[11px] text-gray-400 dark:text-gray-400 max-w-[260px] mx-auto mb-3">
+              Сфотографируйте первый чек (OCR) или внесите трату вручную
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowReceiptScanner(true)}
+                className="py-1.5 px-3 bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >
-                {categoryTotals.map((entry) => (
-                  <Cell
-                    key={entry.key}
-                    fill={entry.color}
-                    stroke="none"
-                    strokeWidth={0}
-                    className="cursor-pointer outline-none focus:outline-none"
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value: any) => [
-                  typeof value === 'number' ? `${value.toLocaleString('ru-RU')} ₽` : String(value ?? ''),
-                  '',
-                ]}
-                contentStyle={{
-                  background: '#0f172a',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  color: '#fff',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                  padding: '6px 12px',
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-
-          {/* Central Metric in Donut Hole */}
-          <div
-            onClick={() => setSelectedCategory('all')}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          >
-            <div className="flex flex-col items-center justify-center text-center p-1 cursor-pointer pointer-events-auto">
-              {activeCategoryObj ? (
-                <>
-                  <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 truncate max-w-[80px]">
-                    {activeCategoryObj.name}
-                  </span>
-                  <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
-                    {activeCategoryObj.value.toLocaleString('ru-RU')} ₽
-                  </span>
-                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
-                    {activeCategoryObj.percentage}%
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">
-                    Всего
-                  </span>
-                  <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
-                    {totalAmount.toLocaleString('ru-RU')} ₽
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    100%
-                  </span>
-                </>
-              )}
+                <Camera size={13} />
+                <span>Скан чека (ИИ)</span>
+              </button>
+              <button
+                onClick={() => setShowForm(true)}
+                className="py-1.5 px-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all"
+              >
+                <Plus size={13} />
+                <span>Вручную</span>
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Category Legend & Clickable Selectors */}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-          {categoryTotals.map((c) => {
-            const isSelected = selectedCategory === c.key;
-            return (
-              <div
-                key={c.name}
-                onClick={() => setSelectedCategory(isSelected ? 'all' : c.key)}
-                className={`flex flex-col gap-1 p-2 rounded-xl cursor-pointer transition-all duration-200 ${
-                  isSelected
-                    ? 'bg-purple-50 dark:bg-purple-950/70 border-2 border-purple-600 dark:border-purple-400 shadow-xs scale-[1.02]'
-                    : 'bg-gray-50/70 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/70 border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: c.color }}
+        ) : (
+          <>
+            <div className="relative h-[180px] w-full flex items-center justify-center overflow-hidden">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    shape={renderSectorShape}
+                    data={categoryTotals}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={70}
+                    paddingAngle={4}
+                    cornerRadius={4}
+                    dataKey="value"
+                    onClick={handlePieClick}
+                  >
+                    {categoryTotals.map((entry) => (
+                      <Cell
+                        key={entry.key}
+                        fill={entry.color}
+                        stroke="none"
+                        strokeWidth={0}
+                        className="cursor-pointer outline-none focus:outline-none"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: any) => [
+                      typeof value === 'number' ? `${value.toLocaleString('ru-RU')} ₽` : String(value ?? ''),
+                      '',
+                    ]}
+                    contentStyle={{
+                      background: '#0f172a',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      color: '#fff',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      padding: '6px 12px',
+                    }}
                   />
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
-                    {c.name}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 pl-3.5">
-                  <span className="font-semibold text-purple-700 dark:text-purple-300">{c.percentage}%</span>
-                  <span className="font-black text-gray-900 dark:text-white">
-                    {c.value.toLocaleString('ru-RU')} ₽
-                  </span>
+                </PieChart>
+              </ResponsiveContainer>
+
+              {/* Central Metric in Donut Hole */}
+              <div
+                onClick={() => setSelectedCategory('all')}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              >
+                <div className="flex flex-col items-center justify-center text-center p-1 cursor-pointer pointer-events-auto">
+                  {activeCategoryObj ? (
+                    <>
+                      <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 truncate max-w-[80px]">
+                        {activeCategoryObj.name}
+                      </span>
+                      <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
+                        {activeCategoryObj.value.toLocaleString('ru-RU')} ₽
+                      </span>
+                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                        {activeCategoryObj.percentage}%
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+                        Всего
+                      </span>
+                      <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
+                        {totalAmount.toLocaleString('ru-RU')} ₽
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                        100%
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            {/* Category Legend & Clickable Selectors */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+              {categoryTotals.map((c) => {
+                const isSelected = selectedCategory === c.key;
+                return (
+                  <div
+                    key={c.name}
+                    onClick={() => setSelectedCategory(isSelected ? 'all' : c.key)}
+                    className={`flex flex-col gap-1 p-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-purple-50 dark:bg-purple-950/70 border-2 border-purple-600 dark:border-purple-400 shadow-xs scale-[1.02]'
+                        : 'bg-gray-50/70 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/70 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: c.color }}
+                      />
+                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                        {c.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 pl-3.5">
+                      <span className="font-semibold text-purple-700 dark:text-purple-300">{c.percentage}%</span>
+                      <span className="font-black text-gray-900 dark:text-white">
+                        {c.value.toLocaleString('ru-RU')} ₽
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Doctors Directory */}
@@ -458,44 +497,50 @@ const FinancesPage: React.FC = () => {
           )}
         </div>
 
-        <div className="space-y-2">
-          {filteredExpenses.map((exp) => {
-            const Icon = categoryIcons[exp.category] || Stethoscope;
-            return (
-              <div
-                key={exp.id}
-                className="bg-white dark:bg-[#161b26] rounded-2xl p-3 shadow-sm border border-purple-100/50 dark:border-purple-500/20 flex items-center gap-3 card-animate group hover:border-purple-200 transition-colors"
-              >
+        {filteredExpenses.length === 0 ? (
+          <div className="p-4 rounded-2xl bg-gray-50/60 dark:bg-[#1a202c]/40 border border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400">
+            Нет добавленных операций за выбранный период
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredExpenses.map((exp) => {
+              const Icon = categoryIcons[exp.category] || Stethoscope;
+              return (
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${categoryColors[exp.category]}18` }}
+                  key={exp.id}
+                  className="bg-white dark:bg-[#161b26] rounded-2xl p-3 shadow-sm border border-purple-100/50 dark:border-purple-500/20 flex items-center gap-3 card-animate group hover:border-purple-200 transition-colors"
                 >
-                  <Icon size={18} style={{ color: categoryColors[exp.category] }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                    {exp.title}
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-400 truncate">
-                    {exp.date} {exp.doctor ? `· ${exp.doctor}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-gray-900 dark:text-white whitespace-nowrap">
-                    −{exp.amount.toLocaleString('ru-RU')} ₽
-                  </span>
-                  <button
-                    onClick={() => handleDelete(exp.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-rose-500 transition-opacity"
-                    title="Удалить"
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${categoryColors[exp.category]}18` }}
                   >
-                    <Trash2 size={14} />
-                  </button>
+                    <Icon size={18} style={{ color: categoryColors[exp.category] }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                      {exp.title}
+                    </p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-400 truncate">
+                      {exp.date} {exp.doctor ? `· ${exp.doctor}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-gray-900 dark:text-white whitespace-nowrap">
+                      −{exp.amount.toLocaleString('ru-RU')} ₽
+                    </span>
+                    <button
+                      onClick={() => handleDelete(exp.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-rose-500 transition-opacity"
+                      title="Удалить"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Add Expense Modal */}

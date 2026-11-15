@@ -14,9 +14,12 @@ interface FamilyContextType {
   // Authentication & Session
   isAuthenticated: boolean;
   login: (credentials?: { email?: string; personalId?: string; password?: string }) => boolean;
+  loginWithGoogle: () => void;
   loginAsMember: (personalIdOrId: string) => void;
   register: (registrationData: Partial<UserProfile>) => void;
   logout: () => void;
+  resetToNewUser: () => void;
+  loadDemoData: () => void;
   // Current Adult User Profile (Individual cabinet)
   userProfile: UserProfile;
   updateUserProfile: (data: Partial<UserProfile>) => void;
@@ -248,7 +251,7 @@ const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Authentication & Session
   const [isAuthenticated, setIsAuthenticatedState] = useState<boolean>(() => {
-    return localStorage.getItem('app-is-authenticated') !== 'false';
+    return localStorage.getItem('app-is-authenticated') === 'true';
   });
 
   // Adult Personal Profile
@@ -721,21 +724,134 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('app-is-authenticated', 'true');
   };
 
+  const loginWithGoogle = () => {
+    const googleProfile: UserProfile = {
+      id: 'user_google_ilnar',
+      personalId: 'MED-9402',
+      firstName: 'Ильнар',
+      lastName: 'Ямаев',
+      middleName: 'Рамилевич',
+      email: 'ilnarmanya@gmail.com',
+      birthDate: '1995-03-15',
+      birthYear: 1995,
+      gender: 'male',
+      height: 182,
+      weight: 78,
+      bmi: 23.5,
+      bloodType: 'A(II) Rh+',
+      policyOMS: '1694 4810 5920 1823',
+      policyDMS: 'Ингосстрах Премиум',
+      avatar: 'ИЯ',
+      familyRole: 'head',
+      familyName: 'Семья Ямаевых',
+      googleConnected: true,
+    };
+
+    const googleMember: FamilyMember = {
+      id: googleProfile.id,
+      name: googleProfile.firstName,
+      lastName: googleProfile.lastName,
+      personalId: googleProfile.personalId,
+      role: 'head',
+      roleLabel: 'Глава семьи',
+      birthYear: googleProfile.birthYear,
+      gender: googleProfile.gender,
+      height: googleProfile.height,
+      weight: googleProfile.weight,
+      bmi: googleProfile.bmi,
+      bloodType: googleProfile.bloodType,
+      policyOMS: googleProfile.policyOMS,
+      avatar: googleProfile.avatar,
+      color: '#7c3aed',
+      healthScore: 0,
+      analysesCount: 0,
+      expensesTotal: 0,
+      inviteStatus: 'active',
+    };
+
+    setUserProfile(googleProfile);
+    setMembers([googleMember]);
+    setInvites([]);
+    setActiveMemberId(googleMember.id);
+    setFamilyNameState(googleProfile.familyName);
+    setIsAuthenticatedState(true);
+    localStorage.setItem('app-is-authenticated', 'true');
+    localStorage.setItem('app-user-profile', JSON.stringify(googleProfile));
+    localStorage.setItem('app-family-members', JSON.stringify([googleMember]));
+    localStorage.setItem('app-family-invites', JSON.stringify([]));
+    localStorage.setItem('app-family-name', googleProfile.familyName);
+    localStorage.setItem('app-active-member-id', googleMember.id);
+    localStorage.removeItem('app-expenses-list');
+    localStorage.removeItem('app-last-analysis');
+  };
+
+  const resetToNewUser = () => {
+    localStorage.removeItem('app-user-profile');
+    localStorage.removeItem('app-family-members');
+    localStorage.removeItem('app-family-invites');
+    localStorage.removeItem('app-family-name');
+    localStorage.removeItem('app-active-member-id');
+    localStorage.removeItem('app-expenses-list');
+    localStorage.removeItem('app-last-analysis');
+    localStorage.setItem('app-is-authenticated', 'false');
+
+    setIsAuthenticatedState(false);
+    setUserProfile(defaultUserProfile);
+    setMembers([]);
+    setInvites([]);
+    setActiveMemberId('');
+    setFamilyNameState('Моя семья');
+  };
+
+  const loadDemoData = () => {
+    localStorage.setItem('app-is-authenticated', 'true');
+    localStorage.setItem('app-user-profile', JSON.stringify(defaultUserProfile));
+    localStorage.setItem('app-family-members', JSON.stringify(defaultMembers));
+    localStorage.setItem('app-family-invites', JSON.stringify(defaultInvites));
+    localStorage.setItem('app-family-name', 'Семья Ямаевых');
+    localStorage.setItem('app-active-member-id', 'ilnar');
+
+    setIsAuthenticatedState(true);
+    setUserProfile(defaultUserProfile);
+    setMembers(defaultMembers);
+    setInvites(defaultInvites);
+    setActiveMemberId('ilnar');
+    setFamilyNameState('Семья Ямаевых');
+  };
+
   const logout = () => {
     setIsAuthenticatedState(false);
     localStorage.setItem('app-is-authenticated', 'false');
   };
 
-  const activeMember = members.find((m) => m.id === activeMemberId) || members[0];
+  const activeMember: FamilyMember = members.find((m) => m.id === activeMemberId) || members[0] || {
+    id: userProfile?.id || 'head_user',
+    name: userProfile?.firstName || 'Пользователь',
+    lastName: userProfile?.lastName || '',
+    personalId: userProfile?.personalId || 'MED-NEW',
+    role: 'head' as const,
+    roleLabel: 'Глава семьи',
+    birthYear: userProfile?.birthYear || 1995,
+    gender: userProfile?.gender || ('male' as const),
+    avatar: userProfile?.avatar || 'Я',
+    color: '#7c3aed',
+    healthScore: 0,
+    analysesCount: 0,
+    expensesTotal: 0,
+    inviteStatus: 'active' as const,
+  };
 
   return (
     <FamilyContext.Provider
       value={{
         isAuthenticated,
         login,
+        loginWithGoogle,
         loginAsMember,
         register,
         logout,
+        resetToNewUser,
+        loadDemoData,
         userProfile,
         updateUserProfile,
         familyName,

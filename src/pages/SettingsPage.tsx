@@ -4,7 +4,7 @@ import {
   Check, Smartphone, Bell, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
   Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
-  UserCheck, UserPlus, Baby, Sparkles, LogOut
+  UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -48,6 +48,8 @@ const SettingsPage: React.FC = () => {
     syncWithGoogleSheets,
     lockApp,
     logout,
+    resetToNewUser,
+    loadDemoData,
   } = useFamily();
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -763,8 +765,8 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 7. Logout / Exit Account */}
-      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-rose-100 dark:border-rose-900/30 card-animate transition-colors w-full">
+      {/* 7. Reset / Demo / Logout Actions */}
+      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors w-full space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
@@ -772,7 +774,7 @@ const SettingsPage: React.FC = () => {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                Личный кабинет ({userProfile.personalId})
+                Личный кабинет ({userProfile?.personalId || 'Гость'})
               </p>
               <p className="text-[11px] text-gray-400 dark:text-gray-400 mt-0.5 truncate">
                 Выход на экран авторизации и регистрации
@@ -785,6 +787,25 @@ const SettingsPage: React.FC = () => {
           >
             <LogOut size={13} />
             <span>Выйти</span>
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex gap-2">
+          <button
+            onClick={resetToNewUser}
+            className="flex-1 py-2 px-2.5 rounded-xl bg-gray-100 hover:bg-rose-50 dark:bg-gray-800 dark:hover:bg-rose-950/40 text-gray-700 hover:text-rose-600 dark:text-gray-200 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-800"
+            title="Очистить все локальные данные и вернуться к регистрации"
+          >
+            <Trash2 size={13} className="text-rose-500" />
+            <span>Очистить данные (Новый пользователь)</span>
+          </button>
+          <button
+            onClick={loadDemoData}
+            className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors border border-purple-200 dark:border-purple-800 flex-shrink-0"
+            title="Заполнить демо-данными для тестирования"
+          >
+            <Sparkles size={12} />
+            <span>Демо-данные</span>
           </button>
         </div>
       </div>

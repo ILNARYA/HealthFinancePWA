@@ -8,7 +8,7 @@ import { useFamily } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
 
 export const AuthPage: React.FC = () => {
-  const { login, loginAsMember, register } = useFamily();
+  const { login, loginWithGoogle, loginAsMember, register } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -54,9 +54,9 @@ export const AuthPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    setSuccessToast('Авторизация через Google OAuth 2.0 успешна!');
+    setSuccessToast('Авторизация через Google OAuth 2.0 (ilnarmanya@gmail.com) успешна!');
     setTimeout(() => {
-      login();
+      loginWithGoogle();
     }, 600);
   };
 
