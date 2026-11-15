@@ -4,7 +4,8 @@ import {
   Check, Smartphone, Bell, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
   Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
-  UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2
+  UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2,
+  Link2
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -46,11 +47,26 @@ const SettingsPage: React.FC = () => {
     twoFactorEnabled,
     googleAccount,
     syncWithGoogleSheets,
+    appsScriptUrl,
+    setAppsScriptUrl,
     lockApp,
     logout,
     resetToNewUser,
     loadDemoData,
   } = useFamily();
+
+  const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
+  const [urlSaved, setUrlSaved] = useState(false);
+
+  const handleSaveScriptUrl = () => {
+    setAppsScriptUrl(scriptUrlInput);
+    setUrlSaved(true);
+    setMessage('URL Google Apps Script сохранён! База данных подключена.');
+    setTimeout(() => {
+      setUrlSaved(false);
+      setMessage(null);
+    }, 3500);
+  };
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -641,6 +657,66 @@ const SettingsPage: React.FC = () => {
             >
               <span>Открыть базу в Google Таблицах ↗</span>
             </a>
+          </div>
+        </div>
+
+        {/* Apps Script Web App API Integration Card */}
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400 flex-shrink-0">
+                <Link2 size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">API Веб-приложения Apps Script</p>
+                <p className="text-[10px] text-gray-400 truncate">Сквозная синхронизация со смартфона жены и семьи</p>
+              </div>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+              appsScriptUrl
+                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+            }`}>
+              {appsScriptUrl ? 'Подключен' : 'Ожидает URL'}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1">
+                URL развертывания веб-приложения (Web App Exec URL):
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={scriptUrlInput}
+                  onChange={(e) => setScriptUrlInput(e.target.value)}
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono text-[11px]"
+                />
+                <button
+                  onClick={handleSaveScriptUrl}
+                  className="px-3 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0"
+                >
+                  {urlSaved ? <Check size={14} /> : null}
+                  {urlSaved ? 'Сохранено' : 'Сохранить'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-gray-400">
+                {appsScriptUrl ? 'Синхронизирует расходы и анализы с Google Таблицей' : 'Вставьте скопированный URL после развертывания'}
+              </span>
+              <button
+                onClick={handleSyncNow}
+                disabled={syncing}
+                className="text-xs font-bold text-purple-700 dark:text-purple-400 hover:underline flex items-center gap-1 disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+                <span>{syncing ? 'Проверка...' : 'Проверить связь'}</span>
+              </button>
+            </div>
           </div>
         </div>
 

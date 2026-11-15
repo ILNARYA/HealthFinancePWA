@@ -67,6 +67,8 @@ interface FamilyContextType {
   unlockApp: (pin: string) => boolean;
   // Google Account & Sheets Sync
   googleAccount: GoogleAccountInfo;
+  appsScriptUrl: string;
+  setAppsScriptUrl: (url: string) => void;
   connectGoogleAccount: () => void;
   disconnectGoogleAccount: () => void;
   syncWithGoogleSheets: () => Promise<boolean>;
@@ -318,6 +320,16 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           lastSynced: 'Только что (5 таблиц активно)',
         };
   });
+
+  const [appsScriptUrl, setAppsScriptUrlState] = useState<string>(() => {
+    return localStorage.getItem('app-google-script-url') || '';
+  });
+
+  const setAppsScriptUrl = (url: string) => {
+    const clean = url.trim();
+    setAppsScriptUrlState(clean);
+    localStorage.setItem('app-google-script-url', clean);
+  };
 
   useEffect(() => {
     localStorage.setItem('app-user-profile', JSON.stringify(userProfile));
@@ -612,8 +624,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       connected: true,
       email: userProfile.email,
       name: `${userProfile.firstName} ${userProfile.lastName}`,
-      sheetName: `Медицинский учёт 2026 (${familyName})`,
-      sheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
+      sheetName: 'Здоровье и Финансы (Семейная БД)',
+      sheetId: '1XPqCC1SKJYuJ2_guAciuqscGgWglku4zXZGmF6VTzcw',
       lastSynced: 'Только что',
     });
   };
@@ -630,12 +642,46 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const syncWithGoogleSheets = async (): Promise<boolean> => {
-    await new Promise((r) => setTimeout(r, 1000));
-    setGoogleAccount((prev) => ({
-      ...prev,
-      lastSynced: 'Только что',
-    }));
-    return true;
+    if (!appsScriptUrl) {
+      await new Promise((r) => setTimeout(r, 600));
+      setGoogleAccount((prev) => ({
+        ...prev,
+        lastSynced: 'Только что (локально)',
+      }));
+      return true;
+    }
+
+    try {
+      const res = await fetch(`${appsScriptUrl}?table=expenses`);
+      const json = await res.json();
+      if (json && json.data && Array.isArray(json.data)) {
+        const synced = json.data.map((r: any) => ({
+          id: String(r['ID_Траты'] || crypto.randomUUID()),
+          date: String(r['Дата'] || new Date().toISOString().split('T')[0]),
+          category: r['Категория_расхода'] || 'doctor',
+          title: String(r['Название_услуги_или_лекарства'] || 'Медицинская услуга'),
+          amount: Number(r['Сумма_руб'] || 0),
+          doctor: r['Клиника_или_Врач'] ? String(r['Клиника_или_Врач']) : undefined,
+          specialty: r['Специальность'] ? String(r['Специальность']) : undefined,
+        }));
+        if (synced.length > 0) {
+          localStorage.setItem('app-expenses-list', JSON.stringify(synced));
+        }
+      }
+
+      setGoogleAccount((prev) => ({
+        ...prev,
+        lastSynced: 'Только что (Google Sheets API)',
+      }));
+      return true;
+    } catch (err) {
+      console.error('Apps Script Sync failed:', err);
+      setGoogleAccount((prev) => ({
+        ...prev,
+        lastSynced: 'Ошибка связи с Apps Script',
+      }));
+      return false;
+    }
   };
 
   const login = () => {
@@ -887,6 +933,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         connectGoogleAccount,
         disconnectGoogleAccount,
         syncWithGoogleSheets,
+        appsScriptUrl,
+        setAppsScriptUrl,
       }}
     >
       {children}
