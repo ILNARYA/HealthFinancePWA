@@ -39,6 +39,9 @@ export interface Expense {
   date: string;
   doctor?: string;
   specialty?: string;
+  memberId?: string;
+  memberName?: string;
+  receiptImage?: string;
 }
 
 export interface Doctor {

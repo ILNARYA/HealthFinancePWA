@@ -69,13 +69,6 @@ const DashboardPage: React.FC = () => {
           >
             {isDark ? <Sun size={17} /> : <Moon size={17} />}
           </button>
-          <button
-            onClick={() => setShowFamilyModal(true)}
-            className="w-9 h-9 bg-purple-50 dark:bg-purple-950/60 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-400 shadow-sm border border-purple-100 dark:border-purple-900/50 transition-colors"
-            title="Семейный кабинет"
-          >
-            <Users size={17} />
-          </button>
         </div>
       </div>
 

@@ -3,13 +3,14 @@ import {
   Cloud, Table, HardDrive, Image, Upload,
   Check, Smartphone, Bell, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
-  Users, Lock, Fingerprint, EyeOff, Plus, KeyRound
+  Users, Lock, Fingerprint, EyeOff, Plus, KeyRound, QrCode
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
+import { TwoFactorAuthModal } from '../components/security/TwoFactorAuthModal';
 
 interface Connection {
   id: string;
@@ -33,11 +34,15 @@ const SettingsPage: React.FC = () => {
     setBiometricsEnabled,
     privacyMode,
     setPrivacyMode,
+    twoFactorEnabled,
+    googleAccount,
+    syncWithGoogleSheets,
     lockApp,
   } = useFamily();
 
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showPinChangeModal, setShowPinChangeModal] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
 
   const [connections, setConnections] = useState<Connection[]>([
@@ -78,14 +83,17 @@ const SettingsPage: React.FC = () => {
     );
   };
 
-  const handleSyncNow = () => {
+  const handleSyncNow = async () => {
     setSyncing(true);
     setSyncSuccess(false);
+    await syncWithGoogleSheets();
+    setSyncing(false);
+    setSyncSuccess(true);
+    setMessage(`Данные синхронизированы с Google Таблицей «${googleAccount.sheetName}»!`);
     setTimeout(() => {
-      setSyncing(false);
-      setSyncSuccess(true);
-      setTimeout(() => setSyncSuccess(false), 3000);
-    }, 1200);
+      setSyncSuccess(false);
+      setMessage(null);
+    }, 3500);
   };
 
   const handleExcelExport = () => {
@@ -266,10 +274,10 @@ const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-2.5 min-w-0">
               <KeyRound size={17} className="text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                  Защита 4-значным PIN-кодом
+                <p className="text-xs font-bold text-gray-900 dark:text-white">
+                  PIN-код (4 цифры)
                 </p>
-                <p className="text-[10px] text-gray-400">Запрос пароля при входе в приложение</p>
+                <p className="text-[10px] text-gray-400">Запрос пароля при входе в систему</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -297,8 +305,8 @@ const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-2.5 min-w-0">
               <Fingerprint size={17} className="text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                  Биометрия (Touch ID / Face ID)
+                <p className="text-xs font-bold text-gray-900 dark:text-white">
+                  Биометрия (Touch / Face ID)
                 </p>
                 <p className="text-[10px] text-gray-400">Мгновенный доступ по отпечатку</p>
               </div>
@@ -312,6 +320,37 @@ const SettingsPage: React.FC = () => {
               <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
                 biometricsEnabled ? 'translate-x-5.5' : 'translate-x-0.5'
               }`} />
+            </button>
+          </div>
+
+          {/* Google Authenticator (TOTP 2FA) */}
+          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50/50 dark:bg-[#1a202c]/40 border border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <QrCode size={17} className="text-purple-600 dark:text-purple-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-gray-900 dark:text-white">
+                    Google Authenticator
+                  </p>
+                  {twoFactorEnabled && (
+                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">
+                      Активен
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-400">Одноразовый 6-значный код TOTP при входе</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShow2FAModal(true)}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 flex-shrink-0 ${
+                twoFactorEnabled
+                  ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                  : 'bg-purple-700 text-white shadow-xs hover:bg-purple-800'
+              }`}
+            >
+              <QrCode size={12} />
+              <span>{twoFactorEnabled ? 'Настройки' : 'Подключить'}</span>
             </button>
           </div>
 
@@ -446,6 +485,26 @@ const SettingsPage: React.FC = () => {
             Сервисы Google
           </h3>
           <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">OAuth 2.0</span>
+        </div>
+
+        {/* Connected Google Profile Banner */}
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border border-purple-200/60 dark:border-purple-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-2xl bg-white dark:bg-[#1a202c] shadow-xs border border-purple-200 dark:border-purple-800/60 flex items-center justify-center font-black text-purple-700 dark:text-purple-300 text-sm flex-shrink-0">
+              G
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                {googleAccount.name} ({googleAccount.email})
+              </p>
+              <p className="text-[10px] text-purple-700 dark:text-purple-300 truncate mt-0.5">
+                База данных: «{googleAccount.sheetName}» · {googleAccount.lastSynced}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+            Онлайн
+          </span>
         </div>
 
         <div className="space-y-2.5">
@@ -616,6 +675,12 @@ const SettingsPage: React.FC = () => {
       <FamilySwitcherModal
         isOpen={showFamilyModal}
         onClose={() => setShowFamilyModal(false)}
+      />
+
+      {/* Two-Factor Authenticator Modal */}
+      <TwoFactorAuthModal
+        isOpen={show2FAModal}
+        onClose={() => setShow2FAModal(false)}
       />
     </div>
   );

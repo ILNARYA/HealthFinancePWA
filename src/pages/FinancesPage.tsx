@@ -4,13 +4,14 @@ import {
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet, Moon, Sun, Filter, Lock, Users
+  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera
 } from 'lucide-react';
 import { monthsData, demoDoctors, categoryLabels, categoryColors } from '../data/demo';
 import type { Expense } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
+import { ReceiptScannerModal } from '../components/finances/ReceiptScannerModal';
 
 const categoryIcons: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
   doctor: Stethoscope,
@@ -23,6 +24,7 @@ const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const { activeMember, lockApp } = useFamily();
   const [showFamilyModal, setShowFamilyModal] = useState(false);
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
   // Combine expenses across all months for state
   const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
@@ -158,6 +160,13 @@ const FinancesPage: React.FC = () => {
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
+            onClick={() => setShowReceiptScanner(true)}
+            className="w-9 h-9 bg-purple-100/90 dark:bg-purple-950/90 hover:bg-purple-200 text-purple-700 dark:text-purple-300 rounded-2xl flex items-center justify-center border border-purple-200 dark:border-purple-800 shadow-xs active:scale-95 transition-all"
+            title="Сфотографировать чек (OCR)"
+          >
+            <Camera size={18} />
+          </button>
+          <button
             onClick={lockApp}
             className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 hover:text-purple-600 dark:text-gray-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
             title="Заблокировать экран (PIN-код)"
@@ -174,7 +183,7 @@ const FinancesPage: React.FC = () => {
           <button
             onClick={() => setShowForm(true)}
             className="w-9 h-9 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25 active:scale-95 transition-all"
-            title="Добавить расход"
+            title="Добавить расход вручную"
           >
             <Plus size={20} />
           </button>
@@ -232,6 +241,24 @@ const FinancesPage: React.FC = () => {
               {expenses.filter((e) => e.category === 'analysis').reduce((s, e) => s + e.amount, 0).toLocaleString('ru-RU')} ₽
             </p>
           </div>
+        </div>
+
+        {/* Quick Camera Scan Action Button */}
+        <div className="mt-3.5 pt-3 border-t border-white/10 flex gap-2">
+          <button
+            onClick={() => setShowReceiptScanner(true)}
+            className="flex-1 py-2 px-3 bg-white/20 hover:bg-white/30 active:scale-98 transition-all rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 backdrop-blur-md text-white border border-white/20 shadow-sm"
+          >
+            <Camera size={14} className="text-purple-200" />
+            <span>Сфотографировать чек (ИИ)</span>
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="py-2 px-3 bg-white/10 hover:bg-white/20 active:scale-98 transition-all rounded-xl text-xs font-semibold flex items-center justify-center gap-1 text-purple-200 border border-white/10"
+          >
+            <Plus size={14} />
+            <span>Вручную</span>
+          </button>
         </div>
       </div>
 
@@ -346,7 +373,7 @@ const FinancesPage: React.FC = () => {
               <div
                 key={c.name}
                 onClick={() => setSelectedCategory(isSelected ? 'all' : c.key)}
-                className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                className={`flex flex-col gap-1 p-2 rounded-xl cursor-pointer transition-all duration-200 ${
                   isSelected
                     ? 'bg-purple-50 dark:bg-purple-950/70 border-2 border-purple-600 dark:border-purple-400 shadow-xs scale-[1.02]'
                     : 'bg-gray-50/70 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/70 border border-transparent'
@@ -354,18 +381,16 @@ const FinancesPage: React.FC = () => {
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: c.color }}
                   />
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
                     {c.name}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-400">
-                    {c.percentage}%
-                  </span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">
+                <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 pl-3.5">
+                  <span className="font-semibold text-purple-700 dark:text-purple-300">{c.percentage}%</span>
+                  <span className="font-black text-gray-900 dark:text-white">
                     {c.value.toLocaleString('ru-RU')} ₽
                   </span>
                 </div>
@@ -560,6 +585,13 @@ const FinancesPage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Receipt Camera & OCR Scanner Modal */}
+      <ReceiptScannerModal
+        isOpen={showReceiptScanner}
+        onClose={() => setShowReceiptScanner(false)}
+        onSaveExpense={(newExp) => setExpenses([newExp, ...expenses])}
+      />
+
       {/* Family Cabinet Switcher Modal */}
       <FamilySwitcherModal
         isOpen={showFamilyModal}
