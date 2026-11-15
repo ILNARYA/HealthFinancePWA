@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Wifi, Battery } from 'lucide-react';
 import BottomNav from './components/layout/BottomNav';
 import DashboardPage from './pages/DashboardPage';
@@ -61,9 +61,9 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <FamilyProvider>
-        <BrowserRouter>
+        <HashRouter>
           <AppContent />
-        </BrowserRouter>
+        </HashRouter>
       </FamilyProvider>
     </ThemeProvider>
   );

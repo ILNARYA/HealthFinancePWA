@@ -599,23 +599,47 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {/* Connected Google Profile Banner */}
-        <div className="mb-2.5 p-3.5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border border-purple-200/60 dark:border-purple-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-2xl bg-white dark:bg-[#1a202c] shadow-xs border border-purple-200 dark:border-purple-800/60 flex items-center justify-center font-black text-purple-700 dark:text-purple-300 text-sm flex-shrink-0">
-              G
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border border-purple-200/60 dark:border-purple-800/50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-2xl bg-white dark:bg-[#1a202c] shadow-xs border border-purple-200 dark:border-purple-800/60 flex items-center justify-center font-black text-purple-700 dark:text-purple-300 text-sm flex-shrink-0">
+                G
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                  {googleAccount.name} ({googleAccount.email})
+                </p>
+                <p className="text-[10px] text-purple-700 dark:text-purple-300 truncate mt-0.5">
+                  База данных: «{googleAccount.sheetName}»
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                {googleAccount.name} ({googleAccount.email})
-              </p>
-              <p className="text-[10px] text-purple-700 dark:text-purple-300 truncate mt-0.5">
-                База данных: «{googleAccount.sheetName}» · {googleAccount.lastSynced}
-              </p>
-            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+              5 таблиц онлайн
+            </span>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
-            Онлайн
-          </span>
+
+          <div className="bg-white/80 dark:bg-[#161b26]/80 rounded-2xl p-2.5 border border-purple-100 dark:border-purple-900/40 text-[10px] space-y-1.5">
+            <div className="flex items-center justify-between text-gray-500 dark:text-gray-400">
+              <span>Синхронизированные таблицы:</span>
+              <span className="font-bold text-purple-700 dark:text-purple-400">5 листов</span>
+            </div>
+            <div className="flex flex-wrap gap-1 text-[9px] font-semibold text-gray-600 dark:text-gray-300">
+              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Пользователи</span>
+              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Биомаркеры</span>
+              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Расходы</span>
+              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Score</span>
+              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Инвайты</span>
+            </div>
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${googleAccount.sheetId}/edit`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 w-full py-1.5 px-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold flex items-center justify-center gap-1 transition-all text-center block"
+            >
+              <span>Открыть базу в Google Таблицах ↗</span>
+            </a>
+          </div>
         </div>
 
         <div className="space-y-2.5">

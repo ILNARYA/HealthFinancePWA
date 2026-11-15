@@ -308,11 +308,11 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ? JSON.parse(saved)
       : {
           connected: true,
-          email: 'ilnar.yamaev@gmail.com',
+          email: 'ilnarmanya@gmail.com',
           name: 'Ильнар Ямаев',
-          sheetName: 'Медицинский учёт 2026 (Семейный)',
-          sheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
-          lastSynced: 'Только что',
+          sheetName: 'Здоровье и Финансы (Семейная БД)',
+          sheetId: '1XPqCC1SKJYuJ2_guAciuqscGgWglku4zXZGmF6VTzcw',
+          lastSynced: 'Только что (5 таблиц активно)',
         };
   });
 
