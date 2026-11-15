@@ -11,6 +11,12 @@ export interface GoogleAccountInfo {
 }
 
 interface FamilyContextType {
+  // Authentication & Session
+  isAuthenticated: boolean;
+  login: (credentials?: { email?: string; personalId?: string; password?: string }) => boolean;
+  loginAsMember: (personalIdOrId: string) => void;
+  register: (registrationData: Partial<UserProfile>) => void;
+  logout: () => void;
   // Current Adult User Profile (Individual cabinet)
   userProfile: UserProfile;
   updateUserProfile: (data: Partial<UserProfile>) => void;
@@ -240,6 +246,11 @@ const defaultInvites: FamilyInvite[] = [
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Authentication & Session
+  const [isAuthenticated, setIsAuthenticatedState] = useState<boolean>(() => {
+    return localStorage.getItem('app-is-authenticated') !== 'false';
+  });
+
   // Adult Personal Profile
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('app-user-profile');
@@ -624,11 +635,107 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return true;
   };
 
+  const login = () => {
+    setIsAuthenticatedState(true);
+    localStorage.setItem('app-is-authenticated', 'true');
+    return true;
+  };
+
+  const loginAsMember = (personalIdOrId: string) => {
+    const clean = personalIdOrId.trim().toUpperCase();
+    const foundRegistry = knownAdultRegistry.find(
+      (u) => u.personalId.toUpperCase() === clean || u.id.toLowerCase() === personalIdOrId.toLowerCase()
+    );
+    if (foundRegistry) {
+      setUserProfile(foundRegistry);
+      const correspondingMember = members.find(
+        (m) => m.personalId?.toUpperCase() === clean || m.name.toLowerCase() === foundRegistry.firstName.toLowerCase()
+      );
+      if (correspondingMember) {
+        setActiveMemberId(correspondingMember.id);
+      }
+    } else if (clean === 'MED-9402' || clean === 'ILNAR') {
+      setUserProfile(defaultUserProfile);
+      setActiveMemberId('ilnar');
+    }
+    setIsAuthenticatedState(true);
+    localStorage.setItem('app-is-authenticated', 'true');
+  };
+
+  const register = (data: Partial<UserProfile>) => {
+    const personalId = `MED-${Math.floor(1000 + Math.random() * 9000)}`;
+    const heightM = (data.height || 170) / 100;
+    const bmiVal = data.height && data.weight
+      ? Math.round((data.weight / (heightM * heightM)) * 10) / 10
+      : 22.0;
+
+    const newProfile: UserProfile = {
+      id: `user_${Date.now()}`,
+      personalId,
+      firstName: data.firstName || 'Новый',
+      lastName: data.lastName || 'Пользователь',
+      middleName: data.middleName || '',
+      email: data.email || 'user@gmail.com',
+      birthDate: data.birthDate || '1995-01-01',
+      birthYear: data.birthYear || 1995,
+      gender: data.gender || 'male',
+      height: data.height || 175,
+      weight: data.weight || 70,
+      bmi: bmiVal,
+      bloodType: data.bloodType || 'A(II) Rh+',
+      policyOMS: data.policyOMS || '1694 0000 0000 0000',
+      policyDMS: data.policyDMS || '',
+      avatar: `${(data.firstName || 'Н').slice(0, 1)}${(data.lastName || 'П').slice(0, 1)}`.toUpperCase(),
+      familyRole: 'head',
+      familyName: `Семья ${data.lastName || 'Новая'}`,
+      googleConnected: true,
+    };
+
+    setUserProfile(newProfile);
+
+    // Also add to members
+    const newMember: FamilyMember = {
+      id: newProfile.id,
+      name: newProfile.firstName,
+      lastName: newProfile.lastName,
+      personalId: newProfile.personalId,
+      role: 'head',
+      roleLabel: 'Глава семьи',
+      birthYear: newProfile.birthYear,
+      gender: newProfile.gender,
+      height: newProfile.height,
+      weight: newProfile.weight,
+      bmi: newProfile.bmi,
+      bloodType: newProfile.bloodType,
+      policyOMS: newProfile.policyOMS,
+      avatar: newProfile.avatar,
+      color: '#7c3aed',
+      healthScore: 90.0,
+      analysesCount: 0,
+      expensesTotal: 0,
+      inviteStatus: 'active',
+    };
+    setMembers((prev) => [newMember, ...prev]);
+    setActiveMemberId(newMember.id);
+    setIsAuthenticatedState(true);
+    localStorage.setItem('app-is-authenticated', 'true');
+  };
+
+  const logout = () => {
+    setIsAuthenticatedState(false);
+    localStorage.setItem('app-is-authenticated', 'false');
+  };
+
   const activeMember = members.find((m) => m.id === activeMemberId) || members[0];
 
   return (
     <FamilyContext.Provider
       value={{
+        isAuthenticated,
+        login,
+        loginAsMember,
+        register,
+        logout,
         userProfile,
         updateUserProfile,
         familyName,

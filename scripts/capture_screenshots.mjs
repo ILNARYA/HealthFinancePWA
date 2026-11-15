@@ -21,6 +21,37 @@ async function capture() {
   // Target width 375px (standard mobile width where user observed clipping)
   await page.setViewport({ width: 375, height: 812, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 
+  // 0a. Auth Page - Login Mode
+  console.log('Capturing Auth Screen - Login Mode...');
+  await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0', timeout: 15000 });
+  await page.evaluate(() => {
+    localStorage.setItem('app-is-authenticated', 'false');
+    localStorage.setItem('app-theme', 'light');
+    document.documentElement.classList.remove('dark');
+    document.body.classList.remove('dark');
+  });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await new Promise((r) => setTimeout(r, 600));
+  await page.screenshot({ path: path.join(outputDir, '13_auth_login.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '13_auth_login.png'), fullPage: false });
+
+  // 0b. Auth Page - Register Mode
+  console.log('Capturing Auth Screen - Register Mode...');
+  await page.evaluate(() => {
+    const regTab = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Регистрация'));
+    if (regTab) regTab.click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(outputDir, '14_auth_register.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '14_auth_register.png'), fullPage: false });
+
+  // Log in as Ilnar via 1-click demo button or Google
+  await page.evaluate(() => {
+    localStorage.setItem('app-is-authenticated', 'true');
+  });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await new Promise((r) => setTimeout(r, 600));
+
   // 1. Dashboard
   console.log('Capturing Dashboard...');
   await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0', timeout: 15000 });

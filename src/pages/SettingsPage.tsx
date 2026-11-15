@@ -4,7 +4,7 @@ import {
   Check, Smartphone, Bell, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
   Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
-  UserCheck, UserPlus, Baby, Sparkles
+  UserCheck, UserPlus, Baby, Sparkles, LogOut
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -47,6 +47,7 @@ const SettingsPage: React.FC = () => {
     googleAccount,
     syncWithGoogleSheets,
     lockApp,
+    logout,
   } = useFamily();
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -735,6 +736,32 @@ const SettingsPage: React.FC = () => {
               }`} />
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* 7. Logout / Exit Account */}
+      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-rose-100 dark:border-rose-900/30 card-animate transition-colors w-full">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+              <LogOut size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                Личный кабинет ({userProfile.personalId})
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-400 mt-0.5 truncate">
+                Выход на экран авторизации и регистрации
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1.5 transition-colors border border-rose-200 dark:border-rose-800 flex-shrink-0"
+          >
+            <LogOut size={13} />
+            <span>Выйти</span>
+          </button>
         </div>
       </div>
 

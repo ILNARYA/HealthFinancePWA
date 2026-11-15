@@ -7,10 +7,17 @@ import AnalysesPage from './pages/AnalysesPage';
 import FinancesPage from './pages/FinancesPage';
 import SettingsPage from './pages/SettingsPage';
 import { ThemeProvider } from './context/ThemeContext';
-import { FamilyProvider } from './context/FamilyContext';
+import { FamilyProvider, useFamily } from './context/FamilyContext';
 import { PinLockModal } from './components/security/PinLockModal';
+import { AuthPage } from './pages/AuthPage';
 
 const AppContent: React.FC = () => {
+  const { isAuthenticated } = useFamily();
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#0b0f19] text-gray-900 dark:text-white relative shadow-2xl mx-auto w-full max-w-[412px] overflow-x-hidden border-x border-purple-100/30 dark:border-purple-900/20 transition-colors">
       {/* iOS-style Status Bar with non-colliding Dynamic Island */}
