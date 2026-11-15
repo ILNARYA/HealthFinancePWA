@@ -4,87 +4,158 @@ import HealthIndex from '../components/dashboard/HealthIndex';
 import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
-import { demoHealthScore, demoBiomarkers, demoExpenses, demoHealthTrend } from '../data/demo';
-import type { PeriodType } from '../types';
-import { Activity, Bell, Sparkles } from 'lucide-react';
+import { monthsData, demoHealthTrend } from '../data/demo';
+import { Activity, Bell, Sparkles, Moon, Sun, Layers, BarChart3 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const DashboardPage: React.FC = () => {
-  const [period, setPeriod] = useState<PeriodType>('All');
+  const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
+  const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
+  const { isDark, toggleTheme } = useTheme();
+
+  const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
 
   return (
-    <div className="px-4 pt-4 pb-6 flex flex-col gap-4">
-      {/* Top App Header */}
-      <div className="flex items-center justify-between pt-2">
+    <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
+      {/* Top Header with Profile and Dark Mode Switcher */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-700 to-purple-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-purple-500/20">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-700 to-purple-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-purple-500/25">
             ИЯ
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="text-base font-extrabold text-gray-900 tracking-tight">
+              <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
                 Привет, Ильнар
               </h1>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-100">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
                 <Sparkles size={9} /> Норма
               </span>
             </div>
-            <p className="text-xs text-gray-400 font-medium">Ноябрь 2026 · Данные синхронизированы</p>
+            <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">
+              {currentMonth.label} · Анализы учтены
+            </p>
           </div>
         </div>
-        <button
-          className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-gray-400 hover:text-purple-700 shadow-sm border border-gray-100 transition-colors"
-          title="Уведомления"
-        >
-          <Bell size={18} />
-        </button>
+
+        <div className="flex items-center gap-2">
+          {/* Dark Mode Quick Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 dark:text-yellow-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            title={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
+          >
+            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+          <button
+            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            title="Уведомления"
+          >
+            <Bell size={17} />
+          </button>
+        </div>
       </div>
 
-      {/* 1. Radar Score Breakdown matching healthcare_2.png */}
-      <HealthIndex
-        score={demoHealthScore}
-        period={period}
-        onPeriodChange={setPeriod}
+      {/* Primary Visual Zone: Charts side-by-side switcher ("диаграмму паука" и графики рядом) */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+            Оценка показателей здоровья
+          </span>
+
+          {/* Quick tab switcher between Spider Radar & Range Dynamics */}
+          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
+            <button
+              onClick={() => setActiveChartTab('radar')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                activeChartTab === 'radar'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Layers size={11} />
+              <span>Паук (Score)</span>
+            </button>
+            <button
+              onClick={() => setActiveChartTab('range')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                activeChartTab === 'range'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <BarChart3 size={11} />
+              <span>Диапазоны</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Dynamic active chart view */}
+        {activeChartTab === 'radar' ? (
+          <HealthIndex
+            score={currentMonth.score}
+            selectedMonthId={selectedMonthId}
+            onMonthChange={setSelectedMonthId}
+            availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+          />
+        ) : (
+          <div className="space-y-3">
+            <BiomarkerRangeChart />
+            {/* Quick switcher back or month info */}
+            <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
+              <span className="text-purple-900 dark:text-purple-200 font-semibold">
+                Выбран месяц: {currentMonth.label}
+              </span>
+              <button
+                onClick={() => setActiveChartTab('radar')}
+                className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
+              >
+                К радар-диаграмме →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Monthly Medical Finance Card */}
+      <SpendingSummary
+        expenses={currentMonth.expenses}
+        monthLabel={currentMonth.label}
       />
 
-      {/* 2. Monthly Medical Finance Card */}
-      <SpendingSummary expenses={demoExpenses} />
-
-      {/* 3. Range Dynamics Chart matching healthcare_1.webp right-hand card */}
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            Динамика электролитов
-          </h3>
-          <span className="text-[11px] font-semibold text-purple-700">eGFR & K+</span>
-        </div>
-        <BiomarkerRangeChart />
-      </div>
-
-      {/* 4. Biomarkers Grid / List matching healthcare_1.webp */}
+      {/* Key Biomarkers of the selected month */}
       <div>
         <div className="flex items-center justify-between mb-2.5 px-1">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            Ключевые биомаркеры
-          </h3>
-          <span className="text-xs font-semibold text-purple-700">4 показателя</span>
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+              Показатели анализов крови ({currentMonth.label})
+            </h3>
+            <p className="text-[11px] text-gray-400 dark:text-gray-400">
+              {currentMonth.notes}
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
+            {currentMonth.biomarkers.length} пок.
+          </span>
         </div>
-        <div className="space-y-3">
-          {demoBiomarkers.map((bio) => (
+
+        <div className="space-y-2.5">
+          {currentMonth.biomarkers.map((bio) => (
             <BiomarkerCard key={bio.id} biomarker={bio} />
           ))}
         </div>
       </div>
 
-      {/* 5. Health Index Trend Line Chart */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-purple-100/60 card-animate">
+      {/* 6-Month Trend Line Chart */}
+      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
               Динамика индекса здоровья
             </h3>
-            <p className="text-[11px] text-gray-400">За последние 6 месяцев (+6.1 п.)</p>
+            <p className="text-[11px] text-gray-400 dark:text-gray-400">За последние 6 месяцев (+8.8 п.)</p>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-700">
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
             <Activity size={18} />
           </div>
         </div>
@@ -92,7 +163,7 @@ const DashboardPage: React.FC = () => {
         <div className="h-[140px] -mx-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={demoHealthTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-gray-800" vertical={false} />
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
@@ -100,7 +171,7 @@ const DashboardPage: React.FC = () => {
                 tickLine={false}
               />
               <YAxis
-                domain={[78, 92]}
+                domain={[76, 92]}
                 tick={{ fontSize: 10, fill: '#94a3b8' }}
                 axisLine={false}
                 tickLine={false}

@@ -5,9 +5,10 @@ import type { Expense } from '../../types';
 
 interface Props {
   expenses: Expense[];
+  monthLabel: string;
 }
 
-const SpendingSummary: React.FC<Props> = ({ expenses }) => {
+const SpendingSummary: React.FC<Props> = ({ expenses, monthLabel }) => {
   const navigate = useNavigate();
   const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
   const doctorExpenses = expenses.filter((e) => e.category === 'doctor').reduce((s, e) => s + e.amount, 0);
@@ -15,9 +16,8 @@ const SpendingSummary: React.FC<Props> = ({ expenses }) => {
   const medicineExpenses = expenses.filter((e) => e.category === 'medicine').reduce((s, e) => s + e.amount, 0);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl p-5 shadow-lg card-animate text-white bg-gradient-to-br from-purple-800 via-purple-700 to-indigo-900 border border-purple-400/20">
-      {/* Background ambient blur circles */}
-      <div className="absolute -top-12 -right-12 w-36 h-36 bg-purple-400/30 rounded-full blur-2xl pointer-events-none" />
+    <div className="relative overflow-hidden rounded-3xl p-5 shadow-lg card-animate text-white bg-gradient-to-br from-purple-800 via-purple-700 to-indigo-900 dark:from-purple-950 dark:via-purple-900 dark:to-slate-950 border border-purple-400/25 dark:border-purple-500/30">
+      <div className="absolute -top-12 -right-12 w-36 h-36 bg-purple-400/20 rounded-full blur-2xl pointer-events-none" />
       <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-xl pointer-events-none" />
 
       <div className="relative z-10">
@@ -26,12 +26,12 @@ const SpendingSummary: React.FC<Props> = ({ expenses }) => {
             <div className="w-8 h-8 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center">
               <CreditCard size={18} className="text-purple-200" />
             </div>
-            <span className="text-xs font-semibold text-purple-200 uppercase tracking-wider">
+            <span className="text-xs font-bold text-purple-200 uppercase tracking-wider">
               Медицинские траты
             </span>
           </div>
-          <span className="text-[11px] font-medium bg-white/10 px-2.5 py-0.5 rounded-full text-purple-100">
-            Ноябрь 2026
+          <span className="text-[11px] font-bold bg-white/10 px-2.5 py-0.5 rounded-full text-purple-100">
+            {monthLabel}
           </span>
         </div>
 
@@ -41,12 +41,12 @@ const SpendingSummary: React.FC<Props> = ({ expenses }) => {
           </div>
           <div className="flex items-center gap-1 text-emerald-300 text-xs font-bold bg-emerald-500/20 px-2 py-0.5 rounded-lg">
             <TrendingUp size={13} />
-            <span>+12%</span>
+            <span>{expenses.length} операций</span>
           </div>
         </div>
 
-        <p className="text-xs text-purple-200 mb-4 font-normal">
-          Расходы на врачей, анализы и лечение за текущий месяц
+        <p className="text-xs text-purple-200/90 mb-4 font-normal">
+          Расходы на приёмы врачей, анализы и лечение за выбранный месяц
         </p>
 
         {/* Breakdown mini cards */}
@@ -60,7 +60,7 @@ const SpendingSummary: React.FC<Props> = ({ expenses }) => {
             <p className="text-xs font-bold">{analysisExpenses.toLocaleString('ru-RU')} ₽</p>
           </div>
           <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
-            <p className="text-[10px] text-purple-200 font-medium mb-0.5">Лекарства</p>
+            <p className="text-[10px] text-purple-200 font-medium mb-0.5">Препараты</p>
             <p className="text-xs font-bold">{medicineExpenses.toLocaleString('ru-RU')} ₽</p>
           </div>
         </div>

@@ -1,24 +1,34 @@
 // === TYPES ===
 
+export type BiomarkerCategory =
+  | 'metabolism'    // Диета и метаболизм
+  | 'sleepRecovery' // Сон и клеточное восстановление (Вит D, ферритин)
+  | 'immune'        // Иммунитет и воспаление
+  | 'kidney'        // Почки и водно-электролитный баланс
+  | 'liver'         // Печень и детоксикация
+  | 'blood';        // Кроветворение и кислородный обмен
+
 export interface Biomarker {
   id: string;
   name: string;
+  category: BiomarkerCategory;
   value: number;
   unit: string;
   refMin: number;
   refMax: number;
   date: string;
   status: 'in-range' | 'below' | 'above';
+  clinicalNote?: string;
 }
 
 export interface HealthScore {
-  calorie: number;
-  bmi: number;
-  bpm: number;
-  hydration: number;
-  sleep: number;
-  steps: number;
-  overall: number;
+  metabolism: number;    // Диета & Метаболизм (Глюкоза, Холестерин, Мочевая к-та)
+  sleepRecovery: number; // Сон & Восстановление (Вит D3, Ферритин, Магний)
+  immune: number;        // Иммунитет & Воспаление (Лейкоциты, СОЭ, СРБ)
+  kidney: number;        // Почки & Электролиты (Креатинин, eGFR, Мочевина)
+  liver: number;         // Печень & Детокс (АЛТ, АСТ, Билирубин)
+  blood: number;         // Кроветворение & O2 (Гемоглобин, Эритроциты, Тромбоциты)
+  overall: number;       // Композитный индекс здоровья (0 - 100)
 }
 
 export interface Expense {
@@ -53,6 +63,15 @@ export interface AnalysisResult {
 export interface HealthTrend {
   date: string;
   score: number;
+}
+
+export interface MonthData {
+  id: string;
+  label: string;
+  score: HealthScore;
+  biomarkers: Biomarker[];
+  expenses: Expense[];
+  notes: string;
 }
 
 export type TabType = 'dashboard' | 'analyses' | 'finances' | 'settings';

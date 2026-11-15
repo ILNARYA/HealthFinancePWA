@@ -4,10 +4,11 @@ import {
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet
+  Trash2, Wallet, Moon, Sun
 } from 'lucide-react';
-import { demoExpenses, demoDoctors, categoryLabels, categoryColors } from '../data/demo';
+import { monthsData, demoDoctors, categoryLabels, categoryColors } from '../data/demo';
 import type { Expense } from '../types';
+import { useTheme } from '../context/ThemeContext';
 
 const categoryIcons: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
   doctor: Stethoscope,
@@ -17,7 +18,11 @@ const categoryIcons: Record<string, React.ComponentType<{ size?: number; classNa
 };
 
 const FinancesPage: React.FC = () => {
-  const [expenses, setExpenses] = useState<Expense[]>(demoExpenses);
+  const { isDark, toggleTheme } = useTheme();
+
+  // Combine expenses across all months for state
+  const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
+  const [expenses, setExpenses] = useState<Expense[]>(monthsData[0].expenses);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,6 +32,14 @@ const FinancesPage: React.FC = () => {
     doctor: '',
     specialty: '',
   });
+
+  const handleMonthChange = (monthId: string) => {
+    setSelectedMonth(monthId);
+    const m = monthsData.find((item) => item.id === monthId);
+    if (m) {
+      setExpenses(m.expenses);
+    }
+  };
 
   const filteredExpenses = selectedCategory === 'all'
     ? expenses
@@ -63,34 +76,65 @@ const FinancesPage: React.FC = () => {
     setExpenses(expenses.filter((e) => e.id !== id));
   };
 
+  const currentMonthObj = monthsData.find((m) => m.id === selectedMonth) || monthsData[0];
+
   return (
-    <div className="px-4 pt-4 pb-6 flex flex-col gap-4">
+    <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Финансы и врачи
           </h1>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Учёт медицинских чеков, анализов и приемов специалистов
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-10 h-10 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25 active:scale-95 transition-all"
-          title="Добавить расход"
-        >
-          <Plus size={22} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 dark:text-yellow-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            title={isDark ? 'Светлая тема' : 'Тёмная тема'}
+          >
+            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-9 h-9 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25 active:scale-95 transition-all"
+            title="Добавить расход"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Month Filter Bar */}
+      <div className="flex items-center justify-between bg-gray-100/80 dark:bg-[#1e2433] rounded-2xl p-1 border border-gray-200/50 dark:border-gray-700/50">
+        {monthsData.map((m) => {
+          const isSelected = selectedMonth === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => handleMonthChange(m.id)}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all duration-200 ${
+                isSelected
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.02]'
+                  : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              {m.label.split(' ')[0]}
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Gradient Spending Card */}
-      <div className="relative overflow-hidden rounded-3xl p-5 shadow-lg card-animate text-white bg-gradient-to-br from-purple-800 via-purple-700 to-indigo-900 border border-purple-400/20">
+      <div className="relative overflow-hidden rounded-3xl p-5 shadow-lg card-animate text-white bg-gradient-to-br from-purple-800 via-purple-700 to-indigo-900 dark:from-purple-950 dark:via-purple-900 dark:to-slate-950 border border-purple-400/20 dark:border-purple-500/30">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Wallet size={16} className="text-purple-200" />
             <span className="text-xs font-semibold text-purple-200 uppercase tracking-wider">
-              Всего за ноябрь 2026
+              {currentMonthObj.label}
             </span>
           </div>
           <span className="text-[11px] font-bold bg-white/10 px-2 py-0.5 rounded-full text-purple-100">
@@ -119,12 +163,12 @@ const FinancesPage: React.FC = () => {
       </div>
 
       {/* Category Donut Chart */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-purple-100/60 card-animate">
+      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
             Структура расходов
           </h3>
-          <span className="text-[11px] font-medium text-gray-400">4 категории</span>
+          <span className="text-[11px] font-medium text-gray-400">{categoryTotals.length} категории</span>
         </div>
 
         <div className="h-[170px] -mx-4">
@@ -162,20 +206,22 @@ const FinancesPage: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 dark:border-gray-800">
           {categoryTotals.map((c) => (
             <div
               key={c.name}
               onClick={() => setSelectedCategory(selectedCategory === c.key ? 'all' : c.key)}
               className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${
-                selectedCategory === c.key ? 'bg-purple-50 border border-purple-200' : 'hover:bg-gray-50'
+                selectedCategory === c.key
+                  ? 'bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'
               }`}
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                <span className="text-xs font-medium text-gray-700 truncate">{c.name}</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{c.name}</span>
               </div>
-              <span className="text-xs font-bold text-gray-900">{c.value.toLocaleString('ru-RU')} ₽</span>
+              <span className="text-xs font-bold text-gray-900 dark:text-white">{c.value.toLocaleString('ru-RU')} ₽</span>
             </div>
           ))}
         </div>
@@ -183,37 +229,37 @@ const FinancesPage: React.FC = () => {
 
       {/* Doctors Directory */}
       <div>
-        <div className="flex items-center justify-between mb-2.5 px-1">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
             Мои врачи и клиники
           </h3>
-          <span className="text-xs font-semibold text-purple-700">4 специалиста</span>
+          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">4 специалиста</span>
         </div>
 
         <div className="space-y-2.5">
           {demoDoctors.map((doc) => (
             <div
               key={doc.id}
-              className="bg-white rounded-3xl p-3.5 shadow-sm border border-purple-100/60 flex items-center gap-3 card-animate hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-[#161b26] rounded-3xl p-3.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 flex items-center gap-3 card-animate hover:shadow-md transition-all"
             >
-              <div className="w-11 h-11 bg-purple-50 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border border-purple-100">
+              <div className="w-11 h-11 bg-purple-50 dark:bg-purple-950/60 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border border-purple-100 dark:border-purple-900/50">
                 {doc.avatar}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-gray-900 truncate">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                   {doc.name}
                 </p>
-                <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
-                  <span className="text-purple-700 font-semibold">{doc.specialty}</span>
+                <div className="flex items-center gap-2 text-[11px] text-gray-400 dark:text-gray-400 mt-0.5">
+                  <span className="text-purple-700 dark:text-purple-400 font-semibold">{doc.specialty}</span>
                   <span>•</span>
                   <span>{doc.visits} визита</span>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-xs font-black text-gray-900">
+                <p className="text-xs font-black text-gray-900 dark:text-white">
                   {doc.totalSpent.toLocaleString('ru-RU')} ₽
                 </p>
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-gray-400 dark:text-gray-400">
                   {doc.lastVisit}
                 </p>
               </div>
@@ -224,14 +270,14 @@ const FinancesPage: React.FC = () => {
 
       {/* Expenses History List */}
       <div>
-        <div className="flex items-center justify-between mb-2.5 px-1">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            История расходов ({filteredExpenses.length})
+        <div className="flex items-center justify-between mb-2 px-1">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+            История операций ({filteredExpenses.length})
           </h3>
           {selectedCategory !== 'all' && (
             <button
               onClick={() => setSelectedCategory('all')}
-              className="text-xs font-semibold text-purple-700 underline"
+              className="text-xs font-semibold text-purple-700 dark:text-purple-400 underline"
             >
               Показать все
             </button>
@@ -244,7 +290,7 @@ const FinancesPage: React.FC = () => {
             return (
               <div
                 key={exp.id}
-                className="bg-white rounded-2xl p-3 shadow-sm border border-purple-100/50 flex items-center gap-3 card-animate group hover:border-purple-200 transition-colors"
+                className="bg-white dark:bg-[#161b26] rounded-2xl p-3 shadow-sm border border-purple-100/50 dark:border-purple-500/20 flex items-center gap-3 card-animate group hover:border-purple-200 transition-colors"
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -253,15 +299,15 @@ const FinancesPage: React.FC = () => {
                   <Icon size={18} style={{ color: categoryColors[exp.category] }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 truncate">
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                     {exp.title}
                   </p>
-                  <p className="text-[11px] text-gray-400 truncate">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-400 truncate">
                     {exp.date} {exp.doctor ? `· ${exp.doctor}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-gray-900 whitespace-nowrap">
+                  <span className="text-xs font-black text-gray-900 dark:text-white whitespace-nowrap">
                     −{exp.amount.toLocaleString('ru-RU')} ₽
                   </span>
                   <button
@@ -281,23 +327,22 @@ const FinancesPage: React.FC = () => {
       {/* Add Expense Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-[390px] bg-white rounded-t-3xl p-6 animate-slide-up shadow-2xl">
+          <div className="w-full max-w-[390px] bg-white dark:bg-[#161b26] rounded-t-3xl p-6 animate-slide-up shadow-2xl border-t border-purple-500/20">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-extrabold text-gray-900">
-                Новый медицинский расход
+              <h2 className="text-base font-extrabold text-gray-900 dark:text-white">
+                Новый медицинский чек
               </h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-500 transition-colors"
+                className="w-8 h-8 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              {/* Category selector */}
               <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1.5">Категория</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1.5">Категория</label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {(Object.keys(categoryLabels) as Expense['category'][]).map((cat) => {
                     const Icon = categoryIcons[cat] || Stethoscope;
@@ -309,8 +354,8 @@ const FinancesPage: React.FC = () => {
                         onClick={() => setFormData({ ...formData, category: cat })}
                         className={`flex flex-col items-center gap-1 p-2 rounded-2xl border text-[10px] font-semibold transition-all ${
                           isSelected
-                            ? 'border-purple-600 bg-purple-50 text-purple-700 shadow-xs'
-                            : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                            ? 'border-purple-600 bg-purple-50 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 shadow-xs'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                       >
                         <Icon size={16} />
@@ -322,37 +367,37 @@ const FinancesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1">Название услуги или лекарства</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Название услуги или препарата</label>
                 <input
                   type="text"
-                  placeholder="Например: Прием эндокринолога"
+                  placeholder="Например: Биохимия крови"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a202c] text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1">Сумма (₽)</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Сумма (₽)</label>
                 <input
                   type="number"
-                  placeholder="3 500"
+                  placeholder="3 200"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a202c] text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1">Врач или медицинский центр</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Врач или медицинский центр</label>
                 <input
                   type="text"
-                  placeholder="Например: Петров М.В. / Инвитро"
+                  placeholder="Инвитро / Д-р Иванов"
                   value={formData.doctor}
                   onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a202c] text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
 

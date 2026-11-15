@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-purple-50: #faf5ff;
   --color-purple-100: #f3e8ff;
@@ -46,6 +48,11 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  transition: background-color 0.3s ease;
+}
+
+body.dark {
+  background: linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%);
 }
 
 #root {
@@ -69,12 +76,12 @@ body {
 
 /* Range indicator animations */
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .card-animate {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.25s ease-out;
 }
 
 /* Bottom nav safe area */

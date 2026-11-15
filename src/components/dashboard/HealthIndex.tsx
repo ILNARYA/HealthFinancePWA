@@ -7,67 +7,134 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from 'recharts';
-import { HelpCircle, ChevronLeft } from 'lucide-react';
-import type { HealthScore, PeriodType } from '../../types';
-import PeriodSelector from './PeriodSelector';
+import { HelpCircle, Calendar } from 'lucide-react';
+import type { HealthScore } from '../../types';
 
 interface Props {
   score: HealthScore;
-  period: PeriodType;
-  onPeriodChange: (p: PeriodType) => void;
+  selectedMonthId: string;
+  onMonthChange: (monthId: string) => void;
+  availableMonths: { id: string; label: string }[];
 }
 
-const HealthIndex: React.FC<Props> = ({ score, period, onPeriodChange }) => {
+const HealthIndex: React.FC<Props> = ({
+  score,
+  selectedMonthId,
+  onMonthChange,
+  availableMonths,
+}) => {
   const [showInfo, setShowInfo] = useState(false);
 
+  // Radar data based strictly on clinical blood test biomarker categories
   const radarData = [
-    { subject: 'Калории', wellness: score.calorie, sleep: 68, endurance: 84, fullMark: 100 },
-    { subject: 'ИМТ', wellness: score.bmi, sleep: 70, endurance: 88, fullMark: 100 },
-    { subject: 'Пульс', wellness: score.bpm, sleep: 85, endurance: 74, fullMark: 100 },
-    { subject: 'Гидратация', wellness: score.hydration, sleep: 78, endurance: 72, fullMark: 100 },
-    { subject: 'Сон', wellness: 82, sleep: score.sleep, endurance: 79, fullMark: 100 },
-    { subject: 'Шаги', wellness: 88, sleep: 62, endurance: score.steps, fullMark: 100 },
+    {
+      subject: 'Диета & Метаболизм',
+      user: score.metabolism,
+      target: 92,
+      fullMark: 100,
+      note: 'Глюкоза, Липиды, Мочевая кислота',
+    },
+    {
+      subject: 'Сон & Восстановление',
+      user: score.sleepRecovery,
+      target: 90,
+      fullMark: 100,
+      note: 'Витамин D3, Ферритин, Магний',
+    },
+    {
+      subject: 'Иммунитет & Воспаление',
+      user: score.immune,
+      target: 95,
+      fullMark: 100,
+      note: 'Лейкоциты, СОЭ, СРБ',
+    },
+    {
+      subject: 'Почки & Баланс',
+      user: score.kidney,
+      target: 94,
+      fullMark: 100,
+      note: 'eGFR, Креатинин, Мочевина, Калий',
+    },
+    {
+      subject: 'Печень & Детокс',
+      user: score.liver,
+      target: 90,
+      fullMark: 100,
+      note: 'АЛТ, АСТ, Билирубин, ЩФ',
+    },
+    {
+      subject: 'Кроветворение & O2',
+      user: score.blood,
+      target: 95,
+      fullMark: 100,
+      note: 'Гемоглобин, Эритроциты, Тромбоциты',
+    },
   ];
 
   return (
-    <div className="bg-white rounded-3xl p-5 shadow-sm border border-purple-100/60 card-animate relative overflow-hidden">
+    <div className="bg-white dark:bg-[#161b26] rounded-3xl p-5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate relative overflow-visible transition-colors">
       {/* Header bar matching healthcare_2.png */}
       <div className="flex items-center justify-between mb-2">
-        <button
-          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-          title="Назад"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <h2 className="text-sm font-bold text-gray-900 tracking-tight">
+        <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+          <Calendar size={15} className="text-purple-600 dark:text-purple-400" />
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+            Разбор анализов
+          </span>
+        </div>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
           Score Breakdown
         </h2>
         <button
           onClick={() => setShowInfo(!showInfo)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-purple-700 hover:bg-purple-50 transition-colors"
-          title="Справка"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors"
+          title="Справка по научной группировке"
         >
           <HelpCircle size={18} />
         </button>
       </div>
 
       {showInfo && (
-        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-3 mb-3 text-xs text-purple-900 animate-slide-up">
-          <p className="font-semibold mb-1">Как рассчитывается индекс?</p>
-          <p className="text-[11px] leading-relaxed text-purple-700">
-            Индекс здоровья объединяет 6 ключевых факторов: калораж, состав тела (ИМТ), сердечный ритм (BPM), гидратацию, качество сна и физическую активность (шаги).
+        <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 rounded-2xl p-3.5 mb-3 text-xs animate-slide-up">
+          <p className="font-bold text-purple-950 dark:text-purple-200 mb-1">
+            Клиническая модель индекса здоровья (PubMed / Спектр биомаркеров):
           </p>
+          <ul className="text-[11px] leading-relaxed text-purple-800 dark:text-purple-300 space-y-1 list-disc list-inside">
+            <li><strong>Диета & Метаболизм:</strong> липидный профиль и гликемия.</li>
+            <li><strong>Сон & Восстановление:</strong> Витамин D3 и ферритин (доказанная связь со структурой фаз сна и ночным восстановлением).</li>
+            <li><strong>Иммунитет & Воспаление:</strong> клеточный ответ (лейкоцитарный профиль, СОЭ).</li>
+            <li><strong>Почки, Печень & Кровь:</strong> ключевые биохимические маркеры гомеостаза.</li>
+          </ul>
         </div>
       )}
 
-      {/* Hexagonal Radar Chart */}
-      <div className="h-[250px] -mx-4 my-1">
+      {/* Month Selector Tabs */}
+      <div className="flex items-center justify-between bg-gray-100/80 dark:bg-[#1e2433] rounded-2xl p-1 mb-2 border border-gray-200/50 dark:border-gray-700/50">
+        {availableMonths.map((m) => {
+          const isSelected = selectedMonthId === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => onMonthChange(m.id)}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all duration-200 ${
+                isSelected
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.02]'
+                  : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              {m.label.split(' ')[0]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Hexagonal Radar Chart based on lab results */}
+      <div className="h-[230px] -mx-3 my-1">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="68%">
-            <PolarGrid stroke="#e2e8f0" strokeDasharray="2 2" />
+          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="66%">
+            <PolarGrid stroke="#e2e8f0" strokeDasharray="2 2" className="dark:stroke-gray-700/60" />
             <PolarAngleAxis
               dataKey="subject"
-              tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+              tick={{ fontSize: 9.5, fill: '#64748b', fontWeight: 600 }}
             />
             <PolarRadiusAxis
               angle={30}
@@ -75,66 +142,56 @@ const HealthIndex: React.FC<Props> = ({ score, period, onPeriodChange }) => {
               tick={false}
               axisLine={false}
             />
-            {/* Wellness (Teal/Emerald) */}
+            {/* Target optimal envelope */}
             <Radar
-              name="Wellness"
-              dataKey="wellness"
+              name="Оптимум нормы"
+              dataKey="target"
               stroke="#10b981"
               fill="#10b981"
-              fillOpacity={0.12}
-              strokeWidth={2}
-            />
-            {/* Sleep (Slate) */}
-            <Radar
-              name="Сон"
-              dataKey="sleep"
-              stroke="#64748b"
-              fill="#64748b"
               fillOpacity={0.08}
               strokeWidth={1.5}
             />
-            {/* Endurance (Vibrant Purple) */}
+            {/* Current user laboratory profile */}
             <Radar
-              name="Выносливость"
-              dataKey="endurance"
+              name="Ваш профиль анализов"
+              dataKey="user"
               stroke="#7c3aed"
               fill="#7c3aed"
-              fillOpacity={0.18}
-              strokeWidth={2}
+              fillOpacity={0.22}
+              strokeWidth={2.5}
             />
           </RadarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Big Score matching healthcare_2.png */}
-      <div className="text-center pt-1 pb-3">
-        <div className="text-6xl font-black text-gray-900 tracking-tight leading-none">
-          88,2
+      <div className="text-center pt-1 pb-2">
+        <div className="text-6xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+          {score.overall.toFixed(1).replace('.', ',')}
         </div>
-        <p className="text-xs font-medium text-gray-600 mt-2">
-          Отличное состояние здоровья
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mt-2">
+          {score.overall >= 85
+            ? 'Отличное состояние здоровья'
+            : score.overall >= 80
+            ? 'Хорошее состояние, есть маркеры для контроля'
+            : 'Требуется внимание к отклонениям'}
         </p>
 
-        {/* Legend matching healthcare_2.png */}
+        {/* Legend */}
         <div className="flex items-center justify-center gap-4 mt-3">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#10b981]" />
-            <span className="text-[11px] font-semibold text-gray-600">Wellness</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] dark:bg-[#a855f7]" />
+            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+              Ваши анализы
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#64748b]" />
-            <span className="text-[11px] font-semibold text-gray-600">Сон</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#7c3aed]" />
-            <span className="text-[11px] font-semibold text-gray-600">Выносливость</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
+            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+              Целевая норма
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* Segmented Period Selector matching healthcare_2.png */}
-      <div className="mt-1">
-        <PeriodSelector selected={period} onChange={onPeriodChange} />
       </div>
     </div>
   );
