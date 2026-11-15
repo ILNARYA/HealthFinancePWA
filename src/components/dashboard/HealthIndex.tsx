@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Radar,
   RadarChart,
@@ -6,37 +6,68 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
-import type { HealthScore } from '../../types';
+import { HelpCircle, ChevronLeft } from 'lucide-react';
+import type { HealthScore, PeriodType } from '../../types';
+import PeriodSelector from './PeriodSelector';
 
 interface Props {
   score: HealthScore;
+  period: PeriodType;
+  onPeriodChange: (p: PeriodType) => void;
 }
 
-const HealthIndex: React.FC<Props> = ({ score }) => {
+const HealthIndex: React.FC<Props> = ({ score, period, onPeriodChange }) => {
+  const [showInfo, setShowInfo] = useState(false);
+
   const radarData = [
-    { subject: 'Калории', wellness: score.calorie, sleep: Math.round(score.calorie * 0.8), endurance: Math.round(score.calorie * 0.9), fullMark: 100 },
-    { subject: 'BMI', wellness: score.bmi, sleep: Math.round(score.bmi * 0.7), endurance: Math.round(score.bmi * 0.85), fullMark: 100 },
-    { subject: 'Пульс', wellness: score.bpm, sleep: Math.round(score.bpm * 0.9), endurance: Math.round(score.bpm * 0.75), fullMark: 100 },
-    { subject: 'Гидратация', wellness: score.hydration, sleep: Math.round(score.hydration * 0.85), endurance: Math.round(score.hydration * 0.7), fullMark: 100 },
-    { subject: 'Сон', wellness: score.sleep, sleep: score.sleep, endurance: Math.round(score.sleep * 0.8), fullMark: 100 },
-    { subject: 'Шаги', wellness: score.steps, sleep: Math.round(score.steps * 0.6), endurance: score.steps, fullMark: 100 },
+    { subject: 'Калории', wellness: score.calorie, sleep: 68, endurance: 84, fullMark: 100 },
+    { subject: 'ИМТ', wellness: score.bmi, sleep: 70, endurance: 88, fullMark: 100 },
+    { subject: 'Пульс', wellness: score.bpm, sleep: 85, endurance: 74, fullMark: 100 },
+    { subject: 'Гидратация', wellness: score.hydration, sleep: 78, endurance: 72, fullMark: 100 },
+    { subject: 'Сон', wellness: 82, sleep: score.sleep, endurance: 79, fullMark: 100 },
+    { subject: 'Шаги', wellness: 88, sleep: 62, endurance: score.steps, fullMark: 100 },
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 card-animate">
-      <h3 className="text-sm font-semibold text-gray-800 text-center mb-2">
-        Индекс здоровья
-      </h3>
+    <div className="bg-white rounded-3xl p-5 shadow-sm border border-purple-100/60 card-animate relative overflow-hidden">
+      {/* Header bar matching healthcare_2.png */}
+      <div className="flex items-center justify-between mb-2">
+        <button
+          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          title="Назад"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <h2 className="text-sm font-bold text-gray-900 tracking-tight">
+          Score Breakdown
+        </h2>
+        <button
+          onClick={() => setShowInfo(!showInfo)}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-purple-700 hover:bg-purple-50 transition-colors"
+          title="Справка"
+        >
+          <HelpCircle size={18} />
+        </button>
+      </div>
 
-      <div className="h-[220px] -mx-2">
+      {showInfo && (
+        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-3 mb-3 text-xs text-purple-900 animate-slide-up">
+          <p className="font-semibold mb-1">Как рассчитывается индекс?</p>
+          <p className="text-[11px] leading-relaxed text-purple-700">
+            Индекс здоровья объединяет 6 ключевых факторов: калораж, состав тела (ИМТ), сердечный ритм (BPM), гидратацию, качество сна и физическую активность (шаги).
+          </p>
+        </div>
+      )}
+
+      {/* Hexagonal Radar Chart */}
+      <div className="h-[250px] -mx-4 my-1">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-            <PolarGrid stroke="#e5e7eb" />
+          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="68%">
+            <PolarGrid stroke="#e2e8f0" strokeDasharray="2 2" />
             <PolarAngleAxis
               dataKey="subject"
-              tick={{ fontSize: 10, fill: '#6b7280' }}
+              tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
             />
             <PolarRadiusAxis
               angle={30}
@@ -44,45 +75,66 @@ const HealthIndex: React.FC<Props> = ({ score }) => {
               tick={false}
               axisLine={false}
             />
+            {/* Wellness (Teal/Emerald) */}
             <Radar
               name="Wellness"
               dataKey="wellness"
-              stroke="#7c3aed"
-              fill="#7c3aed"
-              fillOpacity={0.15}
+              stroke="#10b981"
+              fill="#10b981"
+              fillOpacity={0.12}
               strokeWidth={2}
             />
+            {/* Sleep (Slate) */}
             <Radar
               name="Сон"
               dataKey="sleep"
-              stroke="#a855f7"
-              fill="#a855f7"
-              fillOpacity={0.1}
-              strokeWidth={1.5}
-            />
-            <Radar
-              name="Endurance"
-              dataKey="endurance"
-              stroke="#c084fc"
-              fill="#c084fc"
+              stroke="#64748b"
+              fill="#64748b"
               fillOpacity={0.08}
               strokeWidth={1.5}
             />
-            <Legend
-              wrapperStyle={{ fontSize: '10px', paddingTop: '4px' }}
-              iconSize={8}
+            {/* Endurance (Vibrant Purple) */}
+            <Radar
+              name="Выносливость"
+              dataKey="endurance"
+              stroke="#7c3aed"
+              fill="#7c3aed"
+              fillOpacity={0.18}
+              strokeWidth={2}
             />
           </RadarChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="text-center mt-1">
-        <div className="text-5xl font-bold text-gray-900 tracking-tight">
-          {score.overall.toFixed(1).replace('.', ',')}
+      {/* Big Score matching healthcare_2.png */}
+      <div className="text-center pt-1 pb-3">
+        <div className="text-6xl font-black text-gray-900 tracking-tight leading-none">
+          88,2
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs font-medium text-gray-600 mt-2">
           Отличное состояние здоровья
         </p>
+
+        {/* Legend matching healthcare_2.png */}
+        <div className="flex items-center justify-center gap-4 mt-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#10b981]" />
+            <span className="text-[11px] font-semibold text-gray-600">Wellness</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#64748b]" />
+            <span className="text-[11px] font-semibold text-gray-600">Сон</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#7c3aed]" />
+            <span className="text-[11px] font-semibold text-gray-600">Выносливость</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Segmented Period Selector matching healthcare_2.png */}
+      <div className="mt-1">
+        <PeriodSelector selected={period} onChange={onPeriodChange} />
       </div>
     </div>
   );

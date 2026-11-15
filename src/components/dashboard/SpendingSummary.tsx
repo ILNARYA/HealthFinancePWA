@@ -1,5 +1,6 @@
 import React from 'react';
-import { TrendingUp, CreditCard } from 'lucide-react';
+import { TrendingUp, CreditCard, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Expense } from '../../types';
 
 interface Props {
@@ -7,35 +8,71 @@ interface Props {
 }
 
 const SpendingSummary: React.FC<Props> = ({ expenses }) => {
+  const navigate = useNavigate();
   const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
   const doctorExpenses = expenses.filter((e) => e.category === 'doctor').reduce((s, e) => s + e.amount, 0);
   const analysisExpenses = expenses.filter((e) => e.category === 'analysis').reduce((s, e) => s + e.amount, 0);
+  const medicineExpenses = expenses.filter((e) => e.category === 'medicine').reduce((s, e) => s + e.amount, 0);
 
   return (
-    <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-purple-800 rounded-2xl p-4 shadow-lg card-animate text-white">
-      <div className="flex items-center gap-2 mb-3">
-        <CreditCard size={18} />
-        <span className="text-sm font-medium opacity-90">Расходы за ноябрь</span>
-      </div>
+    <div className="relative overflow-hidden rounded-3xl p-5 shadow-lg card-animate text-white bg-gradient-to-br from-purple-800 via-purple-700 to-indigo-900 border border-purple-400/20">
+      {/* Background ambient blur circles */}
+      <div className="absolute -top-12 -right-12 w-36 h-36 bg-purple-400/30 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-xl pointer-events-none" />
 
-      <div className="text-3xl font-bold mb-1">
-        {totalAmount.toLocaleString('ru-RU')} ₽
-      </div>
-
-      <div className="flex items-center gap-1 mb-4">
-        <TrendingUp size={14} className="text-green-300" />
-        <span className="text-xs text-green-200">+12% к прошлому месяцу</span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/10 rounded-xl p-2.5 backdrop-blur-sm">
-          <p className="text-[10px] text-purple-200 mb-0.5">Врачи</p>
-          <p className="text-sm font-bold">{doctorExpenses.toLocaleString('ru-RU')} ₽</p>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center">
+              <CreditCard size={18} className="text-purple-200" />
+            </div>
+            <span className="text-xs font-semibold text-purple-200 uppercase tracking-wider">
+              Медицинские траты
+            </span>
+          </div>
+          <span className="text-[11px] font-medium bg-white/10 px-2.5 py-0.5 rounded-full text-purple-100">
+            Ноябрь 2026
+          </span>
         </div>
-        <div className="bg-white/10 rounded-xl p-2.5 backdrop-blur-sm">
-          <p className="text-[10px] text-purple-200 mb-0.5">Анализы</p>
-          <p className="text-sm font-bold">{analysisExpenses.toLocaleString('ru-RU')} ₽</p>
+
+        <div className="flex items-baseline justify-between mb-1">
+          <div className="text-3xl font-black tracking-tight">
+            {totalAmount.toLocaleString('ru-RU')} ₽
+          </div>
+          <div className="flex items-center gap-1 text-emerald-300 text-xs font-bold bg-emerald-500/20 px-2 py-0.5 rounded-lg">
+            <TrendingUp size={13} />
+            <span>+12%</span>
+          </div>
         </div>
+
+        <p className="text-xs text-purple-200 mb-4 font-normal">
+          Расходы на врачей, анализы и лечение за текущий месяц
+        </p>
+
+        {/* Breakdown mini cards */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
+            <p className="text-[10px] text-purple-200 font-medium mb-0.5">Врачи</p>
+            <p className="text-xs font-bold">{doctorExpenses.toLocaleString('ru-RU')} ₽</p>
+          </div>
+          <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
+            <p className="text-[10px] text-purple-200 font-medium mb-0.5">Анализы</p>
+            <p className="text-xs font-bold">{analysisExpenses.toLocaleString('ru-RU')} ₽</p>
+          </div>
+          <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
+            <p className="text-[10px] text-purple-200 font-medium mb-0.5">Лекарства</p>
+            <p className="text-xs font-bold">{medicineExpenses.toLocaleString('ru-RU')} ₽</p>
+          </div>
+        </div>
+
+        {/* Action link */}
+        <button
+          onClick={() => navigate('/finances')}
+          className="mt-4 w-full py-2.5 px-3 bg-white/15 hover:bg-white/25 active:scale-[0.99] transition-all rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 backdrop-blur-md text-white border border-white/10"
+        >
+          <span>Перейти в детализацию финансов</span>
+          <ArrowRight size={14} />
+        </button>
       </div>
     </div>
   );
