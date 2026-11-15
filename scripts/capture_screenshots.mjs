@@ -31,15 +31,31 @@ async function capture() {
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '01_dashboard.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '01_dashboard.png'), fullPage: false });
-  await page.screenshot({ path: path.join(outputDir, '01_dashboard_full.png'), fullPage: true });
-  await page.screenshot({ path: path.join(artifactDir, '01_dashboard_full.png'), fullPage: true });
 
-  // 1b. Dashboard Range chart tab
-  console.log('Capturing Dashboard Range tab...');
+  // 1b. Dashboard Range chart tab (Test Range Tooltip & Biomarker Switcher)
+  console.log('Capturing Dashboard Range tab with selected bar & biomarker...');
   await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
     const rangeBtn = buttons.find(b => b.innerText.includes('Диапазоны'));
     if (rangeBtn) rangeBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Select eGFR (СКФ) chip
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const egfrBtn = buttons.find(b => b.innerText.includes('СКФ'));
+    if (egfrBtn) egfrBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 300));
+
+  // Click on a candlestick bar (e.g., 2024 or 2023) to test tooltip placement
+  await page.evaluate(() => {
+    const yearElements = Array.from(document.querySelectorAll('span')).filter(s => s.innerText === '2024');
+    if (yearElements.length > 0) {
+      const parent = yearElements[0].closest('.cursor-pointer');
+      if (parent) parent.click();
+    }
   });
   await new Promise((r) => setTimeout(r, 500));
   await page.screenshot({ path: path.join(outputDir, '01_dashboard_range.png'), fullPage: false });
@@ -57,8 +73,6 @@ async function capture() {
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '01_dashboard_dark.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '01_dashboard_dark.png'), fullPage: false });
-  await page.screenshot({ path: path.join(outputDir, '01_dashboard_dark_full.png'), fullPage: true });
-  await page.screenshot({ path: path.join(artifactDir, '01_dashboard_dark_full.png'), fullPage: true });
 
   // Switch back to light theme for default 2, 3, 4
   await page.evaluate(() => {
@@ -73,17 +87,26 @@ async function capture() {
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '02_analyses.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '02_analyses.png'), fullPage: false });
-  await page.screenshot({ path: path.join(outputDir, '02_analyses_full.png'), fullPage: true });
-  await page.screenshot({ path: path.join(artifactDir, '02_analyses_full.png'), fullPage: true });
 
-  // 3. Finances & Doctors
-  console.log('Capturing Finances & Doctors...');
+  // 3. Finances & Doctors (Default state)
+  console.log('Capturing Finances & Doctors (Default)...');
   await page.goto('http://localhost:5173/finances', { waitUntil: 'networkidle0', timeout: 15000 });
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '03_finances.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '03_finances.png'), fullPage: false });
-  await page.screenshot({ path: path.join(outputDir, '03_finances_full.png'), fullPage: true });
-  await page.screenshot({ path: path.join(artifactDir, '03_finances_full.png'), fullPage: true });
+
+  // 3b. Finances & Doctors (Active Donut Slice / Pop-Out state)
+  console.log('Capturing Finances with Active Donut Sector (Анализы)...');
+  await page.evaluate(() => {
+    // Click on the 'Анализы' category chip below the donut
+    const categoryCards = Array.from(document.querySelectorAll('div')).filter(d => d.innerText.includes('Анализы') && d.classList.contains('cursor-pointer'));
+    if (categoryCards.length > 0) {
+      categoryCards[0].click();
+    }
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(outputDir, '03_finances_selected.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '03_finances_selected.png'), fullPage: false });
 
   // 4. Settings & Excel (.xlsx) Sync
   console.log('Capturing Settings & Excel Sync...');
@@ -91,18 +114,6 @@ async function capture() {
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '04_settings.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '04_settings.png'), fullPage: false });
-  await page.screenshot({ path: path.join(outputDir, '04_settings_full.png'), fullPage: true });
-  await page.screenshot({ path: path.join(artifactDir, '04_settings_full.png'), fullPage: true });
-
-  // 4b. Settings in Dark Mode
-  console.log('Capturing Settings (Dark Mode)...');
-  await page.evaluate(() => {
-    const themeBtn = document.querySelector('button[title*="тема"]');
-    if (themeBtn) themeBtn.click();
-  });
-  await new Promise((r) => setTimeout(r, 500));
-  await page.screenshot({ path: path.join(outputDir, '04_settings_dark.png'), fullPage: false });
-  await page.screenshot({ path: path.join(artifactDir, '04_settings_dark.png'), fullPage: false });
 
   await browser.close();
   console.log('All screenshots captured successfully!');

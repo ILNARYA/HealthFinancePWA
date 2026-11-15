@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector,
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet, Moon, Sun
+  Trash2, Wallet, Moon, Sun, Filter
 } from 'lucide-react';
 import { monthsData, demoDoctors, categoryLabels, categoryColors } from '../data/demo';
 import type { Expense } from '../types';
@@ -48,12 +48,56 @@ const FinancesPage: React.FC = () => {
   const totalAmount = expenses.reduce((s, e) => s + e.amount, 0);
 
   // Pie chart data
-  const categoryTotals = Object.keys(categoryLabels).map((cat) => ({
-    key: cat,
-    name: categoryLabels[cat],
-    value: expenses.filter((e) => e.category === cat).reduce((s, e) => s + e.amount, 0),
-    color: categoryColors[cat],
-  })).filter((c) => c.value > 0);
+  const categoryTotals = Object.keys(categoryLabels).map((cat) => {
+    const val = expenses.filter((e) => e.category === cat).reduce((s, e) => s + e.amount, 0);
+    const pct = totalAmount > 0 ? Math.round((val / totalAmount) * 100) : 0;
+    return {
+      key: cat,
+      name: categoryLabels[cat],
+      value: val,
+      percentage: pct,
+      color: categoryColors[cat],
+    };
+  }).filter((c) => c.value > 0);
+
+  const activeCategoryObj = categoryTotals.find((c) => c.key === selectedCategory);
+
+  // Custom shape that handles active sector pop-out (radial expansion + elevation glow)
+  // Completely eliminates clipping or awkward stroke overlaps.
+  const renderSectorShape = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload } = props;
+    const isSelected = selectedCategory === payload?.key;
+    const isDimmed = selectedCategory !== 'all' && !isSelected;
+
+    return (
+      <g className="outline-none focus:outline-none">
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={isSelected ? innerRadius - 3 : innerRadius}
+          outerRadius={isSelected ? outerRadius + 7 : outerRadius}
+          cornerRadius={4}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+          opacity={isDimmed ? 0.35 : 1}
+          style={{
+            filter: isSelected ? 'drop-shadow(0 6px 14px rgba(124, 58, 237, 0.45))' : 'none',
+            outline: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+        />
+      </g>
+    );
+  };
+
+  const handlePieClick = (data: any) => {
+    const key = data?.payload?.key || data?.key;
+    if (key) {
+      setSelectedCategory(selectedCategory === key ? 'all' : key);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,29 +206,54 @@ const FinancesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Donut Chart */}
+      {/* Category Donut Chart with modern pop-out selection & center metrics */}
       <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
-            Структура расходов
-          </h3>
-          <span className="text-[11px] font-medium text-gray-400">{categoryTotals.length} категории</span>
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
+              Структура расходов
+            </h3>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500">
+              Нажмите на сегмент бублика для фильтрации
+            </p>
+          </div>
+          {selectedCategory !== 'all' ? (
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className="text-[11px] font-bold text-purple-700 dark:text-purple-400 hover:underline flex items-center gap-1 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full"
+            >
+              <span>Сбросить</span>
+              <X size={11} />
+            </button>
+          ) : (
+            <span className="text-[11px] font-medium text-gray-400">{categoryTotals.length} категории</span>
+          )}
         </div>
 
-        <div className="h-[170px] -mx-4">
+        {/* Donut Container with Centered Information Hole */}
+        <div className="relative h-[180px] -mx-4 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
+                shape={renderSectorShape}
                 data={categoryTotals}
                 cx="50%"
                 cy="50%"
-                innerRadius={46}
+                innerRadius={48}
                 outerRadius={70}
                 paddingAngle={4}
+                cornerRadius={4}
                 dataKey="value"
+                onClick={handlePieClick}
               >
-                {categoryTotals.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} strokeWidth={0} />
+                {categoryTotals.map((entry) => (
+                  <Cell
+                    key={entry.key}
+                    fill={entry.color}
+                    stroke="none"
+                    strokeWidth={0}
+                    className="cursor-pointer outline-none focus:outline-none"
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -198,32 +267,82 @@ const FinancesPage: React.FC = () => {
                   borderRadius: '12px',
                   fontSize: '12px',
                   color: '#fff',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
                   padding: '6px 12px',
                 }}
               />
             </PieChart>
           </ResponsiveContainer>
+
+          {/* Central Metric in Donut Hole */}
+          <div
+            onClick={() => setSelectedCategory('all')}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          >
+            <div className="flex flex-col items-center justify-center text-center p-1 cursor-pointer pointer-events-auto">
+              {activeCategoryObj ? (
+                <>
+                  <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 truncate max-w-[80px]">
+                    {activeCategoryObj.name}
+                  </span>
+                  <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
+                    {activeCategoryObj.value.toLocaleString('ru-RU')} ₽
+                  </span>
+                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                    {activeCategoryObj.percentage}%
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+                    Всего
+                  </span>
+                  <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
+                    {totalAmount.toLocaleString('ru-RU')} ₽
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    100%
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 dark:border-gray-800">
-          {categoryTotals.map((c) => (
-            <div
-              key={c.name}
-              onClick={() => setSelectedCategory(selectedCategory === c.key ? 'all' : c.key)}
-              className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors ${
-                selectedCategory === c.key
-                  ? 'bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'
-              }`}
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{c.name}</span>
+        {/* Category Legend & Clickable Selectors */}
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+          {categoryTotals.map((c) => {
+            const isSelected = selectedCategory === c.key;
+            return (
+              <div
+                key={c.name}
+                onClick={() => setSelectedCategory(isSelected ? 'all' : c.key)}
+                className={`flex items-center justify-between p-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-purple-50 dark:bg-purple-950/70 border-2 border-purple-600 dark:border-purple-400 shadow-xs scale-[1.02]'
+                    : 'bg-gray-50/70 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/70 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: c.color }}
+                  />
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                    {c.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-400">
+                    {c.percentage}%
+                  </span>
+                  <span className="text-xs font-bold text-gray-900 dark:text-white">
+                    {c.value.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
               </div>
-              <span className="text-xs font-bold text-gray-900 dark:text-white">{c.value.toLocaleString('ru-RU')} ₽</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -277,9 +396,10 @@ const FinancesPage: React.FC = () => {
           {selectedCategory !== 'all' && (
             <button
               onClick={() => setSelectedCategory('all')}
-              className="text-xs font-semibold text-purple-700 dark:text-purple-400 underline"
+              className="text-xs font-semibold text-purple-700 dark:text-purple-400 underline flex items-center gap-1"
             >
-              Показать все
+              <Filter size={12} />
+              <span>Показать все</span>
             </button>
           )}
         </div>
