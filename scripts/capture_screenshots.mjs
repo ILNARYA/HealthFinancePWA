@@ -95,7 +95,58 @@ async function capture() {
   await page.screenshot({ path: path.join(outputDir, '04_settings.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '04_settings.png'), fullPage: false });
 
-  // 4b. 2FA Google Authenticator Modal
+  // 4b. Adult Registration & Health Questionnaire Modal
+  console.log('Capturing Register / Health Questionnaire Modal...');
+  await page.evaluate(() => {
+    const anketaBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Анкета'));
+    if (anketaBtn) anketaBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(outputDir, '10_register_modal.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '10_register_modal.png'), fullPage: false });
+
+  // Close Register modal
+  await page.evaluate(() => {
+    const closeBtn = document.querySelector('.fixed button');
+    if (closeBtn) closeBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 300));
+
+  // 4c. Adult Family Member Invite Modal
+  console.log('Capturing Adult Invite Modal...');
+  await page.evaluate(() => {
+    const inviteBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Инвайт'));
+    if (inviteBtn) inviteBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(outputDir, '11_invite_modal.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '11_invite_modal.png'), fullPage: false });
+
+  // Close Invite modal
+  await page.evaluate(() => {
+    const closeBtn = document.querySelector('.fixed button');
+    if (closeBtn) closeBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 300));
+
+  // 4d. Fast-Track Child Add Modal (< 20 years + same surname)
+  console.log('Capturing Fast-Track Child Modal...');
+  await page.evaluate(() => {
+    const childBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('+ Ребёнок'));
+    if (childBtn) childBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(outputDir, '12_child_modal.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '12_child_modal.png'), fullPage: false });
+
+  // Close Child modal
+  await page.evaluate(() => {
+    const closeBtn = document.querySelector('.fixed button');
+    if (closeBtn) closeBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 300));
+
+  // 4e. 2FA Google Authenticator Modal
   console.log('Capturing 2FA Modal...');
   await page.evaluate(() => {
     const twoFaBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Подключить') && b.closest('.space-y-3'));

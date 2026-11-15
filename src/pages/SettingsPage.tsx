@@ -3,7 +3,8 @@ import {
   Cloud, Table, HardDrive, Image, Upload,
   Check, Smartphone, Bell, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
-  Users, Lock, Fingerprint, EyeOff, Plus, KeyRound, QrCode
+  Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
+  UserCheck, UserPlus, Baby, Sparkles
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -11,6 +12,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
 import { TwoFactorAuthModal } from '../components/security/TwoFactorAuthModal';
+import { RegisterModal } from '../components/auth/RegisterModal';
+import { InviteMemberModal } from '../components/family/InviteMemberModal';
+import { AddChildModal } from '../components/family/AddChildModal';
 
 interface Connection {
   id: string;
@@ -24,9 +28,14 @@ interface Connection {
 const SettingsPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const {
+    userProfile,
+    familyName,
     members,
     activeMember,
     setActiveMemberId,
+    invites,
+    acceptFamilyInvite,
+    declineFamilyInvite,
     isPinSet,
     setIsPinSet,
     setPinCode,
@@ -40,6 +49,9 @@ const SettingsPage: React.FC = () => {
     lockApp,
   } = useFamily();
 
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showChildModal, setShowChildModal] = useState(false);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showPinChangeModal, setShowPinChangeModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
@@ -173,6 +185,62 @@ const SettingsPage: React.FC = () => {
         </div>
       )}
 
+      {/* 0. Мой личный кабинет (Individual Adult Cabinet & Google ID) */}
+      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors w-full">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
+              <UserCheck size={17} />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                Мой личный кабинет
+              </h3>
+              <p className="text-[10px] text-gray-400">Индивидуальный аккаунт взрослого</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowRegisterModal(true)}
+            className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-1 rounded-xl hover:bg-purple-100 transition-colors flex items-center gap-1"
+          >
+            <Sparkles size={11} />
+            <span>Анкета</span>
+          </button>
+        </div>
+
+        {/* Profile Card Banner */}
+        <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-50/80 via-indigo-50/50 to-purple-50/80 dark:from-purple-950/50 dark:via-indigo-950/30 dark:to-purple-950/50 border border-purple-200/60 dark:border-purple-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-purple-700 text-white font-black text-sm flex items-center justify-center shadow-md flex-shrink-0">
+              {userProfile.avatar}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+                  {userProfile.lastName} {userProfile.firstName}
+                </span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
+                  {userProfile.familyRole === 'head' ? 'Глава семьи' : 'Супруг'}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                {userProfile.height} см · {userProfile.weight} кг · ИМТ: <strong>{userProfile.bmi}</strong> · {userProfile.bloodType}
+              </p>
+              <p className="text-[9px] text-purple-700 dark:text-purple-300 font-mono mt-0.5 truncate">
+                ID: {userProfile.personalId} · {userProfile.email}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowRegisterModal(true)}
+            className="w-8 h-8 rounded-xl bg-white dark:bg-[#161b26] border border-purple-200 dark:border-purple-800 flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs flex-shrink-0 ml-2 hover:bg-purple-50"
+            title="Редактировать анкету здоровья"
+          >
+            <UserCheck size={14} />
+          </button>
+        </div>
+      </div>
+
       {/* 1. Семейный кабинет (Family Cabinet) */}
       <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors w-full">
         <div className="flex items-center justify-between mb-3">
@@ -182,19 +250,61 @@ const SettingsPage: React.FC = () => {
             </div>
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
-                Семейный кабинет ({members.length})
+                {familyName} ({members.length})
               </h3>
-              <p className="text-[10px] text-gray-400">Быстрое переключение между профилями</p>
+              <p className="text-[10px] text-gray-400">Семейная группа и родственные роли</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowFamilyModal(true)}
-            className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-1 rounded-xl hover:bg-purple-100 transition-colors flex items-center gap-1"
-          >
-            <Plus size={12} />
-            <span>Добавить</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-1 rounded-xl hover:bg-purple-100 transition-colors flex items-center gap-0.5"
+              title="Пригласить взрослого по ID"
+            >
+              <UserPlus size={11} />
+              <span>Инвайт</span>
+            </button>
+            <button
+              onClick={() => setShowChildModal(true)}
+              className="text-[10px] font-bold text-white bg-purple-700 px-2 py-1 rounded-xl hover:bg-purple-800 transition-colors flex items-center gap-0.5 shadow-xs"
+              title="Добавить ребёнка до 20 лет"
+            >
+              <Baby size={11} />
+              <span>+ Ребёнок</span>
+            </button>
+          </div>
         </div>
+
+        {/* Pending Invites if any */}
+        {invites.filter((i) => i.status === 'pending').map((inv) => (
+          <div
+            key={inv.id}
+            className="mb-2.5 p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs flex items-center justify-between"
+          >
+            <div className="min-w-0 pr-2">
+              <p className="font-bold text-amber-900 dark:text-amber-200 text-[11px] truncate">
+                Инвайт: {inv.fromUserName} {inv.fromUserSurname}
+              </p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                Роль: {inv.roleLabel}
+              </p>
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <button
+                onClick={() => acceptFamilyInvite(inv.id)}
+                className="px-2 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold"
+              >
+                Принять
+              </button>
+              <button
+                onClick={() => declineFamilyInvite(inv.id)}
+                className="px-2 py-1 border border-gray-300 dark:border-gray-700 rounded-lg text-[10px]"
+              >
+                Отклонить
+              </button>
+            </div>
+          </div>
+        ))}
 
         {/* Members List */}
         <div className="space-y-2">
@@ -675,6 +785,24 @@ const SettingsPage: React.FC = () => {
       <FamilySwitcherModal
         isOpen={showFamilyModal}
         onClose={() => setShowFamilyModal(false)}
+      />
+
+      {/* Adult Registration & Health Questionnaire Modal */}
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+      />
+
+      {/* Adult Family Member Invite Modal */}
+      <InviteMemberModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+      />
+
+      {/* Fast-Track Child Add Modal (< 20 years + same surname) */}
+      <AddChildModal
+        isOpen={showChildModal}
+        onClose={() => setShowChildModal(false)}
       />
 
       {/* Two-Factor Authenticator Modal */}

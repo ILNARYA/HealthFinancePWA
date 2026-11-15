@@ -80,10 +80,15 @@ export interface MonthData {
 export interface FamilyMember {
   id: string;
   name: string;
+  lastName?: string;
+  personalId?: string;
   role: 'head' | 'spouse' | 'child' | 'parent';
   roleLabel: string;
   birthYear: number;
   gender: 'male' | 'female';
+  height?: number; // cm
+  weight?: number; // kg
+  bmi?: number;
   bloodType: string;
   policyOMS: string;
   policyDMS?: string;
@@ -94,6 +99,43 @@ export interface FamilyMember {
   expensesTotal: number;
   allergies?: string[];
   chronicNotes?: string;
+  isVerifiedChild?: boolean;
+  inviteStatus?: 'active' | 'pending' | 'declined';
+}
+
+export interface UserProfile {
+  id: string;
+  personalId: string; // e.g. "MED-9402"
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  email: string;
+  birthDate: string;
+  birthYear: number;
+  gender: 'male' | 'female';
+  height: number; // cm
+  weight: number; // kg
+  bmi: number; // weight / (height/100)^2
+  bloodType: string;
+  policyOMS: string;
+  policyDMS?: string;
+  avatar: string;
+  familyRole: 'head' | 'spouse' | 'parent' | 'child';
+  familyName: string;
+  googleConnected: boolean;
+}
+
+export interface FamilyInvite {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  fromUserSurname: string;
+  toPersonalId: string;
+  familyName: string;
+  role: 'spouse' | 'parent' | 'head';
+  roleLabel: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: string;
 }
 
 export type TabType = 'dashboard' | 'analyses' | 'finances' | 'settings';
