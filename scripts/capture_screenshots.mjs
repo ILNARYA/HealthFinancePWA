@@ -18,10 +18,11 @@ async function capture() {
   });
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  // Target width 375px (standard mobile width where user observed clipping)
+  await page.setViewport({ width: 375, height: 812, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 
-  // 1. Dashboard (Light Theme)
-  console.log('Capturing Dashboard (Light)...');
+  // 1. Dashboard
+  console.log('Capturing Dashboard...');
   await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0', timeout: 15000 });
   await page.evaluate(() => {
     localStorage.setItem('app-theme', 'light');
@@ -32,88 +33,53 @@ async function capture() {
   await page.screenshot({ path: path.join(outputDir, '01_dashboard.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '01_dashboard.png'), fullPage: false });
 
-  // 1b. Dashboard Range chart tab (Test Range Tooltip & Biomarker Switcher)
-  console.log('Capturing Dashboard Range tab with selected bar & biomarker...');
+  // 1b. Family Cabinet Modal
+  console.log('Capturing Family Cabinet Modal...');
   await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const rangeBtn = buttons.find(b => b.innerText.includes('Диапазоны'));
-    if (rangeBtn) rangeBtn.click();
+    const familyBtn = document.querySelector('button[title*="Семейный"]');
+    if (familyBtn) familyBtn.click();
   });
-  await new Promise((r) => setTimeout(r, 400));
+  await new Promise((r) => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(outputDir, '05_family_modal.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '05_family_modal.png'), fullPage: false });
 
-  // Select eGFR (СКФ) chip
+  // Close family modal
   await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const egfrBtn = buttons.find(b => b.innerText.includes('СКФ'));
-    if (egfrBtn) egfrBtn.click();
+    const closeBtn = document.querySelector('.fixed button');
+    if (closeBtn) closeBtn.click();
   });
   await new Promise((r) => setTimeout(r, 300));
 
-  // Click on a candlestick bar (e.g., 2024 or 2023) to test tooltip placement
-  await page.evaluate(() => {
-    const yearElements = Array.from(document.querySelectorAll('span')).filter(s => s.innerText === '2024');
-    if (yearElements.length > 0) {
-      const parent = yearElements[0].closest('.cursor-pointer');
-      if (parent) parent.click();
-    }
-  });
-  await new Promise((r) => setTimeout(r, 500));
-  await page.screenshot({ path: path.join(outputDir, '01_dashboard_range.png'), fullPage: false });
-  await page.screenshot({ path: path.join(artifactDir, '01_dashboard_range.png'), fullPage: false });
-
-  // 1c. Dashboard (Dark Theme matching healthcare_2.png)
-  console.log('Capturing Dashboard (Dark Theme)...');
-  await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const radarBtn = buttons.find(b => b.innerText.includes('Паук'));
-    if (radarBtn) radarBtn.click();
-    const themeBtn = document.querySelector('button[title*="тему"]');
-    if (themeBtn) themeBtn.click();
-  });
-  await new Promise((r) => setTimeout(r, 600));
-  await page.screenshot({ path: path.join(outputDir, '01_dashboard_dark.png'), fullPage: false });
-  await page.screenshot({ path: path.join(artifactDir, '01_dashboard_dark.png'), fullPage: false });
-
-  // Switch back to light theme for default 2, 3, 4
-  await page.evaluate(() => {
-    const themeBtn = document.querySelector('button[title*="тему"]');
-    if (themeBtn) themeBtn.click();
-  });
-  await new Promise((r) => setTimeout(r, 400));
-
-  // 2. Analyses & AI Scanner
+  // 2. Analyses & AI Scanner (Check bounds & margins)
   console.log('Capturing Analyses & AI Breakdown...');
   await page.goto('http://localhost:5173/analyses', { waitUntil: 'networkidle0', timeout: 15000 });
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '02_analyses.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '02_analyses.png'), fullPage: false });
 
-  // 3. Finances & Doctors (Default state)
-  console.log('Capturing Finances & Doctors (Default)...');
+  // 3. Finances & Doctors (Check bounds of purple card & donut chart)
+  console.log('Capturing Finances & Doctors...');
   await page.goto('http://localhost:5173/finances', { waitUntil: 'networkidle0', timeout: 15000 });
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '03_finances.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '03_finances.png'), fullPage: false });
 
-  // 3b. Finances & Doctors (Active Donut Slice / Pop-Out state)
-  console.log('Capturing Finances with Active Donut Sector (Анализы)...');
-  await page.evaluate(() => {
-    // Click on the 'Анализы' category chip below the donut
-    const categoryCards = Array.from(document.querySelectorAll('div')).filter(d => d.innerText.includes('Анализы') && d.classList.contains('cursor-pointer'));
-    if (categoryCards.length > 0) {
-      categoryCards[0].click();
-    }
-  });
-  await new Promise((r) => setTimeout(r, 500));
-  await page.screenshot({ path: path.join(outputDir, '03_finances_selected.png'), fullPage: false });
-  await page.screenshot({ path: path.join(artifactDir, '03_finances_selected.png'), fullPage: false });
-
-  // 4. Settings & Excel (.xlsx) Sync
-  console.log('Capturing Settings & Excel Sync...');
+  // 4. Settings (Family Cabinet & Security Vault)
+  console.log('Capturing Settings & Security...');
   await page.goto('http://localhost:5173/settings', { waitUntil: 'networkidle0', timeout: 15000 });
   await new Promise((r) => setTimeout(r, 600));
   await page.screenshot({ path: path.join(outputDir, '04_settings.png'), fullPage: false });
   await page.screenshot({ path: path.join(artifactDir, '04_settings.png'), fullPage: false });
+
+  // 5. PIN Lock Screen Modal (Trigger lockApp)
+  console.log('Capturing Secure PIN Lock Screen...');
+  await page.evaluate(() => {
+    const lockBtn = document.querySelector('button[title*="Заблокировать"]');
+    if (lockBtn) lockBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(outputDir, '06_pin_lock.png'), fullPage: false });
+  await page.screenshot({ path: path.join(artifactDir, '06_pin_lock.png'), fullPage: false });
 
   await browser.close();
   console.log('All screenshots captured successfully!');

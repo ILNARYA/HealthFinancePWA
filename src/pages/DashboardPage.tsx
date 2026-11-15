@@ -5,40 +5,62 @@ import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
 import { monthsData, demoHealthTrend } from '../data/demo';
-import { Activity, Bell, Sparkles, Moon, Sun, Layers, BarChart3 } from 'lucide-react';
+import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useFamily } from '../context/FamilyContext';
+import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
 
 const DashboardPage: React.FC = () => {
   const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
   const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const { activeMember, lockApp } = useFamily();
 
   const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
 
   return (
-    <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
-      {/* Top Header with Profile and Dark Mode Switcher */}
+    <div className="px-4 pt-3 pb-6 flex flex-col gap-4 w-full">
+      {/* Top Header with Family Profile Switcher and Security Lock */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-700 to-purple-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-purple-500/25">
-            ИЯ
+        <button
+          onClick={() => setShowFamilyModal(true)}
+          className="flex items-center gap-2.5 text-left group p-1 pr-2 rounded-2xl hover:bg-gray-100/70 dark:hover:bg-gray-800/60 transition-all min-w-0"
+          title="Нажмите, чтобы открыть Семейный кабинет"
+        >
+          <div
+            className="w-10 h-10 rounded-2xl text-white flex items-center justify-center font-black text-sm shadow-md flex-shrink-0"
+            style={{ backgroundColor: activeMember.color }}
+          >
+            {activeMember.avatar}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
-                Привет, Ильнар
+              <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
+                Привет, {activeMember.name}
               </h1>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
                 <Sparkles size={9} /> Норма
               </span>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-400 font-medium">
-              {currentMonth.label} · Анализы учтены
+            <p className="text-xs text-gray-400 dark:text-gray-400 font-medium truncate flex items-center gap-1">
+              <span>{activeMember.roleLabel}</span>
+              <span>·</span>
+              <span>{currentMonth.label}</span>
+              <Users size={11} className="text-purple-600 dark:text-purple-400 ml-0.5" />
             </p>
           </div>
-        </div>
+        </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Quick Lock Button */}
+          <button
+            onClick={lockApp}
+            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 hover:text-purple-600 dark:text-gray-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            title="Заблокировать экран (PIN-код)"
+          >
+            <Lock size={16} />
+          </button>
           {/* Dark Mode Quick Toggle */}
           <button
             onClick={toggleTheme}
@@ -48,10 +70,11 @@ const DashboardPage: React.FC = () => {
             {isDark ? <Sun size={17} /> : <Moon size={17} />}
           </button>
           <button
-            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
-            title="Уведомления"
+            onClick={() => setShowFamilyModal(true)}
+            className="w-9 h-9 bg-purple-50 dark:bg-purple-950/60 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-400 shadow-sm border border-purple-100 dark:border-purple-900/50 transition-colors"
+            title="Семейный кабинет"
           >
-            <Bell size={17} />
+            <Users size={17} />
           </button>
         </div>
       </div>
@@ -160,7 +183,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="h-[140px] -mx-2">
+        <div className="h-[140px] w-full overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={demoHealthTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-gray-800" vertical={false} />
@@ -204,6 +227,11 @@ const DashboardPage: React.FC = () => {
           </ResponsiveContainer>
         </div>
       </div>
+      {/* Family Cabinet Switcher Modal */}
+      <FamilySwitcherModal
+        isOpen={showFamilyModal}
+        onClose={() => setShowFamilyModal(false)}
+      />
     </div>
   );
 };

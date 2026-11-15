@@ -74,6 +74,25 @@ export interface MonthData {
   notes: string;
 }
 
+export interface FamilyMember {
+  id: string;
+  name: string;
+  role: 'head' | 'spouse' | 'child' | 'parent';
+  roleLabel: string;
+  birthYear: number;
+  gender: 'male' | 'female';
+  bloodType: string;
+  policyOMS: string;
+  policyDMS?: string;
+  avatar: string;
+  color: string;
+  healthScore: number;
+  analysesCount: number;
+  expensesTotal: number;
+  allergies?: string[];
+  chronicNotes?: string;
+}
+
 export type TabType = 'dashboard' | 'analyses' | 'finances' | 'settings';
 export type PeriodType = '1d' | '1w' | '1m' | '1y' | 'All';
 export type CategoryType = Expense['category'];

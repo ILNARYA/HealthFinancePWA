@@ -4,11 +4,13 @@ import {
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet, Moon, Sun, Filter
+  Trash2, Wallet, Moon, Sun, Filter, Lock, Users
 } from 'lucide-react';
 import { monthsData, demoDoctors, categoryLabels, categoryColors } from '../data/demo';
 import type { Expense } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { useFamily } from '../context/FamilyContext';
+import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
 
 const categoryIcons: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
   doctor: Stethoscope,
@@ -19,6 +21,8 @@ const categoryIcons: Record<string, React.ComponentType<{ size?: number; classNa
 
 const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
+  const { activeMember, lockApp } = useFamily();
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
 
   // Combine expenses across all months for state
   const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
@@ -124,17 +128,42 @@ const FinancesPage: React.FC = () => {
 
   return (
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
-      {/* Header */}
+      {/* Header with Family Member & Security Lock */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Финансы и врачи
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Учёт медицинских чеков, анализов и приемов специалистов
-          </p>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button
+            onClick={() => setShowFamilyModal(true)}
+            className="flex items-center gap-2 p-1 pr-2.5 rounded-2xl bg-white dark:bg-[#1e2433] border border-purple-100 dark:border-purple-900/50 shadow-xs hover:border-purple-300 transition-all text-left group"
+            title="Переключить профиль члена семьи"
+          >
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-xs"
+              style={{ backgroundColor: activeMember.color }}
+            >
+              {activeMember.avatar}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+                  {activeMember.name}
+                </span>
+                <Users size={11} className="text-purple-600 dark:text-purple-400" />
+              </div>
+              <span className="text-[10px] text-gray-400 dark:text-gray-400 block truncate">
+                {activeMember.roleLabel}
+              </span>
+            </div>
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button
+            onClick={lockApp}
+            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 hover:text-purple-600 dark:text-gray-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            title="Заблокировать экран (PIN-код)"
+          >
+            <Lock size={16} />
+          </button>
           <button
             onClick={toggleTheme}
             className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 dark:text-yellow-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
@@ -231,7 +260,7 @@ const FinancesPage: React.FC = () => {
         </div>
 
         {/* Donut Container with Centered Information Hole */}
-        <div className="relative h-[180px] -mx-4 flex items-center justify-center">
+        <div className="relative h-[180px] w-full flex items-center justify-center overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -531,6 +560,11 @@ const FinancesPage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Family Cabinet Switcher Modal */}
+      <FamilySwitcherModal
+        isOpen={showFamilyModal}
+        onClose={() => setShowFamilyModal(false)}
+      />
     </div>
   );
 };

@@ -7,12 +7,14 @@ import AnalysesPage from './pages/AnalysesPage';
 import FinancesPage from './pages/FinancesPage';
 import SettingsPage from './pages/SettingsPage';
 import { ThemeProvider } from './context/ThemeContext';
+import { FamilyProvider } from './context/FamilyContext';
+import { PinLockModal } from './components/security/PinLockModal';
 
 const AppContent: React.FC = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#0b0f19] text-gray-900 dark:text-white relative shadow-2xl mx-auto max-w-[390px] border-x border-purple-100/30 dark:border-purple-900/20 transition-colors">
+    <div className="flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#0b0f19] text-gray-900 dark:text-white relative shadow-2xl mx-auto w-full max-w-[412px] overflow-x-hidden border-x border-purple-100/30 dark:border-purple-900/20 transition-colors">
       {/* iOS-style Status Bar with non-colliding Dynamic Island */}
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0b0f19]/90 backdrop-blur-md px-5 py-2 flex items-center justify-between text-xs font-bold text-gray-800 dark:text-gray-200 border-b border-gray-100/60 dark:border-gray-800/60 transition-colors">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0b0f19]/90 backdrop-blur-md px-4 py-2 flex items-center justify-between text-xs font-bold text-gray-800 dark:text-gray-200 border-b border-gray-100/60 dark:border-gray-800/60 transition-colors w-full">
         <span className="tracking-tight font-black text-[13px] z-10">9:41</span>
         {/* Dynamic Island Pill cleanly centered */}
         <div className="absolute left-1/2 -translate-x-1/2 top-1.5 w-20 h-4 bg-black dark:bg-[#1e2433] rounded-full pointer-events-none" />
@@ -29,7 +31,7 @@ const AppContent: React.FC = () => {
       </header>
 
       {/* Scrollable Content Area */}
-      <main className="flex-1 overflow-y-auto pb-24">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 w-full">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/analyses" element={<AnalysesPage />} />
@@ -41,6 +43,9 @@ const AppContent: React.FC = () => {
 
       {/* Native Mobile Bottom Navigation */}
       <BottomNav />
+
+      {/* Secure PIN Lock Screen Modal (Triggered when locked) */}
+      <PinLockModal />
     </div>
   );
 };
@@ -48,9 +53,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <FamilyProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </FamilyProvider>
     </ThemeProvider>
   );
 };

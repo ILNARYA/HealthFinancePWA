@@ -14,7 +14,7 @@ const BottomNav: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white/95 dark:bg-[#161b26]/95 backdrop-blur-xl border-t border-purple-100/80 dark:border-purple-900/40 z-50 transition-colors">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[412px] bg-white/95 dark:bg-[#161b26]/95 backdrop-blur-xl border-t border-purple-100/80 dark:border-purple-900/40 z-50 transition-colors">
       <div className="flex items-center justify-around pt-2 pb-1 px-2">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;

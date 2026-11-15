@@ -28,42 +28,42 @@ const HealthIndex: React.FC<Props> = ({
   // Radar data based strictly on clinical blood test biomarker categories
   const radarData = [
     {
-      subject: 'Диета & Метаболизм',
+      subject: 'Метаболизм',
       user: score.metabolism,
       target: 92,
       fullMark: 100,
       note: 'Глюкоза, Липиды, Мочевая кислота',
     },
     {
-      subject: 'Сон & Восстановление',
+      subject: 'Сон & Отдых',
       user: score.sleepRecovery,
       target: 90,
       fullMark: 100,
       note: 'Витамин D3, Ферритин, Магний',
     },
     {
-      subject: 'Иммунитет & Воспаление',
+      subject: 'Иммунитет',
       user: score.immune,
       target: 95,
       fullMark: 100,
       note: 'Лейкоциты, СОЭ, СРБ',
     },
     {
-      subject: 'Почки & Баланс',
+      subject: 'Почки',
       user: score.kidney,
       target: 94,
       fullMark: 100,
       note: 'eGFR, Креатинин, Мочевина, Калий',
     },
     {
-      subject: 'Печень & Детокс',
+      subject: 'Печень',
       user: score.liver,
       target: 90,
       fullMark: 100,
       note: 'АЛТ, АСТ, Билирубин, ЩФ',
     },
     {
-      subject: 'Кроветворение & O2',
+      subject: 'Кровь (O2)',
       user: score.blood,
       target: 95,
       fullMark: 100,
@@ -72,18 +72,15 @@ const HealthIndex: React.FC<Props> = ({
   ];
 
   return (
-    <div className="bg-white dark:bg-[#161b26] rounded-3xl p-5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate relative overflow-visible transition-colors">
+    <div className="bg-white dark:bg-[#161b26] rounded-3xl p-5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate relative overflow-visible transition-colors w-full">
       {/* Header bar matching healthcare_2.png */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-1.5">
           <Calendar size={15} className="text-purple-600 dark:text-purple-400" />
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
-            Разбор анализов
-          </span>
+          <h2 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">
+            Оценка по анализам (Score)
+          </h2>
         </div>
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
-          Score Breakdown
-        </h2>
         <button
           onClick={() => setShowInfo(!showInfo)}
           className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors"
