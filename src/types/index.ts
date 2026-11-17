@@ -105,7 +105,7 @@ export interface FamilyMember {
 
 export interface UserProfile {
   id: string;
-  personalId: string; // e.g. "MED-9402"
+  personalId: string; // e.g. "MED-1001"
   firstName: string;
   lastName: string;
   middleName?: string;

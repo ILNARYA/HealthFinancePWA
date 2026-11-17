@@ -8,27 +8,27 @@ import { useFamily } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
 
 export const AuthPage: React.FC = () => {
-  const { login, loginWithGoogle, loginAsMember, register } = useFamily();
+  const { login, loginWithGoogle, register, loadDemoData } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   // Login form state
-  const [loginId, setLoginId] = useState('ilnar.yamaev@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('••••••••');
+  const [loginId, setLoginId] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
   // Register form state
-  const [regLastName, setRegLastName] = useState('Ямаев');
+  const [regLastName, setRegLastName] = useState('');
   const [regFirstName, setRegFirstName] = useState('');
   const [regMiddleName, setRegMiddleName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [regBirthYear, setRegBirthYear] = useState<number>(1995);
+  const [regBirthYear, setRegBirthYear] = useState<number>(1998);
   const [regGender, setGender] = useState<'male' | 'female'>('male');
-  const [regHeight, setRegHeight] = useState<number>(178);
-  const [regWeight, setRegWeight] = useState<number>(74);
+  const [regHeight, setRegHeight] = useState<number>(175);
+  const [regWeight, setRegWeight] = useState<number>(70);
   const [regBloodType, setRegBloodType] = useState('A(II) Rh+');
   const [regPolicyOMS, setRegPolicyOMS] = useState('');
 
@@ -211,7 +211,7 @@ export const AuthPage: React.FC = () => {
                     value={loginId}
                     onChange={(e) => setLoginId(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="ilnar.yamaev@gmail.com или MED-9402"
+                    placeholder="name@example.com или MED-0000"
                     required
                   />
                   <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -230,6 +230,7 @@ export const AuthPage: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Введите пароль"
                     className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
                     required
                   />
@@ -268,45 +269,22 @@ export const AuthPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Quick Demo Family Profiles Switcher */}
+            {/* Presentation Showcase Launcher */}
             <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-              <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2 text-center">
-                Быстрый вход для тестирования семьи:
+              <button
+                type="button"
+                onClick={() => {
+                  loadDemoData();
+                  setSuccessToast('Демо-режим презентации загружен: витрина графиков и семьи активна!');
+                }}
+                className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200/70 dark:border-purple-800/60 flex items-center justify-center gap-2 hover:bg-purple-100/50 transition-all text-xs font-bold text-purple-900 dark:text-purple-200 active:scale-98"
+              >
+                <Sparkles size={14} className="text-purple-600" />
+                <span>Запустить демо-презентацию проекта</span>
+              </button>
+              <span className="text-[10px] text-gray-400 block text-center mt-1">
+                Для публичной демонстрации возможностей хаба
               </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => loginAsMember('MED-9402')}
-                  className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800/60 text-left hover:scale-[1.02] transition-all"
-                >
-                  <span className="text-[11px] font-black block text-purple-900 dark:text-purple-200 truncate">
-                    Ильнар
-                  </span>
-                  <span className="text-[9px] text-purple-700 dark:text-purple-400 block">Глава</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => loginAsMember('MED-3910')}
-                  className="p-2 rounded-xl bg-pink-50 dark:bg-pink-950/50 border border-pink-200 dark:border-pink-800/60 text-left hover:scale-[1.02] transition-all"
-                >
-                  <span className="text-[11px] font-black block text-pink-900 dark:text-pink-200 truncate">
-                    Алина
-                  </span>
-                  <span className="text-[9px] text-pink-700 dark:text-pink-400 block">Супруга</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => loginAsMember('MED-5812')}
-                  className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-left hover:scale-[1.02] transition-all"
-                >
-                  <span className="text-[11px] font-black block text-blue-900 dark:text-blue-200 truncate">
-                    Рустам
-                  </span>
-                  <span className="text-[9px] text-blue-700 dark:text-blue-400 block">Брат</span>
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -341,7 +319,7 @@ export const AuthPage: React.FC = () => {
                 type="text"
                 value={regLastName}
                 onChange={(e) => setRegLastName(e.target.value)}
-                placeholder="Например: Ямаев"
+                placeholder="Например: Иванов"
                 className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               />
@@ -355,7 +333,7 @@ export const AuthPage: React.FC = () => {
                   type="text"
                   value={regFirstName}
                   onChange={(e) => setRegFirstName(e.target.value)}
-                  placeholder="Ильнар"
+                  placeholder="Например: Алексей"
                   className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold"
                   required
                 />
@@ -366,7 +344,7 @@ export const AuthPage: React.FC = () => {
                   type="text"
                   value={regMiddleName}
                   onChange={(e) => setRegMiddleName(e.target.value)}
-                  placeholder="Рамилевич"
+                  placeholder="Например: Сергеевич"
                   className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
                 />
               </div>
@@ -554,47 +532,27 @@ export const AuthPage: React.FC = () => {
             </p>
 
             <div className="space-y-2">
-              {/* Profile 1: Ilnar */}
+              {/* Option 1: Presentation Demo User */}
               <button
                 type="button"
-                onClick={() => handleSelectGoogleAccount('ilnarmanya@gmail.com', 'Ильнар Ямаев')}
+                onClick={() => handleSelectGoogleAccount('demo.family@gmail.com', 'Алексей Иванов')}
                 className="w-full p-2.5 rounded-2xl border border-purple-200 dark:border-purple-800/60 bg-purple-50/50 dark:bg-purple-950/40 hover:bg-purple-100/60 flex items-center justify-between transition-all text-left"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-purple-700 text-white font-black text-xs flex items-center justify-center flex-shrink-0">
-                    ИЯ
+                    АИ
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Ильнар Ямаев</p>
-                    <p className="text-[10px] text-gray-500 truncate">ilnarmanya@gmail.com</p>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Алексей Иванов</p>
+                    <p className="text-[10px] text-gray-500 truncate">demo.family@gmail.com</p>
                   </div>
                 </div>
                 <span className="text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full flex-shrink-0 ml-1">
-                  Глава
+                  Демо-аккаунт
                 </span>
               </button>
 
-              {/* Profile 2: Alina */}
-              <button
-                type="button"
-                onClick={() => handleSelectGoogleAccount('alina.yamaeva@gmail.com', 'Алина Ямаева')}
-                className="w-full p-2.5 rounded-2xl border border-pink-200 dark:border-pink-800/60 bg-pink-50/50 dark:bg-pink-950/40 hover:bg-pink-100/60 flex items-center justify-between transition-all text-left"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-pink-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0">
-                    АЯ
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Алина Ямаева</p>
-                    <p className="text-[10px] text-gray-500 truncate">alina.yamaeva@gmail.com</p>
-                  </div>
-                </div>
-                <span className="text-[9px] font-black text-pink-700 dark:text-pink-300 bg-pink-100 dark:bg-pink-900/60 px-2 py-0.5 rounded-full flex-shrink-0 ml-1">
-                  Супруга
-                </span>
-              </button>
-
-              {/* Option 3: Custom Google account */}
+              {/* Option 2: Enter own Google account */}
               {!isEnteringCustom ? (
                 <button
                   type="button"
@@ -602,27 +560,27 @@ export const AuthPage: React.FC = () => {
                   className="w-full py-2.5 px-3 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 flex items-center justify-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 transition-all"
                 >
                   <UserPlus size={14} className="text-purple-600" />
-                  <span>Войти под другим Google-аккаунтом</span>
+                  <span>Войти под своим личным Google-аккаунтом</span>
                 </button>
               ) : (
                 <div className="p-3 rounded-2xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 space-y-2 animate-fade-in text-xs">
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Имя и Фамилия</label>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Ваше Имя и Фамилия</label>
                     <input
                       type="text"
                       value={customGoogleName}
                       onChange={(e) => setCustomGoogleName(e.target.value)}
-                      placeholder="Например: Мария Иванова"
+                      placeholder="Например: Иван Петров"
                       className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Google Email</label>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Ваш Google Email</label>
                     <input
                       type="email"
                       value={customGoogleEmail}
                       onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                      placeholder="maria.ivanova@gmail.com"
+                      placeholder="ivan.petrov@gmail.com"
                       className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-medium"
                     />
                   </div>

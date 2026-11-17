@@ -75,106 +75,87 @@ interface FamilyContextType {
 }
 
 export const defaultUserProfile: UserProfile = {
-  id: 'user_ilnar',
-  personalId: 'MED-9402',
-  firstName: 'Ильнар',
-  lastName: 'Ямаев',
-  middleName: 'Рамилевич',
-  email: 'ilnar.yamaev@gmail.com',
-  birthDate: '1994-06-15',
-  birthYear: 1994,
+  id: 'user_head',
+  personalId: 'MED-1001',
+  firstName: 'Алексей',
+  lastName: 'Иванов',
+  middleName: 'Сергеевич',
+  email: 'alex.ivanov@example.com',
+  birthDate: '1995-05-15',
+  birthYear: 1995,
   gender: 'male',
-  height: 182,
-  weight: 78,
-  bmi: 23.5, // 78 / (1.82 * 1.82) = 23.55
+  height: 180,
+  weight: 76,
+  bmi: 23.5,
   bloodType: 'A(II) Rh+',
-  policyOMS: '1694 2850 1938 4810',
-  policyDMS: 'СОГАЗ ДМС Эксперт',
-  avatar: 'ИЯ',
+  policyOMS: '1694 0000 0000 0000',
+  policyDMS: 'Премиум ДМС',
+  avatar: 'АИ',
   familyRole: 'head',
-  familyName: 'Семья Ямаевых',
-  googleConnected: true,
+  familyName: 'Семья Ивановых',
+  googleConnected: false,
 };
 
 export const knownAdultRegistry: UserProfile[] = [
   {
-    id: 'user_alina',
-    personalId: 'MED-3910',
-    firstName: 'Алина',
-    lastName: 'Ямаева',
-    email: 'alina.yam@gmail.com',
-    birthDate: '1997-04-12',
+    id: 'user_elena',
+    personalId: 'MED-2002',
+    firstName: 'Елена',
+    lastName: 'Иванова',
+    email: 'elena.ivanova@example.com',
+    birthDate: '1997-07-20',
     birthYear: 1997,
     gender: 'female',
     height: 168,
     weight: 56,
     bmi: 19.8,
     bloodType: 'B(III) Rh+',
-    policyOMS: '1694 3910 8201 1294',
+    policyOMS: '1694 1111 2222 3333',
     policyDMS: 'Ингосстрах Премиум',
-    avatar: 'АЯ',
+    avatar: 'ЕИ',
     familyRole: 'spouse',
-    familyName: 'Семья Ямаевых',
+    familyName: 'Семья Ивановых',
     googleConnected: true,
   },
   {
-    id: 'user_rustam',
-    personalId: 'MED-5812',
-    firstName: 'Рустам',
-    lastName: 'Ямаев',
-    middleName: 'Рамилевич',
-    email: 'rustam.yam@gmail.com',
-    birthDate: '1991-08-20',
-    birthYear: 1991,
+    id: 'user_dmitriy',
+    personalId: 'MED-3003',
+    firstName: 'Дмитрий',
+    lastName: 'Смирнов',
+    middleName: 'Алексеевич',
+    email: 'dmitriy.smirnov@example.com',
+    birthDate: '1992-03-10',
+    birthYear: 1992,
     gender: 'male',
-    height: 185,
-    weight: 84,
-    bmi: 24.5,
+    height: 184,
+    weight: 82,
+    bmi: 24.2,
     bloodType: 'A(II) Rh+',
-    policyOMS: '1694 5812 4019 3320',
-    avatar: 'РЯ',
+    policyOMS: '1694 4444 5555 6666',
+    avatar: 'ДС',
     familyRole: 'parent',
-    familyName: 'Семья Ямаевых (Брат)',
-    googleConnected: true,
-  },
-  {
-    id: 'user_safina',
-    personalId: 'MED-7721',
-    firstName: 'Гульназ',
-    lastName: 'Сафина',
-    email: 'gulnaz.safina@gmail.com',
-    birthDate: '1996-11-03',
-    birthYear: 1996,
-    gender: 'female',
-    height: 165,
-    weight: 58,
-    bmi: 21.3,
-    bloodType: 'O(I) Rh+',
-    policyOMS: '1694 7721 8912 6001',
-    avatar: 'ГС',
-    familyRole: 'parent',
-    familyName: 'Семья Сафиных',
+    familyName: 'Семья Смирновых (Родственники)',
     googleConnected: true,
   },
 ];
 
 const defaultMembers: FamilyMember[] = [
   {
-    id: 'ilnar',
-    name: 'Ильнар',
-    lastName: 'Ямаев',
-    personalId: 'MED-9402',
+    id: 'member_head',
+    name: 'Алексей',
+    lastName: 'Иванов',
+    personalId: 'MED-1001',
     role: 'head',
     roleLabel: 'Глава семьи',
-    birthYear: 1994,
+    birthYear: 1995,
     gender: 'male',
-    height: 182,
-    weight: 78,
+    height: 180,
+    weight: 76,
     bmi: 23.5,
     bloodType: 'A(II) Rh+',
-    policyOMS: '1694 2850 1938 4810',
-    policyDMS: 'СОГАЗ ДМС Эксперт',
-    avatar: 'ИЯ',
+    policyOMS: '1694 0000 0000 0000',
+    policyDMS: 'Премиум ДМС',
+    avatar: 'АИ',
     color: '#7c3aed',
     healthScore: 88.2,
     analysesCount: 8,
@@ -184,10 +165,10 @@ const defaultMembers: FamilyMember[] = [
     inviteStatus: 'active',
   },
   {
-    id: 'alina',
-    name: 'Алина',
-    lastName: 'Ямаева',
-    personalId: 'MED-3910',
+    id: 'member_spouse',
+    name: 'Елена',
+    lastName: 'Иванова',
+    personalId: 'MED-2002',
     role: 'spouse',
     roleLabel: 'Супруга',
     birthYear: 1997,
@@ -196,9 +177,9 @@ const defaultMembers: FamilyMember[] = [
     weight: 56,
     bmi: 19.8,
     bloodType: 'B(III) Rh+',
-    policyOMS: '1694 3910 8201 1294',
+    policyOMS: '1694 1111 2222 3333',
     policyDMS: 'Ингосстрах Премиум',
-    avatar: 'АЯ',
+    avatar: 'ЕИ',
     color: '#ec4899',
     healthScore: 92.4,
     analysesCount: 5,
@@ -208,10 +189,10 @@ const defaultMembers: FamilyMember[] = [
     inviteStatus: 'active',
   },
   {
-    id: 'timur',
-    name: 'Тимур',
-    lastName: 'Ямаев',
-    personalId: 'MED-CHILD-01',
+    id: 'member_child',
+    name: 'Михаил',
+    lastName: 'Иванов',
+    personalId: 'MED-CH-01',
     role: 'child',
     roleLabel: 'Сын',
     birthYear: 2022,
@@ -220,8 +201,8 @@ const defaultMembers: FamilyMember[] = [
     weight: 16,
     bmi: 14.8,
     bloodType: 'A(II) Rh+',
-    policyOMS: '1694 5102 7741 9021',
-    avatar: 'ТЯ',
+    policyOMS: '1694 7777 8888 9999',
+    avatar: 'МИ',
     color: '#3b82f6',
     healthScore: 95.0,
     analysesCount: 3,
@@ -235,14 +216,14 @@ const defaultMembers: FamilyMember[] = [
 
 const defaultInvites: FamilyInvite[] = [
   {
-    id: 'inv_rustam',
-    fromUserId: 'user_rustam',
-    fromUserName: 'Рустам',
-    fromUserSurname: 'Ямаев',
-    toPersonalId: 'MED-9402',
-    familyName: 'Семья Ямаевых (Родственники)',
+    id: 'inv_dmitriy',
+    fromUserId: 'user_dmitriy',
+    fromUserName: 'Дмитрий',
+    fromUserSurname: 'Смирнов',
+    toPersonalId: 'MED-1001',
+    familyName: 'Семья Смирновых (Родственники)',
     role: 'parent',
-    roleLabel: 'Родственник (Брат)',
+    roleLabel: 'Родственник',
     status: 'pending',
     createdAt: 'Сегодня, 10:15',
   },
@@ -264,7 +245,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Family Group Name
   const [familyName, setFamilyNameState] = useState<string>(() => {
-    return localStorage.getItem('app-family-name') || 'Семья Ямаевых';
+    return localStorage.getItem('app-family-name') || 'Семья Ивановых';
   });
 
   const [members, setMembers] = useState<FamilyMember[]>(() => {
@@ -278,7 +259,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [activeMemberId, setActiveMemberId] = useState<string>(() => {
-    return localStorage.getItem('app-active-member-id') || 'ilnar';
+    return localStorage.getItem('app-active-member-id') || 'member_head';
   });
 
   // Security state
@@ -312,12 +293,12 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return saved
       ? JSON.parse(saved)
       : {
-          connected: true,
-          email: 'ilnarmanya@gmail.com',
-          name: 'Ильнар Ямаев',
-          sheetName: 'Здоровье и Финансы (Семейная БД)',
-          sheetId: '1XPqCC1SKJYuJ2_guAciuqscGgWglku4zXZGmF6VTzcw',
-          lastSynced: 'Только что (5 таблиц активно)',
+          connected: false,
+          email: '',
+          name: '',
+          sheetName: 'Семейная база (Google Sheets)',
+          sheetId: '',
+          lastSynced: 'Не подключено',
         };
   });
 
@@ -390,10 +371,10 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return updated;
     });
 
-    // Also synchronize active member if it is head/ilnar
+    // Also synchronize active member if it is head
     setMembers((prev) =>
       prev.map((m) =>
-        m.id === 'ilnar'
+        m.id === 'member_head' || m.role === 'head'
           ? {
               ...m,
               name: data.firstName || m.name,
@@ -706,14 +687,11 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const login = (credentials?: { email?: string; personalId?: string; password?: string }) => {
     if (credentials?.personalId || credentials?.email) {
       const clean = (credentials.personalId || credentials.email || '').trim().toLowerCase();
-      if (clean.includes('alina') || clean === 'med-3910') {
-        loginAsMember('MED-3910');
-        return true;
-      } else if (clean.includes('rustam') || clean === 'med-5812') {
-        loginAsMember('MED-5812');
-        return true;
-      } else if (clean.includes('ilnar') || clean === 'med-9402') {
-        loginAsMember('MED-9402');
+      const found = knownAdultRegistry.find(
+        (u) => u.personalId.toLowerCase() === clean || u.email.toLowerCase() === clean
+      );
+      if (found) {
+        loginAsMember(found.personalId);
         return true;
       }
     }
@@ -735,9 +713,9 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (correspondingMember) {
         setActiveMemberId(correspondingMember.id);
       }
-    } else if (clean === 'MED-9402' || clean === 'ILNAR') {
+    } else {
       setUserProfile(defaultUserProfile);
-      setActiveMemberId('ilnar');
+      setActiveMemberId('member_head');
     }
     setIsAuthenticatedState(true);
     localStorage.setItem('app-is-authenticated', 'true');
@@ -803,81 +781,33 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const loginWithGoogle = (emailParam?: string, nameParam?: string) => {
-    const isOwner = !emailParam || emailParam.toLowerCase().includes('ilnar');
-    const isAlina = emailParam?.toLowerCase().includes('alina') || nameParam?.toLowerCase().includes('алина');
+    const email = emailParam || 'demo.family@gmail.com';
+    const fullName = nameParam || (emailParam ? 'Пользователь' : 'Алексей Иванов');
+    const parts = fullName.trim().split(' ');
+    const firstName = parts[0] || 'Пользователь';
+    const lastName = parts.length > 1 ? parts.slice(1).join(' ') : 'Иванов';
 
-    let googleProfile: UserProfile;
-
-    if (isOwner) {
-      googleProfile = {
-        id: 'user_google_ilnar',
-        personalId: 'MED-9402',
-        firstName: 'Ильнар',
-        lastName: 'Ямаев',
-        middleName: 'Рамилевич',
-        email: 'ilnarmanya@gmail.com',
-        birthDate: '1995-03-15',
-        birthYear: 1995,
-        gender: 'male',
-        height: 182,
-        weight: 78,
-        bmi: 23.5,
-        bloodType: 'A(II) Rh+',
-        policyOMS: '1694 4810 5920 1823',
-        policyDMS: 'Ингосстрах Премиум',
-        avatar: 'ИЯ',
-        familyRole: 'head',
-        familyName: 'Семья Ямаевых',
-        googleConnected: true,
-      };
-    } else if (isAlina) {
-      googleProfile = {
-        id: 'user_google_alina',
-        personalId: 'MED-3910',
-        firstName: 'Алина',
-        lastName: 'Ямаева',
-        middleName: 'Маратовна',
-        email: emailParam || 'alina.yamaeva@gmail.com',
-        birthDate: '1996-08-12',
-        birthYear: 1996,
-        gender: 'female',
-        height: 168,
-        weight: 56,
-        bmi: 19.8,
-        bloodType: 'O(I) Rh+',
-        policyOMS: '1694 8820 4410 9920',
-        policyDMS: 'Ингосстрах Премиум',
-        avatar: 'АЯ',
-        familyRole: 'spouse',
-        familyName: 'Семья Ямаевых',
-        googleConnected: true,
-      };
-    } else {
-      const parts = (nameParam || 'Новый Пользователь').trim().split(' ');
-      const fName = parts[0] || 'Пользователь';
-      const lName = parts.length > 1 ? parts.slice(1).join(' ') : 'Семья';
-      googleProfile = {
-        id: `user_google_${Date.now()}`,
-        personalId: `MED-${Math.floor(1000 + Math.random() * 9000)}`,
-        firstName: fName,
-        lastName: lName,
-        middleName: '',
-        email: emailParam || 'user@gmail.com',
-        birthDate: '1996-01-01',
-        birthYear: 1996,
-        gender: 'female',
-        height: 170,
-        weight: 65,
-        bmi: 22.5,
-        bloodType: 'A(II) Rh+',
-        policyOMS: '1694 0000 0000 0000',
-        policyDMS: '',
-        avatar: `${fName.slice(0, 1)}${lName.slice(0, 1)}`.toUpperCase(),
-        familyRole: 'spouse',
-        familyName: `Семья ${lName}`,
-        googleConnected: true,
-      };
-    }
+    const googleProfile: UserProfile = {
+      id: `user_google_${Date.now()}`,
+      personalId: `MED-${Math.floor(1000 + Math.random() * 9000)}`,
+      firstName,
+      lastName,
+      middleName: '',
+      email,
+      birthDate: '1995-05-15',
+      birthYear: 1995,
+      gender: 'male',
+      height: 180,
+      weight: 76,
+      bmi: 23.5,
+      bloodType: 'A(II) Rh+',
+      policyOMS: '1694 0000 0000 0000',
+      policyDMS: 'Премиум ДМС',
+      avatar: `${firstName.slice(0, 1)}${lastName.slice(0, 1)}`.toUpperCase(),
+      familyRole: 'head',
+      familyName: `Семья ${lastName}`,
+      googleConnected: true,
+    };
 
     const googleMember: FamilyMember = {
       id: googleProfile.id,
@@ -885,7 +815,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       lastName: googleProfile.lastName,
       personalId: googleProfile.personalId,
       role: googleProfile.familyRole as FamilyMember['role'],
-      roleLabel: googleProfile.familyRole === 'head' ? 'Глава семьи' : (googleProfile.gender === 'female' ? 'Супруга' : 'Родственник'),
+      roleLabel: 'Глава семьи',
       birthYear: googleProfile.birthYear,
       gender: googleProfile.gender,
       height: googleProfile.height,
@@ -894,7 +824,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       bloodType: googleProfile.bloodType,
       policyOMS: googleProfile.policyOMS,
       avatar: googleProfile.avatar,
-      color: googleProfile.gender === 'female' ? '#ec4899' : '#7c3aed',
+      color: '#7c3aed',
       healthScore: 92.0,
       analysesCount: 0,
       expensesTotal: 0,
@@ -940,15 +870,15 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('app-user-profile', JSON.stringify(defaultUserProfile));
     localStorage.setItem('app-family-members', JSON.stringify(defaultMembers));
     localStorage.setItem('app-family-invites', JSON.stringify(defaultInvites));
-    localStorage.setItem('app-family-name', 'Семья Ямаевых');
-    localStorage.setItem('app-active-member-id', 'ilnar');
+    localStorage.setItem('app-family-name', 'Семья Ивановых');
+    localStorage.setItem('app-active-member-id', 'member_head');
 
     setIsAuthenticatedState(true);
     setUserProfile(defaultUserProfile);
     setMembers(defaultMembers);
     setInvites(defaultInvites);
-    setActiveMemberId('ilnar');
-    setFamilyNameState('Семья Ямаевых');
+    setActiveMemberId('member_head');
+    setFamilyNameState('Семья Ивановых');
   };
 
   const logout = () => {

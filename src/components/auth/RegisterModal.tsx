@@ -12,16 +12,16 @@ interface Props {
 export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { userProfile, updateUserProfile, googleAccount } = useFamily();
 
-  const [lastName, setLastName] = useState(userProfile.lastName || 'Ямаев');
-  const [firstName, setFirstName] = useState(userProfile.firstName || 'Ильнар');
-  const [middleName, setMiddleName] = useState(userProfile.middleName || 'Рамилевич');
-  const [birthYear, setBirthYear] = useState<number>(userProfile.birthYear || 1994);
+  const [lastName, setLastName] = useState(userProfile.lastName || 'Иванов');
+  const [firstName, setFirstName] = useState(userProfile.firstName || 'Алексей');
+  const [middleName, setMiddleName] = useState(userProfile.middleName || 'Сергеевич');
+  const [birthYear, setBirthYear] = useState<number>(userProfile.birthYear || 1995);
   const [gender, setGender] = useState<'male' | 'female'>(userProfile.gender || 'male');
-  const [height, setHeight] = useState<number>(userProfile.height || 182);
-  const [weight, setWeight] = useState<number>(userProfile.weight || 78);
+  const [height, setHeight] = useState<number>(userProfile.height || 180);
+  const [weight, setWeight] = useState<number>(userProfile.weight || 76);
   const [bloodType, setBloodType] = useState(userProfile.bloodType || 'A(II) Rh+');
-  const [policyOMS, setPolicyOMS] = useState(userProfile.policyOMS || '1694 2850 1938 4810');
-  const [policyDMS, setPolicyDMS] = useState(userProfile.policyDMS || 'СОГАЗ ДМС Эксперт');
+  const [policyOMS, setPolicyOMS] = useState(userProfile.policyOMS || '1694 0000 0000 0000');
+  const [policyDMS, setPolicyDMS] = useState(userProfile.policyDMS || 'Премиум ДМС');
   const [copied, setCopied] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -135,7 +135,7 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Например: Ямаев"
+              placeholder="Например: Иванов"
               required
             />
           </div>

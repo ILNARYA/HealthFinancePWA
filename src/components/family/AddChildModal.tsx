@@ -13,7 +13,7 @@ interface Props {
 export const AddChildModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { userProfile, addChildMember } = useFamily();
 
-  const [lastName, setLastName] = useState(userProfile.lastName || 'Ямаев');
+  const [lastName, setLastName] = useState(userProfile.lastName || 'Иванов');
   const [firstName, setFirstName] = useState('');
   const [birthYear, setBirthYear] = useState<number>(2023);
   const [gender, setGender] = useState<'male' | 'female'>('male');

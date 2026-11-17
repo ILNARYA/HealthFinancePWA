@@ -127,7 +127,7 @@ export const InviteMemberModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   setTargetId(e.target.value);
                   setStatusMessage(null);
                 }}
-                placeholder="Например: MED-3910"
+                placeholder="Например: MED-2002"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-mono uppercase font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               />

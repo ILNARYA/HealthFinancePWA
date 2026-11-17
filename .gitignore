@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local private backup files
+src/data/personal_backup.ts
+*.bak
