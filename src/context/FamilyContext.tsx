@@ -14,7 +14,7 @@ interface FamilyContextType {
   // Authentication & Session
   isAuthenticated: boolean;
   login: (credentials?: { email?: string; personalId?: string; password?: string }) => boolean;
-  loginWithGoogle: () => void;
+  loginWithGoogle: (email?: string, name?: string) => void;
   loginAsMember: (personalIdOrId: string) => void;
   register: (registrationData: Partial<UserProfile>) => void;
   logout: () => void;
@@ -322,6 +322,25 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [appsScriptUrl, setAppsScriptUrlState] = useState<string>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+      const hashParams = new URLSearchParams(hashQuery);
+      const incomingUrl =
+        urlParams.get('syncUrl') ||
+        urlParams.get('scriptUrl') ||
+        hashParams.get('syncUrl') ||
+        hashParams.get('scriptUrl');
+      if (incomingUrl) {
+        const decoded = decodeURIComponent(incomingUrl).trim();
+        if (decoded.startsWith('http')) {
+          localStorage.setItem('app-google-script-url', decoded);
+          return decoded;
+        }
+      }
+    } catch {
+      // fallback
+    }
     return localStorage.getItem('app-google-script-url') || '';
   });
 
@@ -684,7 +703,20 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const login = () => {
+  const login = (credentials?: { email?: string; personalId?: string; password?: string }) => {
+    if (credentials?.personalId || credentials?.email) {
+      const clean = (credentials.personalId || credentials.email || '').trim().toLowerCase();
+      if (clean.includes('alina') || clean === 'med-3910') {
+        loginAsMember('MED-3910');
+        return true;
+      } else if (clean.includes('rustam') || clean === 'med-5812') {
+        loginAsMember('MED-5812');
+        return true;
+      } else if (clean.includes('ilnar') || clean === 'med-9402') {
+        loginAsMember('MED-9402');
+        return true;
+      }
+    }
     setIsAuthenticatedState(true);
     localStorage.setItem('app-is-authenticated', 'true');
     return true;
@@ -770,36 +802,90 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('app-is-authenticated', 'true');
   };
 
-  const loginWithGoogle = () => {
-    const googleProfile: UserProfile = {
-      id: 'user_google_ilnar',
-      personalId: 'MED-9402',
-      firstName: 'Ильнар',
-      lastName: 'Ямаев',
-      middleName: 'Рамилевич',
-      email: 'ilnarmanya@gmail.com',
-      birthDate: '1995-03-15',
-      birthYear: 1995,
-      gender: 'male',
-      height: 182,
-      weight: 78,
-      bmi: 23.5,
-      bloodType: 'A(II) Rh+',
-      policyOMS: '1694 4810 5920 1823',
-      policyDMS: 'Ингосстрах Премиум',
-      avatar: 'ИЯ',
-      familyRole: 'head',
-      familyName: 'Семья Ямаевых',
-      googleConnected: true,
-    };
+  const loginWithGoogle = (emailParam?: string, nameParam?: string) => {
+    const isOwner = !emailParam || emailParam.toLowerCase().includes('ilnar');
+    const isAlina = emailParam?.toLowerCase().includes('alina') || nameParam?.toLowerCase().includes('алина');
+
+    let googleProfile: UserProfile;
+
+    if (isOwner) {
+      googleProfile = {
+        id: 'user_google_ilnar',
+        personalId: 'MED-9402',
+        firstName: 'Ильнар',
+        lastName: 'Ямаев',
+        middleName: 'Рамилевич',
+        email: 'ilnarmanya@gmail.com',
+        birthDate: '1995-03-15',
+        birthYear: 1995,
+        gender: 'male',
+        height: 182,
+        weight: 78,
+        bmi: 23.5,
+        bloodType: 'A(II) Rh+',
+        policyOMS: '1694 4810 5920 1823',
+        policyDMS: 'Ингосстрах Премиум',
+        avatar: 'ИЯ',
+        familyRole: 'head',
+        familyName: 'Семья Ямаевых',
+        googleConnected: true,
+      };
+    } else if (isAlina) {
+      googleProfile = {
+        id: 'user_google_alina',
+        personalId: 'MED-3910',
+        firstName: 'Алина',
+        lastName: 'Ямаева',
+        middleName: 'Маратовна',
+        email: emailParam || 'alina.yamaeva@gmail.com',
+        birthDate: '1996-08-12',
+        birthYear: 1996,
+        gender: 'female',
+        height: 168,
+        weight: 56,
+        bmi: 19.8,
+        bloodType: 'O(I) Rh+',
+        policyOMS: '1694 8820 4410 9920',
+        policyDMS: 'Ингосстрах Премиум',
+        avatar: 'АЯ',
+        familyRole: 'spouse',
+        familyName: 'Семья Ямаевых',
+        googleConnected: true,
+      };
+    } else {
+      const parts = (nameParam || 'Новый Пользователь').trim().split(' ');
+      const fName = parts[0] || 'Пользователь';
+      const lName = parts.length > 1 ? parts.slice(1).join(' ') : 'Семья';
+      googleProfile = {
+        id: `user_google_${Date.now()}`,
+        personalId: `MED-${Math.floor(1000 + Math.random() * 9000)}`,
+        firstName: fName,
+        lastName: lName,
+        middleName: '',
+        email: emailParam || 'user@gmail.com',
+        birthDate: '1996-01-01',
+        birthYear: 1996,
+        gender: 'female',
+        height: 170,
+        weight: 65,
+        bmi: 22.5,
+        bloodType: 'A(II) Rh+',
+        policyOMS: '1694 0000 0000 0000',
+        policyDMS: '',
+        avatar: `${fName.slice(0, 1)}${lName.slice(0, 1)}`.toUpperCase(),
+        familyRole: 'spouse',
+        familyName: `Семья ${lName}`,
+        googleConnected: true,
+      };
+    }
 
     const googleMember: FamilyMember = {
       id: googleProfile.id,
       name: googleProfile.firstName,
       lastName: googleProfile.lastName,
       personalId: googleProfile.personalId,
-      role: 'head',
-      roleLabel: 'Глава семьи',
+      role: googleProfile.familyRole as FamilyMember['role'],
+      roleLabel: googleProfile.familyRole === 'head' ? 'Глава семьи' : (googleProfile.gender === 'female' ? 'Супруга' : 'Родственник'),
       birthYear: googleProfile.birthYear,
       gender: googleProfile.gender,
       height: googleProfile.height,
@@ -808,8 +894,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       bloodType: googleProfile.bloodType,
       policyOMS: googleProfile.policyOMS,
       avatar: googleProfile.avatar,
-      color: '#7c3aed',
-      healthScore: 0,
+      color: googleProfile.gender === 'female' ? '#ec4899' : '#7c3aed',
+      healthScore: 92.0,
       analysesCount: 0,
       expensesTotal: 0,
       inviteStatus: 'active',

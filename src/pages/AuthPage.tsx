@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   HeartPulse, ShieldCheck, Lock, Mail, Eye, EyeOff,
   Sparkles, Scale, ArrowRight, Sun, Moon,
-  ChevronDown, CheckCircle2
+  ChevronDown, CheckCircle2, X, UserPlus, Check
 } from 'lucide-react';
 import { useFamily } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
@@ -34,6 +34,12 @@ export const AuthPage: React.FC = () => {
 
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  // Google OAuth selection modal
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [isEnteringCustom, setIsEnteringCustom] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('');
+  const [customGoogleName, setCustomGoogleName] = useState('');
+
   // Real-time BMI calculation for register
   const heightM = (regHeight || 170) / 100;
   const bmi = Math.round(((regWeight || 70) / (heightM * heightM)) * 10) / 10;
@@ -54,10 +60,15 @@ export const AuthPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    setSuccessToast('Авторизация через Google OAuth 2.0 (ilnarmanya@gmail.com) успешна!');
+    setShowGoogleModal(true);
+  };
+
+  const handleSelectGoogleAccount = (email: string, name: string) => {
+    setShowGoogleModal(false);
+    setSuccessToast(`Вход через Google (${email}) выполнен успешно!`);
     setTimeout(() => {
-      loginWithGoogle();
-    }, 600);
+      loginWithGoogle(email, name);
+    }, 450);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -514,6 +525,122 @@ export const AuthPage: React.FC = () => {
           <span>Шифрование AES-256 GCM · 152-ФЗ Медицинская тайна</span>
         </div>
       </div>
+
+      {/* Google Account Selector Modal */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in select-none">
+          <div className="w-full max-w-[340px] bg-white dark:bg-[#161b26] rounded-3xl p-4.5 border border-purple-500/20 shadow-2xl animate-scale-in text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.05h3.9c2.28-2.1 3.64-5.2 3.64-9.14z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.9-3.05c-1.08.72-2.45 1.16-4.03 1.16-3.1 0-5.74-2.1-6.68-4.93H1.28v3.15C3.3 21.36 7.37 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.32 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.28C.46 8.2 0 10.04 0 12s.46 3.8 1.28 5.42l4.04-3.15z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.3 2.64 1.28 6.58l4.04 3.15c.94-2.83 3.58-4.98 6.68-4.98z"/>
+                </svg>
+                <h3 className="text-xs font-black tracking-tight">Вход через Google</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowGoogleModal(false); setIsEnteringCustom(false); }}
+                className="w-7 h-7 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2.5 mb-3">
+              Выберите Google-аккаунт или введите свои данные для личного кабинета:
+            </p>
+
+            <div className="space-y-2">
+              {/* Profile 1: Ilnar */}
+              <button
+                type="button"
+                onClick={() => handleSelectGoogleAccount('ilnarmanya@gmail.com', 'Ильнар Ямаев')}
+                className="w-full p-2.5 rounded-2xl border border-purple-200 dark:border-purple-800/60 bg-purple-50/50 dark:bg-purple-950/40 hover:bg-purple-100/60 flex items-center justify-between transition-all text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-purple-700 text-white font-black text-xs flex items-center justify-center flex-shrink-0">
+                    ИЯ
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Ильнар Ямаев</p>
+                    <p className="text-[10px] text-gray-500 truncate">ilnarmanya@gmail.com</p>
+                  </div>
+                </div>
+                <span className="text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full flex-shrink-0 ml-1">
+                  Глава
+                </span>
+              </button>
+
+              {/* Profile 2: Alina */}
+              <button
+                type="button"
+                onClick={() => handleSelectGoogleAccount('alina.yamaeva@gmail.com', 'Алина Ямаева')}
+                className="w-full p-2.5 rounded-2xl border border-pink-200 dark:border-pink-800/60 bg-pink-50/50 dark:bg-pink-950/40 hover:bg-pink-100/60 flex items-center justify-between transition-all text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-pink-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0">
+                    АЯ
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Алина Ямаева</p>
+                    <p className="text-[10px] text-gray-500 truncate">alina.yamaeva@gmail.com</p>
+                  </div>
+                </div>
+                <span className="text-[9px] font-black text-pink-700 dark:text-pink-300 bg-pink-100 dark:bg-pink-900/60 px-2 py-0.5 rounded-full flex-shrink-0 ml-1">
+                  Супруга
+                </span>
+              </button>
+
+              {/* Option 3: Custom Google account */}
+              {!isEnteringCustom ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEnteringCustom(true)}
+                  className="w-full py-2.5 px-3 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 flex items-center justify-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 transition-all"
+                >
+                  <UserPlus size={14} className="text-purple-600" />
+                  <span>Войти под другим Google-аккаунтом</span>
+                </button>
+              ) : (
+                <div className="p-3 rounded-2xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 space-y-2 animate-fade-in text-xs">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Имя и Фамилия</label>
+                    <input
+                      type="text"
+                      value={customGoogleName}
+                      onChange={(e) => setCustomGoogleName(e.target.value)}
+                      placeholder="Например: Мария Иванова"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Google Email</label>
+                    <input
+                      type="email"
+                      value={customGoogleEmail}
+                      onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                      placeholder="maria.ivanova@gmail.com"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-medium"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!customGoogleEmail.trim()}
+                    onClick={() => handleSelectGoogleAccount(customGoogleEmail.trim(), customGoogleName.trim() || 'Пользователь')}
+                    className="w-full py-2 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <Check size={13} />
+                    <span>Подтвердить вход</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

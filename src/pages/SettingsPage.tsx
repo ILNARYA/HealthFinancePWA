@@ -5,7 +5,7 @@ import {
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
   Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
   UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2,
-  Link2
+  Link2, Share2
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -66,6 +66,19 @@ const SettingsPage: React.FC = () => {
       setUrlSaved(false);
       setMessage(null);
     }, 3500);
+  };
+
+  const handleCopyFamilyLink = () => {
+    const targetUrl = scriptUrlInput.trim() || appsScriptUrl.trim();
+    if (!targetUrl) {
+      setMessage('Сначала укажите и сохраните URL развертывания веб-приложения!');
+      setTimeout(() => setMessage(null), 3500);
+      return;
+    }
+    const shareUrl = `${window.location.origin}${window.location.pathname}#/?syncUrl=${encodeURIComponent(targetUrl)}`;
+    navigator.clipboard.writeText(shareUrl);
+    setMessage('Семейная ссылка скопирована! Отправьте её жене или родственникам в мессенджере.');
+    setTimeout(() => setMessage(null), 4000);
   };
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -716,6 +729,19 @@ const SettingsPage: React.FC = () => {
                 <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
                 <span>{syncing ? 'Проверка...' : 'Проверить связь'}</span>
               </button>
+            </div>
+
+            <div className="pt-2 border-t border-purple-100 dark:border-purple-900/40">
+              <button
+                onClick={handleCopyFamilyLink}
+                className="w-full py-2 px-3 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/80 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-98"
+              >
+                <Share2 size={13} />
+                <span>Скопировать семейную ссылку для жены / родственников</span>
+              </button>
+              <p className="text-[9px] text-gray-400 text-center mt-1">
+                При переходе по ссылке на их телефоне база данных подключится автоматически без ручного ввода URL
+              </p>
             </div>
           </div>
         </div>
