@@ -855,6 +855,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     setMembers([newMember]);
     setActiveMemberId(newMember.id);
+    setFamilyNameState('Моя семья');
     setIsAuthenticatedState(true);
     setIsDemoModeState(false);
     localStorage.setItem('app-is-demo', 'false');
