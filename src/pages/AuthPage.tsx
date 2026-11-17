@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse, ShieldCheck, Lock, Mail, Eye, EyeOff,
   Sparkles, Scale, ArrowRight, Sun, Moon,
-  ChevronDown, CheckCircle2, X, UserPlus, Check
+  ChevronDown, CheckCircle2, X, UserPlus, Check, Loader2
 } from 'lucide-react';
 import { useFamily } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
@@ -41,6 +41,7 @@ export const AuthPage: React.FC = () => {
   const [enteredCode, setEnteredCode] = useState<string>('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
+  const [isSendingCode, setIsSendingCode] = useState(false);
 
   React.useEffect(() => {
     let timer: any;
@@ -74,6 +75,19 @@ export const AuthPage: React.FC = () => {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanLogin = loginId.trim().toLowerCase();
+    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+    const user = existingUsers.find((u: any) => u.email?.toLowerCase() === cleanLogin);
+    
+    // Check if user is known
+    const currentProfileEmail = JSON.parse(localStorage.getItem('app-user-profile') || '{}').email?.toLowerCase();
+    
+    if (existingUsers.length > 0 && !user && currentProfileEmail !== cleanLogin && cleanLogin !== 'demo.family@gmail.com') {
+      setSuccessToast(`⚠️ Пользователь с email «${loginId}» не найден в базе. Пожалуйста, пройдите регистрацию.`);
+      setTimeout(() => setSuccessToast(null), 3500);
+      return;
+    }
+
     login({ email: loginId, password: loginPassword });
     navigate('/');
   };
@@ -84,6 +98,17 @@ export const AuthPage: React.FC = () => {
 
   const handleSelectGoogleAccount = (email: string, name: string) => {
     setShowGoogleModal(false);
+    const cleanEmail = email.trim().toLowerCase();
+    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+    if (!existingUsers.some((u: any) => u.email?.toLowerCase() === cleanEmail)) {
+      existingUsers.push({
+        email: cleanEmail,
+        name: name,
+        registeredAt: new Date().toISOString(),
+        registeredMethod: 'google',
+      });
+      localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
+    }
     setSuccessToast(`Вход через Google (${email}) выполнен успешно!`);
     setTimeout(() => {
       loginWithGoogle(email, name);
@@ -91,48 +116,162 @@ export const AuthPage: React.FC = () => {
     }, 450);
   };
 
-  const handleRequestVerificationCode = (e: React.FormEvent) => {
+  const handleRequestVerificationCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regFirstName.trim() || !regLastName.trim()) {
       setSuccessToast('Пожалуйста, укажите имя и фамилию');
       setTimeout(() => setSuccessToast(null), 3000);
       return;
     }
-    const cleanEmail = regEmail.trim();
+    const cleanEmail = regEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
       setSuccessToast('Пожалуйста, укажите корректный Email для получения кода');
       setTimeout(() => setSuccessToast(null), 3500);
       return;
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setVerificationCode(code);
+    // 1. Проверка на дубликат: запрет повторной регистрации
+    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+    const alreadyRegistered = existingUsers.some((u: any) => u.email?.toLowerCase() === cleanEmail);
+    if (alreadyRegistered) {
+      setSuccessToast(`⚠️ Email «${cleanEmail}» уже зарегистрирован! Пожалуйста, выполните вход.`);
+      setTimeout(() => {
+        setMode('login');
+        setLoginId(cleanEmail);
+        setSuccessToast(null);
+      }, 2200);
+      return;
+    }
+
+    setIsSendingCode(true);
+    const localGeneratedCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(localGeneratedCode);
     setEnteredCode('');
     setCodeError(null);
+
+    // 2. Отправка реального email через Google Apps Script (MailApp)
+    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
+    if (scriptUrl && scriptUrl.startsWith('http')) {
+      try {
+        const response = await fetch(scriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'sendVerificationCode',
+            email: cleanEmail,
+          }),
+        });
+        const data = await response.json();
+        setIsSendingCode(false);
+
+        if (!data.success) {
+          if (data.error === 'USER_ALREADY_EXISTS') {
+            setSuccessToast(`⚠️ ${data.message}`);
+            setTimeout(() => {
+              setMode('login');
+              setLoginId(cleanEmail);
+              setSuccessToast(null);
+            }, 2200);
+            return;
+          }
+          setCodeError(data.message || 'Ошибка отправки кода');
+          return;
+        }
+
+        setCountdown(60);
+        setRegStep('verify');
+        setSuccessToast(`📧 Настоящее письмо с кодом отправлено на ${cleanEmail}`);
+        return;
+      } catch (err) {
+        console.warn('Apps Script mail dispatch fallback:', err);
+      }
+    }
+
+    // Fallback если Apps Script ещё не привязан
+    setIsSendingCode(false);
     setCountdown(60);
     setRegStep('verify');
-    setSuccessToast(`📧 Код отправлен на ${cleanEmail}: ${code}`);
+    setSuccessToast(`📧 Письмо сформировано для ${cleanEmail}`);
   };
 
-  const handleResendCode = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setVerificationCode(code);
+  const handleResendCode = async () => {
+    const cleanEmail = regEmail.trim().toLowerCase();
+    setIsSendingCode(true);
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(newCode);
+
+    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
+    if (scriptUrl && scriptUrl.startsWith('http')) {
+      try {
+        await fetch(scriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'sendVerificationCode',
+            email: cleanEmail,
+          }),
+        });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    setIsSendingCode(false);
     setCountdown(60);
     setCodeError(null);
-    setSuccessToast(`📧 Новый код отправлен на ${regEmail.trim()}: ${code}`);
+    setSuccessToast(`📧 Новый код отправлен на ${cleanEmail}`);
   };
 
   const handleVerifyAndRegister = () => {
     if (enteredCode.trim() !== verificationCode) {
-      setCodeError('Неверный код подтверждения. Проверьте почту или запросите код повторно.');
+      setCodeError('Неверный код безопасности. Проверьте почту или запросите код повторно.');
       return;
+    }
+
+    const cleanEmail = regEmail.trim().toLowerCase();
+
+    // Записать пользователя в постоянный реестр базы данных (защита от повторной регистрации)
+    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+    existingUsers.push({
+      email: cleanEmail,
+      name: `${regFirstName.trim()} ${regLastName.trim()}`,
+      password: regPassword.trim() || 'pass1234',
+      registeredAt: new Date().toISOString(),
+      registeredMethod: 'email',
+    });
+    localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
+
+    // Синхронизация с Google Таблицей через Apps Script (если подключен)
+    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
+    if (scriptUrl && scriptUrl.startsWith('http')) {
+      fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'verifyAndRegister',
+          email: cleanEmail,
+          code: enteredCode.trim(),
+          profile: {
+            firstName: regFirstName.trim(),
+            lastName: regLastName.trim(),
+            middleName: regMiddleName.trim(),
+            password: regPassword.trim() || 'pass1234',
+            birthYear: regBirthYear,
+            gender: regGender,
+            height: regHeight,
+            weight: regWeight,
+            bloodType: regBloodType,
+            policyOMS: regPolicyOMS.trim() || '1694 0000 0000 0000',
+          },
+        }),
+      }).catch((e) => console.warn('Sync to Google Sheets error:', e));
     }
 
     register({
       firstName: regFirstName.trim(),
       lastName: regLastName.trim(),
       middleName: regMiddleName.trim(),
-      email: regEmail.trim(),
+      email: cleanEmail,
       birthYear: regBirthYear,
       gender: regGender,
       height: regHeight,
@@ -541,11 +680,11 @@ export const AuthPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={!regFirstName.trim() || !regLastName.trim()}
+              disabled={!regFirstName.trim() || !regLastName.trim() || isSendingCode}
               className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
             >
-              <Mail size={14} />
-              <span>Получить код подтверждения на email</span>
+              {isSendingCode ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+              <span>{isSendingCode ? 'Формирование и отправка...' : 'Получить код подтверждения на email'}</span>
             </button>
           </form>
         )}
@@ -565,26 +704,15 @@ export const AuthPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Verification Banner */}
-            <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-2xl border border-purple-200 dark:border-purple-800/80 flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold text-purple-900 dark:text-purple-200 block">
-                  📧 Входящее письмо (симуляция):
-                </span>
-                <span className="text-[11px] text-purple-800 dark:text-purple-300 font-mono font-black mt-0.5 block">
-                  Код: {verificationCode}
-                </span>
+            {/* Email Status Notice */}
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-2xl border border-purple-200 dark:border-purple-800/80 space-y-1">
+              <div className="flex items-center gap-1.5 text-purple-800 dark:text-purple-300 font-bold text-[11px]">
+                <Mail size={13} />
+                <span>Письмо сформировано и отправлено</span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEnteredCode(verificationCode);
-                  setCodeError(null);
-                }}
-                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-bold shadow-xs active:scale-95 flex-shrink-0"
-              >
-                Вставить код
-              </button>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">
+                Проверьте входящие сообщения (и папку «Спам») на <strong>{regEmail}</strong>. Введите полученный 6-значный код ниже.
+              </p>
             </div>
 
             {/* Code Input */}

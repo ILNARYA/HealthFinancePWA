@@ -825,7 +825,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       policyDMS: data.policyDMS || '',
       avatar: `${(data.firstName || 'Н').slice(0, 1)}${(data.lastName || 'П').slice(0, 1)}`.toUpperCase(),
       familyRole: 'head',
-      familyName: `Семья ${data.lastName || 'Новая'}`,
+      familyName: 'Моя семья',
       googleConnected: true,
     };
 
@@ -893,7 +893,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       policyDMS: '',
       avatar: `${firstName.slice(0, 1)}${lastName.slice(0, 1)}`.toUpperCase(),
       familyRole: 'head',
-      familyName: `Семья ${lastName}`,
+      familyName: 'Моя семья',
       googleConnected: true,
     };
 
