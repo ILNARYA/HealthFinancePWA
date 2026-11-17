@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  X, Send, Sparkles, Stethoscope, Bot, Key, ExternalLink,
+  X, Send, Sparkles, Stethoscope, Bot, Key,
   CheckCircle2, ShieldAlert, Loader2
 } from 'lucide-react';
 import type { Biomarker } from '../../types';
@@ -231,17 +231,11 @@ ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin
           <div className="p-3 bg-purple-50 dark:bg-purple-950/60 border-b border-purple-200 dark:border-purple-800 text-xs animate-slide-up flex-shrink-0">
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-bold text-purple-900 dark:text-purple-200 text-[11px] flex items-center gap-1">
-                <Key size={12} /> Google Gemini API Key
+                <Key size={12} /> Google Gemini API Key (опционально)
               </span>
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:underline flex items-center gap-0.5"
-              >
-                <span>Получить бесплатно ↗</span>
-                <ExternalLink size={10} />
-              </a>
+              <span className="text-[10px] text-purple-600 dark:text-purple-300 font-medium">
+                Офлайн-режим активен
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <input
@@ -260,7 +254,7 @@ ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin
               </button>
             </div>
             <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-              Без ключа работает локальный клинический движок по базе референсов.
+              Встроенный клинический движок работает автономно. Ключ Gemini API опционален для онлайн-нейросети.
             </p>
           </div>
         )}

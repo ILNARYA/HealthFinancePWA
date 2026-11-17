@@ -326,23 +326,23 @@ const SettingsPage: React.FC = () => {
       </div>
 
       {/* 1. Семейный кабинет (Family Cabinet) */}
-      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors w-full">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
+      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors w-full overflow-hidden">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400 flex-shrink-0">
               <Users size={16} />
             </div>
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white truncate">
                 {familyName} ({members.length})
               </h3>
-              <p className="text-[10px] text-gray-400">Семейная группа и родственные роли</p>
+              <p className="text-[10px] text-gray-400 truncate">Семейная группа</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => setShowInviteModal(true)}
-              className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-1 rounded-xl hover:bg-purple-100 transition-colors flex items-center gap-0.5"
+              className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-1 rounded-xl hover:bg-purple-100 transition-colors flex items-center gap-1 border border-purple-200/50 dark:border-purple-800/50"
               title="Пригласить взрослого по ID"
             >
               <UserPlus size={11} />
@@ -350,11 +350,11 @@ const SettingsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setShowChildModal(true)}
-              className="text-[10px] font-bold text-white bg-purple-700 px-2 py-1 rounded-xl hover:bg-purple-800 transition-colors flex items-center gap-0.5 shadow-xs"
+              className="text-[10px] font-bold text-white bg-purple-700 px-2.5 py-1 rounded-xl hover:bg-purple-800 transition-colors flex items-center gap-1 shadow-xs"
               title="Добавить ребёнка до 20 лет"
             >
               <Baby size={11} />
-              <span>+ Ребёнок</span>
+              <span>Ребёнок</span>
             </button>
           </div>
         </div>
@@ -708,29 +708,27 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {/* Connected Google Profile Banner */}
-        <div className="mb-2.5 p-3.5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border border-purple-200/60 dark:border-purple-800/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2.5 min-w-0">
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border border-purple-200/60 dark:border-purple-800/50 overflow-hidden">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-2xl bg-white dark:bg-[#1a202c] shadow-xs border border-purple-200 dark:border-purple-800/60 flex items-center justify-center font-black text-purple-700 dark:text-purple-300 text-sm flex-shrink-0">
                 G
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                  {googleAccount.connected && googleAccount.email
-                    ? `${googleAccount.name || 'Пользователь'} (${googleAccount.email})`
-                    : 'Google-сервисы готовы к подключению'}
+                  Google Таблицы и Облако
                 </p>
-                <p className="text-[10px] text-purple-700 dark:text-purple-300 truncate mt-0.5">
+                <p className="text-[10px] text-purple-700 dark:text-purple-300 font-medium truncate mt-0.5">
                   База данных: «{googleAccount.sheetName || 'Семейная база'}»
                 </p>
               </div>
             </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
               googleAccount.connected
                 ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                 : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
             }`}>
-              {googleAccount.connected ? '5 таблиц онлайн' : 'Ожидает подключения'}
+              {googleAccount.connected ? '5 листов онлайн' : 'Ожидает подключения'}
             </span>
           </div>
 
@@ -764,18 +762,18 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {/* Apps Script Web App API Integration Card */}
-        <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors overflow-hidden">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400 flex-shrink-0">
                 <Link2 size={16} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">API Веб-приложения Apps Script</p>
-                <p className="text-[10px] text-gray-400 truncate">Сквозная синхронизация со смартфона жены и семьи</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">API Apps Script</p>
+                <p className="text-[10px] text-gray-400 truncate">Сквозная синхронизация для семьи</p>
               </div>
             </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
               appsScriptUrl
                 ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                 : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
@@ -861,23 +859,23 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {/* Gemini AI Doctor API Card */}
-        <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors overflow-hidden">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400 flex-shrink-0">
                 <Sparkles size={16} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">ИИ-Врач и ключ Google Gemini API</p>
-                <p className="text-[10px] text-gray-400 truncate">Онлайн-интерпретация бланков и консультации</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">ИИ-Врач и Gemini API</p>
+                <p className="text-[10px] text-gray-400 truncate">Клиническая интерпретация и бланки</p>
               </div>
             </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
               geminiApiKey
                 ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                 : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
             }`}>
-              {geminiApiKey ? 'Gemini 1.5 Онлайн' : 'Встроенный движок'}
+              {geminiApiKey ? 'Gemini Онлайн' : 'Встроенный ИИ'}
             </span>
           </div>
 
@@ -885,16 +883,11 @@ const SettingsPage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                  Google Gemini API Key:
+                  Google Gemini API Key (опционально):
                 </label>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] font-bold text-purple-700 dark:text-purple-400 hover:underline flex items-center gap-0.5"
-                >
-                  <span>Получить ключ бесплатно ↗</span>
-                </a>
+                <span className="text-[9px] text-purple-600 dark:text-purple-400 font-medium">
+                  Офлайн-режим активен
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <input
@@ -913,8 +906,8 @@ const SettingsPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <p className="text-[10px] text-gray-400">
-              Если ключ не указан, приложение использует встроенный клинический алгоритм по референсам.
+            <p className="text-[10px] text-gray-400 leading-tight">
+              Встроенный клинический движок работает автономно без ключей и без ограничений по регионам.
             </p>
           </div>
         </div>

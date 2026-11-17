@@ -35,6 +35,21 @@ export const AuthPage: React.FC = () => {
   const [regBloodType, setRegBloodType] = useState('A(II) Rh+');
   const [regPolicyOMS, setRegPolicyOMS] = useState('');
 
+  // Email verification state for anti-spam & account security
+  const [regStep, setRegStep] = useState<'form' | 'verify'>('form');
+  const [verificationCode, setVerificationCode] = useState<string>('');
+  const [enteredCode, setEnteredCode] = useState<string>('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
+
+  React.useEffect(() => {
+    let timer: any;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Google OAuth selection modal
@@ -76,15 +91,48 @@ export const AuthPage: React.FC = () => {
     }, 450);
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRequestVerificationCode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regFirstName.trim() || !regLastName.trim()) return;
+    if (!regFirstName.trim() || !regLastName.trim()) {
+      setSuccessToast('Пожалуйста, укажите имя и фамилию');
+      setTimeout(() => setSuccessToast(null), 3000);
+      return;
+    }
+    const cleanEmail = regEmail.trim();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setSuccessToast('Пожалуйста, укажите корректный Email для получения кода');
+      setTimeout(() => setSuccessToast(null), 3500);
+      return;
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(code);
+    setEnteredCode('');
+    setCodeError(null);
+    setCountdown(60);
+    setRegStep('verify');
+    setSuccessToast(`📧 Код отправлен на ${cleanEmail}: ${code}`);
+  };
+
+  const handleResendCode = () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(code);
+    setCountdown(60);
+    setCodeError(null);
+    setSuccessToast(`📧 Новый код отправлен на ${regEmail.trim()}: ${code}`);
+  };
+
+  const handleVerifyAndRegister = () => {
+    if (enteredCode.trim() !== verificationCode) {
+      setCodeError('Неверный код подтверждения. Проверьте почту или запросите код повторно.');
+      return;
+    }
 
     register({
       firstName: regFirstName.trim(),
       lastName: regLastName.trim(),
       middleName: regMiddleName.trim(),
-      email: regEmail.trim() || `${regFirstName.toLowerCase()}.${regLastName.toLowerCase()}@gmail.com`,
+      email: regEmail.trim(),
       birthYear: regBirthYear,
       gender: regGender,
       height: regHeight,
@@ -295,10 +343,10 @@ export const AuthPage: React.FC = () => {
           </div>
         )}
 
-        {/* MODE B: REGISTRATION */}
-        {mode === 'register' && (
+        {/* MODE B: REGISTRATION - STEP 1: FORM */}
+        {mode === 'register' && regStep === 'form' && (
           <form
-            onSubmit={handleRegisterSubmit}
+            onSubmit={handleRequestVerificationCode}
             className="bg-white dark:bg-[#161b26] p-4.5 rounded-3xl border border-purple-100/60 dark:border-purple-500/20 shadow-xl space-y-3 animate-fade-in text-xs max-h-[70vh] overflow-y-auto"
           >
             {/* Google Fast Register */}
@@ -359,13 +407,14 @@ export const AuthPage: React.FC = () => {
             {/* Email & Password */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 block mb-1">Email</label>
+                <label className="text-[10px] font-bold text-gray-400 block mb-1">Email для кода *</label>
                 <input
                   type="email"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   placeholder="user@gmail.com"
-                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-medium"
+                  required
                 />
               </div>
               <div>
@@ -468,12 +517,12 @@ export const AuthPage: React.FC = () => {
                   <select
                     value={regBloodType}
                     onChange={(e) => setRegBloodType(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] font-bold appearance-none cursor-pointer"
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer"
                   >
-                    <option value="A(II) Rh+">A(II) Rh+</option>
-                    <option value="O(I) Rh+">O(I) Rh+</option>
-                    <option value="B(III) Rh+">B(III) Rh+</option>
-                    <option value="AB(IV) Rh+">AB(IV) Rh+</option>
+                    <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
+                    <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
+                    <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="B(III) Rh+">B(III) Rh+</option>
+                    <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="AB(IV) Rh+">AB(IV) Rh+</option>
                   </select>
                   <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
@@ -495,10 +544,113 @@ export const AuthPage: React.FC = () => {
               disabled={!regFirstName.trim() || !regLastName.trim()}
               className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
             >
-              <Sparkles size={14} />
-              <span>Создать личный кабинет и семью</span>
+              <Mail size={14} />
+              <span>Получить код подтверждения на email</span>
             </button>
           </form>
+        )}
+
+        {/* MODE B: REGISTRATION - STEP 2: VERIFICATION CODE */}
+        {mode === 'register' && regStep === 'verify' && (
+          <div className="bg-white dark:bg-[#161b26] p-5 rounded-3xl border border-purple-100/60 dark:border-purple-500/20 shadow-xl space-y-4 animate-fade-in text-xs">
+            <div className="text-center space-y-1.5">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs">
+                <Mail size={22} />
+              </div>
+              <h3 className="text-sm font-black text-gray-900 dark:text-white">
+                Подтверждение email
+              </h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                Мы отправили 6-значный код безопасности на адрес <span className="font-bold text-purple-700 dark:text-purple-300 font-mono">{regEmail}</span>
+              </p>
+            </div>
+
+            {/* Verification Banner */}
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-2xl border border-purple-200 dark:border-purple-800/80 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold text-purple-900 dark:text-purple-200 block">
+                  📧 Входящее письмо (симуляция):
+                </span>
+                <span className="text-[11px] text-purple-800 dark:text-purple-300 font-mono font-black mt-0.5 block">
+                  Код: {verificationCode}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEnteredCode(verificationCode);
+                  setCodeError(null);
+                }}
+                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-bold shadow-xs active:scale-95 flex-shrink-0"
+              >
+                Вставить код
+              </button>
+            </div>
+
+            {/* Code Input */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-gray-400 block text-center uppercase tracking-wider">
+                Введите 6-значный код
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={enteredCode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setEnteredCode(val);
+                  if (codeError) setCodeError(null);
+                }}
+                placeholder="••••••"
+                autoFocus
+                className="w-full text-center text-2xl font-black font-mono tracking-[0.3em] py-2.5 px-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-purple-700 dark:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              {codeError && (
+                <p className="text-[10px] font-bold text-rose-600 text-center">
+                  {codeError}
+                </p>
+              )}
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="button"
+              onClick={handleVerifyAndRegister}
+              disabled={enteredCode.length !== 6}
+              className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-40 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+            >
+              <CheckCircle2 size={15} />
+              <span>Подтвердить и войти</span>
+            </button>
+
+            {/* Resend and back controls */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 text-[11px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setRegStep('form');
+                  setCodeError(null);
+                }}
+                className="text-gray-400 hover:text-purple-600 font-semibold"
+              >
+                ← Изменить данные
+              </button>
+
+              {countdown > 0 ? (
+                <span className="text-gray-400">
+                  Повторно через <span className="font-bold text-purple-600 font-mono">{countdown}с</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
+                >
+                  Выслать код снова
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

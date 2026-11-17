@@ -111,6 +111,12 @@ input[type="number"] {
 }
 
 /* Dark mode select & options dropdown styling */
+.dark select,
+.dark input,
+.dark textarea {
+  color-scheme: dark;
+}
+
 select option {
   background-color: #ffffff;
   color: #0f172a;

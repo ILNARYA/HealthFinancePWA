@@ -12,7 +12,7 @@ interface Props {
 }
 
 export const InviteMemberModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { familyName, sendFamilyInvite } = useFamily();
+  const { familyName, sendFamilyInvite, isDemoMode } = useFamily();
   const [targetId, setTargetId] = useState('');
   const [selectedRole, setSelectedRole] = useState<FamilyInvite['role']>('spouse');
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
@@ -78,39 +78,41 @@ export const InviteMemberModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </p>
         </div>
 
-        {/* Quick Sample Chips */}
-        <div className="mt-3">
-          <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1.5 px-0.5">
-            Быстрый выбор из родственников:
-          </span>
-          <div className="space-y-1.5">
-            {knownAdultRegistry.map((user) => (
-              <button
-                key={user.id}
-                type="button"
-                onClick={() => handleSelectSample(user.personalId, user.familyRole as any)}
-                className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition-all ${
-                  targetId.toUpperCase() === user.personalId.toUpperCase()
-                    ? 'border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 font-bold'
-                    : 'border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a202c]/50 hover:border-purple-300'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-lg bg-purple-600 text-white font-bold text-[10px] flex items-center justify-center">
-                    {user.avatar}
+        {/* Quick Sample Chips (Only shown in Demo Presentation Mode) */}
+        {isDemoMode && (
+          <div className="mt-3">
+            <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1.5 px-0.5">
+              Быстрый выбор из родственников (Демо):
+            </span>
+            <div className="space-y-1.5">
+              {knownAdultRegistry.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => handleSelectSample(user.personalId, user.familyRole as any)}
+                  className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition-all ${
+                    targetId.toUpperCase() === user.personalId.toUpperCase()
+                      ? 'border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 font-bold'
+                      : 'border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a202c]/50 hover:border-purple-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-purple-600 text-white font-bold text-[10px] flex items-center justify-center">
+                      {user.avatar}
+                    </div>
+                    <span className="truncate">{user.firstName} {user.lastName}</span>
                   </div>
-                  <span className="truncate">{user.firstName} {user.lastName}</span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[10px] font-mono font-bold text-purple-700 dark:text-purple-300">
-                    {user.personalId}
-                  </span>
-                  <ArrowRight size={12} className="text-gray-400" />
-                </div>
-              </button>
-            ))}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] font-mono font-bold text-purple-700 dark:text-purple-300">
+                      {user.personalId}
+                    </span>
+                    <ArrowRight size={12} className="text-gray-400" />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSend} className="mt-3.5 space-y-3">

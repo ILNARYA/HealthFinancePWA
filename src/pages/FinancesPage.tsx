@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera, EyeOff
+  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera, EyeOff, Eye
 } from 'lucide-react';
 import { monthsData, demoDoctors, categoryLabels, categoryColors, allDemoExpenses } from '../data/demo';
 import type { Expense } from '../types';
@@ -89,30 +89,30 @@ const FinancesPage: React.FC = () => {
   const activeCategoryObj = categoryTotals.find((c) => c.key === selectedCategory);
 
   const doctorsList = React.useMemo(() => {
-    if (!isDemoMode) {
-      const map = new Map<string, { id: string; name: string; specialty: string; visits: number; totalSpent: number; lastVisit: string; avatar: string }>();
-      allExpenses.forEach((exp) => {
-        if (exp.doctor) {
-          const existing = map.get(exp.doctor) || {
-            id: exp.doctor,
-            name: exp.doctor,
-            specialty: exp.specialty || 'Врач-специалист',
-            visits: 0,
-            totalSpent: 0,
-            lastVisit: exp.date || '',
-            avatar: '👨‍⚕️',
-          };
-          existing.visits += 1;
-          existing.totalSpent += exp.amount;
-          if (exp.date && exp.date > existing.lastVisit) {
-            existing.lastVisit = exp.date;
-          }
-          map.set(exp.doctor, existing);
-        }
-      });
-      return Array.from(map.values());
+    if (isDemoMode && allExpenses.length > 0) {
+      return demoDoctors;
     }
-    return demoDoctors;
+    const map = new Map<string, { id: string; name: string; specialty: string; visits: number; totalSpent: number; lastVisit: string; avatar: string }>();
+    allExpenses.forEach((exp) => {
+      if (exp.doctor) {
+        const existing = map.get(exp.doctor) || {
+          id: exp.doctor,
+          name: exp.doctor,
+          specialty: exp.specialty || 'Врач-специалист',
+          visits: 0,
+          totalSpent: 0,
+          lastVisit: exp.date || '',
+          avatar: '👨‍⚕️',
+        };
+        existing.visits += 1;
+        existing.totalSpent += exp.amount;
+        if (exp.date && exp.date > existing.lastVisit) {
+          existing.lastVisit = exp.date;
+        }
+        map.set(exp.doctor, existing);
+      }
+    });
+    return Array.from(map.values());
   }, [isDemoMode, allExpenses]);
 
   // Custom shape that handles active sector pop-out (radial expansion + elevation glow)
@@ -211,15 +211,17 @@ const FinancesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {privacyMode && (
-            <button
-              onClick={() => setPrivacyMode(false)}
-              className="w-9 h-9 bg-purple-100 dark:bg-purple-950/80 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs border border-purple-300 dark:border-purple-800 transition-colors"
-              title="Приватный режим включен. Нажмите, чтобы отключить"
-            >
-              <EyeOff size={16} />
-            </button>
-          )}
+          <button
+            onClick={() => setPrivacyMode(!privacyMode)}
+            className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors border shadow-xs ${
+              privacyMode
+                ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800'
+                : 'bg-white dark:bg-[#1e2433] text-gray-500 hover:text-purple-600 dark:text-gray-400 border-gray-100 dark:border-gray-800'
+            }`}
+            title={privacyMode ? 'Приватный режим включен. Нажмите, чтобы показать цифры' : 'Включить приватный режим (скрыть суммы)'}
+          >
+            {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
           <button
             onClick={() => setShowReceiptScanner(true)}
             className="w-9 h-9 bg-purple-100/90 dark:bg-purple-950/90 hover:bg-purple-200 text-purple-700 dark:text-purple-300 rounded-2xl flex items-center justify-center border border-purple-200 dark:border-purple-800 shadow-xs active:scale-95 transition-all"
@@ -286,20 +288,20 @@ const FinancesPage: React.FC = () => {
         </div>
 
         <div className="text-4xl font-black tracking-tight mb-2">
-          {totalAmount.toLocaleString('ru-RU')} ₽
+          {privacyMode ? '•••••• ₽' : `${totalAmount.toLocaleString('ru-RU')} ₽`}
         </div>
 
         <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-white/10">
           <div>
             <p className="text-[10px] text-purple-200 font-medium">Консультации врачей</p>
             <p className="text-sm font-bold">
-              {expenses.filter((e) => e.category === 'doctor').reduce((s, e) => s + e.amount, 0).toLocaleString('ru-RU')} ₽
+              {privacyMode ? '•••••• ₽' : `${expenses.filter((e) => e.category === 'doctor').reduce((s, e) => s + e.amount, 0).toLocaleString('ru-RU')} ₽`}
             </p>
           </div>
           <div>
             <p className="text-[10px] text-purple-200 font-medium">Лабораторные анализы</p>
             <p className="text-sm font-bold">
-              {expenses.filter((e) => e.category === 'analysis').reduce((s, e) => s + e.amount, 0).toLocaleString('ru-RU')} ₽
+              {privacyMode ? '•••••• ₽' : `${expenses.filter((e) => e.category === 'analysis').reduce((s, e) => s + e.amount, 0).toLocaleString('ru-RU')} ₽`}
             </p>
           </div>
         </div>

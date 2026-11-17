@@ -158,6 +158,7 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 type="text"
                 value={middleName}
                 onChange={(e) => setMiddleName(e.target.value)}
+                placeholder="Опционально"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
               />
             </div>
