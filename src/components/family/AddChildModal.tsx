@@ -4,6 +4,7 @@ import {
   Sparkles, ChevronDown
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
+import { formatYears } from '../../utils/formatters';
 
 interface Props {
   isOpen: boolean;
@@ -62,7 +63,7 @@ export const AddChildModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3.5 animate-fade-in select-none">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3.5 animate-fade-in select-none">
       <div className="w-full max-w-[390px] bg-white dark:bg-[#161b26] rounded-3xl p-5 border border-purple-500/20 shadow-2xl animate-scale-in text-gray-900 dark:text-white max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
@@ -108,9 +109,9 @@ export const AddChildModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </div>
           <p className="text-[11px] leading-relaxed opacity-90">
             {isEligibleForFastTrack
-              ? `Единая фамилия («${lastName}») и возраст ${age} лет (< 20). Профиль будет создан мгновенно под опекой главы семьи без отдельного Google-аккаунта.`
+              ? `Единая фамилия («${lastName}») и возраст ${formatYears(age)} (< 20). Профиль будет создан мгновенно под опекой главы семьи без отдельного Google-аккаунта.`
               : !isUnder20
-              ? `Возраст ${age} лет (≥ 20). Взрослые должны завести индивидуальный аккаунт Google и добавиться через инвайт по ID.`
+              ? `Возраст ${formatYears(age)} (≥ 20). Взрослые должны завести индивидуальный аккаунт Google и добавиться через инвайт по ID.`
               : `Фамилия «${lastName}» отличается от фамилии главы семьи («${userProfile.lastName}»). Требуется индивидуальный инвайт по личному ID.`}
           </p>
         </div>
@@ -180,7 +181,7 @@ export const AddChildModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] font-bold text-gray-400">Год рождения</label>
-                <span className="text-[9px] font-bold text-purple-600">{age} лет</span>
+                <span className="text-[9px] font-bold text-purple-600">{formatYears(age)}</span>
               </div>
               <input
                 type="number"

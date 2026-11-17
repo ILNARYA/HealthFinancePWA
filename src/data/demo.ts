@@ -262,3 +262,6 @@ export const categoryColors: Record<string, string> = {
   medicine: '#10b981',
   procedure: '#f59e0b',
 };
+
+export const allDemoExpenses: Expense[] = monthsData.flatMap((m) => m.expenses);
+

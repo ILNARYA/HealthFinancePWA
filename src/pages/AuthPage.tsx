@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse, ShieldCheck, Lock, Mail, Eye, EyeOff,
   Sparkles, Scale, ArrowRight, Sun, Moon,
@@ -6,8 +7,10 @@ import {
 } from 'lucide-react';
 import { useFamily } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
+import { formatYears } from '../utils/formatters';
 
 export const AuthPage: React.FC = () => {
+  const navigate = useNavigate();
   const { login, loginWithGoogle, register, loadDemoData } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
@@ -57,6 +60,7 @@ export const AuthPage: React.FC = () => {
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     login({ email: loginId, password: loginPassword });
+    navigate('/');
   };
 
   const handleGoogleLogin = () => {
@@ -68,6 +72,7 @@ export const AuthPage: React.FC = () => {
     setSuccessToast(`Вход через Google (${email}) выполнен успешно!`);
     setTimeout(() => {
       loginWithGoogle(email, name);
+      navigate('/');
     }, 450);
   };
 
@@ -88,6 +93,7 @@ export const AuthPage: React.FC = () => {
       bloodType: regBloodType,
       policyOMS: regPolicyOMS.trim() || '1694 0000 0000 0000',
     });
+    navigate('/');
   };
 
   return (
@@ -275,7 +281,7 @@ export const AuthPage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   loadDemoData();
-                  setSuccessToast('Демо-режим презентации загружен: витрина графиков и семьи активна!');
+                  navigate('/');
                 }}
                 className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200/70 dark:border-purple-800/60 flex items-center justify-center gap-2 hover:bg-purple-100/50 transition-all text-xs font-bold text-purple-900 dark:text-purple-200 active:scale-98"
               >
@@ -379,7 +385,7 @@ export const AuthPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[10px] font-bold text-gray-400">Год рождения</label>
-                  <span className="text-[9px] text-purple-600 font-bold">{age} лет</span>
+                  <span className="text-[9px] text-purple-600 font-bold">{formatYears(age)}</span>
                 </div>
                 <input
                   type="number"

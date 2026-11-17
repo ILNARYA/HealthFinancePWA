@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { FamilyMember, UserProfile, FamilyInvite } from '../types';
+import { allDemoExpenses } from '../data/demo';
 
 export interface GoogleAccountInfo {
   connected: boolean;
@@ -872,6 +873,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('app-family-invites', JSON.stringify(defaultInvites));
     localStorage.setItem('app-family-name', 'Семья Ивановых');
     localStorage.setItem('app-active-member-id', 'member_head');
+    localStorage.setItem('app-expenses-list', JSON.stringify(allDemoExpenses));
 
     setIsAuthenticatedState(true);
     setUserProfile(defaultUserProfile);

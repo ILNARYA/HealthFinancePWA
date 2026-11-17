@@ -6,7 +6,7 @@ import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
   Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera
 } from 'lucide-react';
-import { monthsData, demoDoctors, categoryLabels, categoryColors } from '../data/demo';
+import { monthsData, demoDoctors, categoryLabels, categoryColors, allDemoExpenses } from '../data/demo';
 import type { Expense } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
@@ -20,6 +20,12 @@ const categoryIcons: Record<string, React.ComponentType<{ size?: number; classNa
   procedure: HeartPulse,
 };
 
+const monthPrefixes: Record<string, string> = {
+  nov2026: '2026-11',
+  oct2026: '2026-10',
+  sep2026: '2026-09',
+};
+
 const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const { activeMember, lockApp } = useFamily();
@@ -28,9 +34,17 @@ const FinancesPage: React.FC = () => {
 
   // Combine expenses across all months for state
   const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
+  const [allExpenses, setAllExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('app-expenses-list');
-    return saved ? JSON.parse(saved) : [];
+    if (saved !== null) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        // fallback
+      }
+    }
+    return allDemoExpenses;
   });
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
@@ -44,15 +58,15 @@ const FinancesPage: React.FC = () => {
 
   const handleMonthChange = (monthId: string) => {
     setSelectedMonth(monthId);
-    const m = monthsData.find((item) => item.id === monthId);
-    if (m) {
-      setExpenses(m.expenses);
-    }
+    setSelectedCategory('all');
   };
 
   useEffect(() => {
-    localStorage.setItem('app-expenses-list', JSON.stringify(expenses));
-  }, [expenses]);
+    localStorage.setItem('app-expenses-list', JSON.stringify(allExpenses));
+  }, [allExpenses]);
+
+  const activePrefix = monthPrefixes[selectedMonth] || '2026-11';
+  const expenses = allExpenses.filter((e) => e.date ? e.date.startsWith(activePrefix) : true);
 
   const filteredExpenses = selectedCategory === 'all'
     ? expenses
@@ -115,22 +129,27 @@ const FinancesPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.amount) return;
+    const nowIso = new Date().toISOString().split('T')[0];
     const newExpense: Expense = {
       id: crypto.randomUUID(),
       category: formData.category,
       title: formData.title,
       amount: Number(formData.amount),
-      date: new Date().toISOString().split('T')[0],
+      date: nowIso,
       doctor: formData.doctor || undefined,
       specialty: formData.specialty || undefined,
     };
-    setExpenses([newExpense, ...expenses]);
+    setAllExpenses((prev) => [newExpense, ...prev]);
+    if (nowIso.startsWith('2026-11')) setSelectedMonth('nov2026');
+    else if (nowIso.startsWith('2026-10')) setSelectedMonth('oct2026');
+    else if (nowIso.startsWith('2026-09')) setSelectedMonth('sep2026');
+
     setFormData({ category: 'doctor', title: '', amount: '', doctor: '', specialty: '' });
     setShowForm(false);
   };
 
   const handleDelete = (id: string) => {
-    setExpenses(expenses.filter((e) => e.id !== id));
+    setAllExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
   const currentMonthObj = monthsData.find((m) => m.id === selectedMonth) || monthsData[0];
@@ -350,9 +369,9 @@ const FinancesPage: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: any) => [
+                    formatter={(value: any, name: any) => [
                       typeof value === 'number' ? `${value.toLocaleString('ru-RU')} ₽` : String(value ?? ''),
-                      '',
+                      name || 'Сумма',
                     ]}
                     contentStyle={{
                       background: '#0f172a',
@@ -375,7 +394,7 @@ const FinancesPage: React.FC = () => {
                 <div className="flex flex-col items-center justify-center text-center p-1 cursor-pointer pointer-events-auto">
                   {activeCategoryObj ? (
                     <>
-                      <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 truncate max-w-[80px]">
+                      <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 truncate max-w-[100px] block leading-tight">
                         {activeCategoryObj.name}
                       </span>
                       <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
@@ -634,7 +653,12 @@ const FinancesPage: React.FC = () => {
       <ReceiptScannerModal
         isOpen={showReceiptScanner}
         onClose={() => setShowReceiptScanner(false)}
-        onSaveExpense={(newExp) => setExpenses([newExp, ...expenses])}
+        onSaveExpense={(newExp) => {
+          setAllExpenses((prev) => [newExp, ...prev]);
+          if (newExp.date?.startsWith('2026-11')) setSelectedMonth('nov2026');
+          else if (newExp.date?.startsWith('2026-10')) setSelectedMonth('oct2026');
+          else if (newExp.date?.startsWith('2026-09')) setSelectedMonth('sep2026');
+        }}
       />
 
       {/* Family Cabinet Switcher Modal */}

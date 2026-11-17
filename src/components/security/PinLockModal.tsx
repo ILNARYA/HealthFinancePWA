@@ -42,7 +42,7 @@ export const PinLockModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#090d16] text-white p-6 animate-fade-in select-none">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#090d16] text-white p-6 animate-fade-in select-none">
       <div className="w-full max-w-[340px] flex flex-col items-center justify-between h-[85vh] max-h-[640px]">
         {/* Top Header */}
         <div className="flex flex-col items-center text-center mt-2">
@@ -134,7 +134,7 @@ export const PinLockModal: React.FC = () => {
 
       {/* Emergency Sheet Modal (Accessible without unlocking) */}
       {showEmergency && (
-        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-md flex items-end justify-center p-4">
+        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-end justify-center p-4">
           <div className="w-full max-w-[360px] bg-[#1e2433] rounded-3xl p-5 border border-rose-500/40 text-white animate-slide-up">
             <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
               <div className="flex items-center gap-2 text-rose-400">

@@ -63,8 +63,8 @@ const BiomarkerCard: React.FC<Props> = ({ biomarker }) => {
           <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center flex-shrink-0">
             <FlaskConical size={15} className="text-purple-700 dark:text-purple-400" />
           </div>
-          <div className="min-w-0">
-            <span className="font-bold text-xs text-gray-900 dark:text-white truncate block">
+          <div className="min-w-0 flex-1">
+            <span className="font-bold text-xs text-gray-900 dark:text-white leading-tight block">
               {biomarker.name}
             </span>
           </div>
@@ -114,11 +114,11 @@ const BiomarkerCard: React.FC<Props> = ({ biomarker }) => {
       </div>
 
       {/* Range Info & Description */}
-      <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-1.5 border-t border-gray-50 dark:border-gray-800/80 mt-1">
-        <span className="truncate mr-2">
+      <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-1.5 border-t border-gray-50 dark:border-gray-800/80 mt-1 gap-2">
+        <span className="truncate flex-1 min-w-0" title={biomarker.clinicalNote || config.description}>
           {biomarker.clinicalNote || config.description}
         </span>
-        <span className="font-semibold text-gray-600 dark:text-gray-300 flex-shrink-0">
+        <span className="font-semibold text-gray-600 dark:text-gray-300 flex-shrink-0 whitespace-nowrap">
           {biomarker.refMin}–{biomarker.refMax} {biomarker.unit}
         </span>
       </div>

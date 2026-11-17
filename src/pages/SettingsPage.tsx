@@ -16,6 +16,7 @@ import { TwoFactorAuthModal } from '../components/security/TwoFactorAuthModal';
 import { RegisterModal } from '../components/auth/RegisterModal';
 import { InviteMemberModal } from '../components/family/InviteMemberModal';
 import { AddChildModal } from '../components/family/AddChildModal';
+import { formatYears } from '../utils/formatters';
 
 interface Connection {
   id: string;
@@ -369,7 +370,7 @@ const SettingsPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-[10px] text-gray-400 dark:text-gray-400 truncate mt-0.5">
-                      {2026 - m.birthYear} лет · ОМС: {m.policyOMS.slice(-4)} · {m.bloodType}
+                      {formatYears(2026 - m.birthYear)} · ОМС: {m.policyOMS.slice(-4)} · {m.bloodType}
                     </p>
                   </div>
                 </div>

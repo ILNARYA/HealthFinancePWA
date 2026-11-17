@@ -19,6 +19,26 @@ const DashboardPage: React.FC = () => {
 
   const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
 
+  const monthPrefixes: Record<string, string> = {
+    nov2026: '2026-11',
+    oct2026: '2026-10',
+    sep2026: '2026-09',
+  };
+
+  const currentMonthExpenses = React.useMemo(() => {
+    try {
+      const saved = localStorage.getItem('app-expenses-list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const prefix = monthPrefixes[selectedMonthId] || '2026-11';
+          return parsed.filter((e: any) => e.date?.startsWith(prefix));
+        }
+      }
+    } catch {}
+    return currentMonth.expenses;
+  }, [selectedMonthId, currentMonth.expenses]);
+
   return (
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4 w-full">
       {/* Top Header with Family Profile Switcher and Security Lock */}
@@ -135,7 +155,7 @@ const DashboardPage: React.FC = () => {
 
       {/* Monthly Medical Finance Card */}
       <SpendingSummary
-        expenses={currentMonth.expenses}
+        expenses={currentMonthExpenses}
         monthLabel={currentMonth.label}
       />
 

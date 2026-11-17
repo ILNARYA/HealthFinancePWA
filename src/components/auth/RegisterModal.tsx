@@ -3,6 +3,7 @@ import {
   UserCheck, X, Check, Copy, Sparkles, Scale, ChevronDown
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
+import { formatYears } from '../../utils/formatters';
 
 interface Props {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 animate-fade-in select-none">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 animate-fade-in select-none">
       <div className="w-full max-w-[390px] bg-white dark:bg-[#161b26] rounded-3xl p-4 border border-purple-500/20 shadow-2xl animate-scale-in text-gray-900 dark:text-white max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 dark:border-gray-800">
@@ -167,7 +168,7 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] font-bold text-gray-400">Год рождения</label>
-                <span className="text-[9px] font-bold text-gray-500">{age} лет</span>
+                <span className="text-[9px] font-bold text-gray-500">{formatYears(age)}</span>
               </div>
               <input
                 type="number"
