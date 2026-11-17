@@ -14,6 +14,18 @@ import { AuthPage } from './pages/AuthPage';
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useFamily();
 
+  React.useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  }, []);
+
   if (!isAuthenticated) {
     return <AuthPage />;
   }
