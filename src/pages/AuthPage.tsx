@@ -14,7 +14,7 @@ export const AuthPage: React.FC = () => {
   const { login, loginWithGoogle, register, loadDemoData } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'welcome' | 'login' | 'register'>('welcome');
 
   // Login form state
   const [loginId, setLoginId] = useState('');
@@ -319,37 +319,160 @@ export const AuthPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab Switcher: Вход / Регистрация */}
-        <div className="bg-gray-100 dark:bg-[#161b26] p-1 rounded-2xl flex items-center gap-1 mb-4 border border-gray-200/60 dark:border-gray-800">
-          <button
-            type="button"
-            onClick={() => setMode('login')}
-            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${
-              mode === 'login'
-                ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
-            }`}
-          >
-            Вход в кабинет
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('register')}
-            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${
-              mode === 'register'
-                ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
-            }`}
-          >
-            Регистрация анкеты
-          </button>
-        </div>
+        {/* Back Button to Welcome Hub */}
+        {mode !== 'welcome' && (
+          <div className="flex items-center justify-between mb-3 px-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('welcome');
+                setRegStep('form');
+                setCodeError(null);
+              }}
+              className="text-xs font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-white flex items-center gap-1.5 transition-colors"
+            >
+              <span>← На главный экран</span>
+            </button>
+            <span className="text-[10px] text-gray-400 font-medium">
+              {mode === 'login' ? 'Авторизация' : 'Анкета профиля'}
+            </span>
+          </div>
+        )}
+
+        {/* Tab Switcher: Вход / Регистрация (Only shown when not on welcome screen) */}
+        {mode !== 'welcome' && (
+          <div className="bg-gray-100 dark:bg-[#161b26] p-1 rounded-2xl flex items-center gap-1 mb-4 border border-gray-200/60 dark:border-gray-800">
+            <button
+              type="button"
+              onClick={() => setMode('login')}
+              className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${
+                mode === 'login'
+                  ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
+              }`}
+            >
+              Вход в кабинет
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('register');
+                setRegStep('form');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${
+                mode === 'register'
+                  ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
+              }`}
+            >
+              Регистрация анкеты
+            </button>
+          </div>
+        )}
 
         {/* Toast */}
         {successToast && (
           <div className="mb-3 p-3 rounded-2xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-2 animate-slide-up shadow-lg">
             <CheckCircle2 size={16} />
             <span>{successToast}</span>
+          </div>
+        )}
+
+        {/* MODE C: WELCOME / MAIN SCREEN (Minimalist & Gorgeous) */}
+        {mode === 'welcome' && (
+          <div className="space-y-4 animate-fade-in">
+            {/* 4 Feature Cards */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center text-sm mb-2 font-bold shadow-2xs">
+                  🧬
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-gray-900 dark:text-white">Анализы & Бланки</h4>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                    Инвитро, Гемотест, Медси. Авторасчёт биомаркеров и норм.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-sm mb-2 font-bold shadow-2xs">
+                  💳
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-gray-900 dark:text-white">Чеки & Бюджет</h4>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                    Сквозной семейный учет трат на врачей, анализы и аптеки.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-sm mb-2 font-bold shadow-2xs">
+                  🤖
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-gray-900 dark:text-white">Клинический ИИ</h4>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                    Офлайн-интерпретация бланков и консультация врача 24/7.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center text-sm mb-2 font-bold shadow-2xs">
+                  ☁️
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-gray-900 dark:text-white">База в Google</h4>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                    Синхронизация между супругами через Google Таблицы.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Action Buttons */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="w-full py-3.5 px-4 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
+              >
+                <span>Войти в личный кабинет</span>
+                <ArrowRight size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setRegStep('form');
+                }}
+                className="w-full py-3 px-4 bg-white dark:bg-[#161b26] hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+              >
+                <UserPlus size={14} />
+                <span>Создать семейный хаб (Регистрация)</span>
+              </button>
+            </div>
+
+            {/* Presentation Showcase Launcher */}
+            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => {
+                  loadDemoData();
+                  navigate('/');
+                }}
+                className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-200/70 dark:border-purple-800/60 flex items-center justify-center gap-2 hover:bg-purple-100/50 transition-all text-xs font-bold text-purple-900 dark:text-purple-200 active:scale-98"
+              >
+                <Sparkles size={14} className="text-purple-600" />
+                <span>Запустить демо-презентацию проекта</span>
+              </button>
+              <span className="text-[10px] text-gray-400 block text-center mt-1">
+                Для публичной демонстрации возможностей хаба гостям
+              </span>
+            </div>
           </div>
         )}
 

@@ -6,16 +6,18 @@ import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
 import { monthsData, demoHealthTrend } from '../data/demo';
-import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users, FileSearch, Plus, EyeOff } from 'lucide-react';
+import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users, FileSearch, Plus, EyeOff, Wallet, Bot } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
+import { AiDoctorModal } from '../components/ai/AiDoctorModal';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
   const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
   const [showFamilyModal, setShowFamilyModal] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode } = useFamily();
 
@@ -114,6 +116,53 @@ const DashboardPage: React.FC = () => {
             {isDark ? <Sun size={17} /> : <Moon size={17} />}
           </button>
         </div>
+      </div>
+
+      {/* Quick Access Action Hub */}
+      <div className="grid grid-cols-4 gap-2">
+        <button
+          onClick={() => navigate('/analyses')}
+          className="p-2.5 rounded-2xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:border-purple-300 group"
+          title="Лабораторные анализы и бланки"
+        >
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <FileSearch size={16} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Анализы</span>
+        </button>
+
+        <button
+          onClick={() => navigate('/finances')}
+          className="p-2.5 rounded-2xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:border-purple-300 group"
+          title="Медицинские чеки и расходы"
+        >
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <Wallet size={16} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Финансы</span>
+        </button>
+
+        <button
+          onClick={() => setShowAiModal(true)}
+          className="p-2.5 rounded-2xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:border-purple-300 group"
+          title="Консультация с ИИ-Врачом"
+        >
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <Bot size={16} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">ИИ-Врач</span>
+        </button>
+
+        <button
+          onClick={() => setShowFamilyModal(true)}
+          className="p-2.5 rounded-2xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:border-purple-300 group"
+          title="Семейный профиль и роли"
+        >
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <Users size={16} />
+          </div>
+          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Семья</span>
+        </button>
       </div>
 
       {/* Primary Visual Zone: Charts side-by-side switcher ("диаграмму паука" и графики рядом) */}
@@ -301,6 +350,12 @@ const DashboardPage: React.FC = () => {
       <FamilySwitcherModal
         isOpen={showFamilyModal}
         onClose={() => setShowFamilyModal(false)}
+      />
+
+      {/* AI Doctor Modal */}
+      <AiDoctorModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
       />
     </div>
   );
