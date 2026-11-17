@@ -158,8 +158,8 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 type="text"
                 value={middleName}
                 onChange={(e) => setMiddleName(e.target.value)}
-                placeholder="Опционально"
-                className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
+                placeholder="Укажите отчество (не обязательно)"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -226,7 +226,7 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   max="220"
                   value={height}
                   onChange={(e) => setHeight(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold"
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold dark:[color-scheme:dark]"
                 />
               </div>
               <div>
@@ -237,7 +237,7 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   max="200"
                   value={weight}
                   onChange={(e) => setWeight(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold"
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold dark:[color-scheme:dark]"
                 />
               </div>
             </div>
@@ -260,16 +260,16 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <select
                   value={bloodType}
                   onChange={(e) => setBloodType(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer dark:[color-scheme:dark]"
                 >
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="O(I) Rh-">O(I) Rh-</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="A(II) Rh-">A(II) Rh-</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="B(III) Rh+">B(III) Rh+</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="B(III) Rh-">B(III) Rh-</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="AB(IV) Rh+">AB(IV) Rh+</option>
-                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="AB(IV) Rh-">AB(IV) Rh-</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh-">O(I) Rh-</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="A(II) Rh-">A(II) Rh-</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="B(III) Rh+">B(III) Rh+</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="B(III) Rh-">B(III) Rh-</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="AB(IV) Rh+">AB(IV) Rh+</option>
+                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="AB(IV) Rh-">AB(IV) Rh-</option>
                 </select>
                 <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>

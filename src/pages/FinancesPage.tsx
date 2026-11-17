@@ -89,7 +89,9 @@ const FinancesPage: React.FC = () => {
   const activeCategoryObj = categoryTotals.find((c) => c.key === selectedCategory);
 
   const doctorsList = React.useMemo(() => {
-    if (isDemoMode && allExpenses.length > 0) {
+    // Only return demo doctors if strictly in demo mode AND demo expenses are present
+    const isActuallyDemo = isDemoMode && localStorage.getItem('app-is-demo') === 'true';
+    if (isActuallyDemo && allExpenses.length > 0) {
       return demoDoctors;
     }
     const map = new Map<string, { id: string; name: string; specialty: string; visits: number; totalSpent: number; lastVisit: string; avatar: string }>();

@@ -68,18 +68,15 @@ const DashboardPage: React.FC = () => {
               Привет, {activeMember.name || 'Пользователь'}
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <p className="text-[11px] text-gray-400 dark:text-gray-400 font-medium truncate flex items-center gap-1">
-                <span>{activeMember.roleLabel}</span>
-                <span>·</span>
-                <span>{currentMonth.label}</span>
-                <Users size={10} className="text-purple-600 dark:text-purple-400 ml-0.5" />
-              </p>
+              <span className="text-[11px] text-gray-400 dark:text-gray-400 font-medium flex-shrink-0">
+                {activeMember.roleLabel}
+              </span>
               {isNewUser ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[9px] font-bold border border-purple-200 dark:border-purple-800 flex-shrink-0">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[9px] font-bold border border-purple-200 dark:border-purple-800 flex-shrink-0">
                   Новый профиль
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-bold border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-bold border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
                   <Sparkles size={8} /> Норма
                 </span>
               )}

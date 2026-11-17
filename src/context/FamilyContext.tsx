@@ -14,7 +14,7 @@ export interface GoogleAccountInfo {
 interface FamilyContextType {
   // Authentication & Session
   isAuthenticated: boolean;
-  login: (credentials?: { email?: string; personalId?: string; password?: string }) => boolean;
+  login: (credentials?: { email?: string; personalId?: string; password?: string; userData?: any }) => boolean;
   loginWithGoogle: (email?: string, name?: string) => void;
   loginAsMember: (personalIdOrId: string) => void;
   register: (registrationData: Partial<UserProfile>) => void;
@@ -763,20 +763,108 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const login = (credentials?: { email?: string; personalId?: string; password?: string }) => {
-    if (credentials?.personalId || credentials?.email) {
-      const clean = (credentials.personalId || credentials.email || '').trim().toLowerCase();
-      const found = knownAdultRegistry.find(
-        (u) => u.personalId.toLowerCase() === clean || u.email.toLowerCase() === clean
-      );
-      if (found) {
-        loginAsMember(found.personalId);
-        return true;
-      }
+  const login = (credentials?: { email?: string; personalId?: string; password?: string; userData?: any }): boolean => {
+    // 1. If explicit verified user profile is passed (from AuthPage)
+    if (credentials?.userData) {
+      const u = credentials.userData;
+      const profile: UserProfile = {
+        id: u.id || `user_${Date.now()}`,
+        personalId: u.personalId || `MED-${Math.floor(1000 + Math.random() * 9000)}`,
+        firstName: u.firstName || u.name?.split(' ')[0] || 'Пользователь',
+        lastName: u.lastName || u.name?.split(' ').slice(1).join(' ') || '',
+        middleName: u.middleName || '',
+        email: u.email || credentials.email || 'user@family.local',
+        birthDate: u.birthDate || '1995-01-01',
+        birthYear: u.birthYear || 1995,
+        gender: u.gender || 'male',
+        height: u.height || 178,
+        weight: u.weight || 75,
+        bmi: u.bmi || 23.7,
+        bloodType: u.bloodType || 'A(II) Rh+',
+        policyOMS: u.policyOMS || '1694 0000 0000 0000',
+        policyDMS: u.policyDMS || '',
+        avatar: `${(u.firstName || u.name || 'П').slice(0, 1)}${(u.lastName || '').slice(0, 1)}`.toUpperCase() || 'ЯИ',
+        familyRole: u.familyRole || 'head',
+        familyName: u.familyName || 'Моя семья',
+        googleConnected: true,
+      };
+
+      const member: FamilyMember = {
+        id: profile.id,
+        name: profile.firstName,
+        lastName: profile.lastName,
+        personalId: profile.personalId,
+        role: 'head',
+        roleLabel: 'Глава семьи',
+        birthYear: profile.birthYear,
+        gender: profile.gender,
+        height: profile.height,
+        weight: profile.weight,
+        bmi: profile.bmi,
+        bloodType: profile.bloodType,
+        policyOMS: profile.policyOMS,
+        avatar: profile.avatar,
+        color: '#7c3aed',
+        healthScore: 0,
+        analysesCount: 0,
+        expensesTotal: 0,
+        inviteStatus: 'active',
+      };
+
+      setUserProfile(profile);
+      setMembers([member]);
+      setActiveMemberId(member.id);
+      setFamilyNameState(profile.familyName);
+      setIsAuthenticatedState(true);
+      setIsDemoModeState(false);
+      localStorage.setItem('app-is-demo', 'false');
+      localStorage.setItem('app-is-authenticated', 'true');
+      localStorage.setItem('app-user-profile', JSON.stringify(profile));
+      localStorage.setItem('app-family-members', JSON.stringify([member]));
+      localStorage.setItem('app-family-invites', JSON.stringify([]));
+      localStorage.setItem('app-family-name', profile.familyName);
+      localStorage.setItem('app-active-member-id', member.id);
+      return true;
     }
-    setIsAuthenticatedState(true);
-    localStorage.setItem('app-is-authenticated', 'true');
-    return true;
+
+    if (!credentials?.personalId && !credentials?.email) {
+      return false;
+    }
+
+    const clean = (credentials.personalId || credentials.email || '').trim().toLowerCase();
+
+    // 2. Check knownAdultRegistry (Aleksey Ivanov, Alina, etc.)
+    const foundAdult = knownAdultRegistry.find(
+      (u) => u.personalId.toLowerCase() === clean || u.email.toLowerCase() === clean
+    );
+    if (foundAdult) {
+      loginAsMember(foundAdult.personalId);
+      return true;
+    }
+
+    // 3. Check persistent database of registered users in localStorage
+    try {
+      const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+      const registeredUser = existingUsers.find(
+        (u: any) => u.email?.toLowerCase() === clean || u.personalId?.toLowerCase() === clean
+      );
+      if (registeredUser) {
+        return login({ email: clean, userData: registeredUser });
+      }
+    } catch (e) {
+      console.warn('Failed reading users registry:', e);
+    }
+
+    // 4. Check currently saved profile in localStorage
+    try {
+      const savedProfile = JSON.parse(localStorage.getItem('app-user-profile') || '{}');
+      if (savedProfile.email && savedProfile.email.toLowerCase() === clean) {
+        return login({ email: clean, userData: savedProfile });
+      }
+    } catch {}
+
+    // STRICT: Unknown user -> REJECT login! Never fabricate a phantom session!
+    return false;
   };
 
   const loginAsMember = (personalIdOrId: string) => {
@@ -792,12 +880,9 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (correspondingMember) {
         setActiveMemberId(correspondingMember.id);
       }
-    } else {
-      setUserProfile(defaultUserProfile);
-      setActiveMemberId('member_head');
+      setIsAuthenticatedState(true);
+      localStorage.setItem('app-is-authenticated', 'true');
     }
-    setIsAuthenticatedState(true);
-    localStorage.setItem('app-is-authenticated', 'true');
   };
 
   const register = (data: Partial<UserProfile>) => {
