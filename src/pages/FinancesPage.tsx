@@ -28,23 +28,22 @@ const monthPrefixes: Record<string, string> = {
 
 const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp, privacyMode, setPrivacyMode } = useFamily();
+  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode } = useFamily();
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
   // Combine expenses across all months for state
   const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
   const [allExpenses, setAllExpenses] = useState<Expense[]>(() => {
+    const isDemo = localStorage.getItem('app-is-demo') === 'true';
     const saved = localStorage.getItem('app-expenses-list');
     if (saved !== null) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        // fallback
-      }
+      } catch {}
     }
-    return allDemoExpenses;
+    return isDemo ? allDemoExpenses : [];
   });
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
@@ -88,6 +87,33 @@ const FinancesPage: React.FC = () => {
   }).filter((c) => c.value > 0);
 
   const activeCategoryObj = categoryTotals.find((c) => c.key === selectedCategory);
+
+  const doctorsList = React.useMemo(() => {
+    if (!isDemoMode) {
+      const map = new Map<string, { id: string; name: string; specialty: string; visits: number; totalSpent: number; lastVisit: string; avatar: string }>();
+      allExpenses.forEach((exp) => {
+        if (exp.doctor) {
+          const existing = map.get(exp.doctor) || {
+            id: exp.doctor,
+            name: exp.doctor,
+            specialty: exp.specialty || 'Врач-специалист',
+            visits: 0,
+            totalSpent: 0,
+            lastVisit: exp.date || '',
+            avatar: '👨‍⚕️',
+          };
+          existing.visits += 1;
+          existing.totalSpent += exp.amount;
+          if (exp.date && exp.date > existing.lastVisit) {
+            existing.lastVisit = exp.date;
+          }
+          map.set(exp.doctor, existing);
+        }
+      });
+      return Array.from(map.values());
+    }
+    return demoDoctors;
+  }, [isDemoMode, allExpenses]);
 
   // Custom shape that handles active sector pop-out (radial expansion + elevation glow)
   // Completely eliminates clipping or awkward stroke overlaps.
@@ -473,39 +499,47 @@ const FinancesPage: React.FC = () => {
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
             Мои врачи и клиники
           </h3>
-          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">4 специалиста</span>
+          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
+            {doctorsList.length} {doctorsList.length === 1 ? 'специалист' : (doctorsList.length >= 2 && doctorsList.length <= 4 ? 'специалиста' : 'специалистов')}
+          </span>
         </div>
 
-        <div className="space-y-2.5">
-          {demoDoctors.map((doc) => (
-            <div
-              key={doc.id}
-              className="bg-white dark:bg-[#161b26] rounded-3xl p-3.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 flex items-center gap-3 card-animate hover:shadow-md transition-all"
-            >
-              <div className="w-11 h-11 bg-purple-50 dark:bg-purple-950/60 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border border-purple-100 dark:border-purple-900/50">
-                {doc.avatar}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                  {doc.name}
-                </p>
-                <div className="flex items-center gap-2 text-[11px] text-gray-400 dark:text-gray-400 mt-0.5">
-                  <span className="text-purple-700 dark:text-purple-400 font-semibold">{doc.specialty}</span>
-                  <span>•</span>
-                  <span>{doc.visits} визита</span>
+        {doctorsList.length === 0 ? (
+          <div className="p-4 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 text-center text-xs text-gray-400 shadow-sm">
+            Врачи и клиники будут сохраняться здесь автоматически при добавлении медицинских расходов и чеков
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {doctorsList.map((doc) => (
+              <div
+                key={doc.id}
+                className="bg-white dark:bg-[#161b26] rounded-3xl p-3.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 flex items-center gap-3 card-animate hover:shadow-md transition-all"
+              >
+                <div className="w-11 h-11 bg-purple-50 dark:bg-purple-950/60 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border border-purple-100 dark:border-purple-900/50">
+                  {doc.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                    {doc.name}
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 dark:text-gray-400 mt-0.5">
+                    <span className="text-purple-700 dark:text-purple-400 font-semibold">{doc.specialty}</span>
+                    <span>•</span>
+                    <span>{doc.visits} {doc.visits === 1 ? 'визит' : (doc.visits >= 2 && doc.visits <= 4 ? 'визита' : 'визитов')}</span>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs font-black text-gray-900 dark:text-white">
+                    {privacyMode ? '•••••• ₽' : `${doc.totalSpent.toLocaleString('ru-RU')} ₽`}
+                  </p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-400">
+                    {doc.lastVisit}
+                  </p>
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs font-black text-gray-900 dark:text-white">
-                  {doc.totalSpent.toLocaleString('ru-RU')} ₽
-                </p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-400">
-                  {doc.lastVisit}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Expenses History List */}

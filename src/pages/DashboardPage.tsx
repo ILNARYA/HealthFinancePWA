@@ -30,18 +30,21 @@ const DashboardPage: React.FC = () => {
   };
 
   const currentMonthExpenses = React.useMemo(() => {
-    try {
-      const saved = localStorage.getItem('app-expenses-list');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const prefix = monthPrefixes[selectedMonthId] || '2026-11';
-          return parsed.filter((e: any) => e.date?.startsWith(prefix));
+    if (!isDemoMode) {
+      try {
+        const saved = localStorage.getItem('app-expenses-list');
+        if (saved !== null) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const prefix = monthPrefixes[selectedMonthId] || '2026-11';
+            return parsed.filter((e: any) => e.date?.startsWith(prefix));
+          }
         }
-      }
-    } catch {}
+      } catch {}
+      return [];
+    }
     return currentMonth.expenses;
-  }, [selectedMonthId, currentMonth.expenses]);
+  }, [isDemoMode, selectedMonthId, currentMonth.expenses]);
 
   return (
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4 w-full">

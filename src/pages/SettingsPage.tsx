@@ -65,6 +65,19 @@ const SettingsPage: React.FC = () => {
   const [sheetUrlInput, setSheetUrlInput] = useState(googleSheetUrl);
   const [urlSaved, setUrlSaved] = useState(false);
 
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('app-gemini-api-key') || '');
+  const [geminiSaved, setGeminiSaved] = useState(false);
+
+  const handleSaveGeminiKey = () => {
+    localStorage.setItem('app-gemini-api-key', geminiApiKey.trim());
+    setGeminiSaved(true);
+    setMessage('Ключ Google Gemini API успешно сохранён!');
+    setTimeout(() => {
+      setGeminiSaved(false);
+      setMessage(null);
+    }, 3500);
+  };
+
   const handleSaveScriptUrl = () => {
     setAppsScriptUrl(scriptUrlInput);
     setGoogleSheetUrl(sheetUrlInput);
@@ -844,6 +857,65 @@ const SettingsPage: React.FC = () => {
                 При переходе по ссылке на их телефоне база данных подключится автоматически без ручного ввода URL
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Gemini AI Doctor API Card */}
+        <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400 flex-shrink-0">
+                <Sparkles size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">ИИ-Врач и ключ Google Gemini API</p>
+                <p className="text-[10px] text-gray-400 truncate">Онлайн-интерпретация бланков и консультации</p>
+              </div>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+              geminiApiKey
+                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+            }`}>
+              {geminiApiKey ? 'Gemini 1.5 Онлайн' : 'Встроенный движок'}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                  Google Gemini API Key:
+                </label>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-bold text-purple-700 dark:text-purple-400 hover:underline flex items-center gap-0.5"
+                >
+                  <span>Получить ключ бесплатно ↗</span>
+                </a>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="password"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono text-[11px]"
+                />
+                <button
+                  onClick={handleSaveGeminiKey}
+                  className="px-3 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0"
+                >
+                  {geminiSaved ? <Check size={14} /> : null}
+                  {geminiSaved ? 'Сохранено' : 'Сохранить'}
+                </button>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-400">
+              Если ключ не указан, приложение использует встроенный клинический алгоритм по референсам.
+            </p>
           </div>
         </div>
 

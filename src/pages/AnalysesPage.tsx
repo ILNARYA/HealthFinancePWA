@@ -2,13 +2,14 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, AlertTriangle, CheckCircle2,
   XCircle, Loader2, ShieldAlert, Sparkles,
-  FileCheck2, Stethoscope, Moon, Sun, Lock, Users
+  FileCheck2, Stethoscope, Moon, Sun, Lock, Users, Bot
 } from 'lucide-react';
 import type { AnalysisResult, Biomarker } from '../types';
 import { simulateAnalysis } from '../utils/analysisEngine';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
+import { AiDoctorModal } from '../components/ai/AiDoctorModal';
 
 const StatusBadge: React.FC<{ status: Biomarker['status'] }> = ({ status }) => {
   const config = {
@@ -58,6 +59,7 @@ const AnalysesPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
+  const [showAiDoctor, setShowAiDoctor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (name: string) => {
@@ -135,18 +137,27 @@ const AnalysesPage: React.FC = () => {
       </div>
 
       {/* Screen Title */}
-      <div className="px-1">
-        <div className="flex items-center gap-1.5">
-          <h1 className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Анализы и ИИ-разбор
-          </h1>
-          <span className="flex items-center gap-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
-            <Sparkles size={11} /> AI
-          </span>
+      <div className="px-1 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Анализы и ИИ-разбор
+            </h1>
+            <span className="flex items-center gap-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+              <Sparkles size={11} /> AI
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            OCR-разбор бланков и консультация ИИ
+          </p>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-          Мгновенный OCR-разбор бланков, оценка отклонений и рекомендации
-        </p>
+        <button
+          onClick={() => setShowAiDoctor(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-100 dark:bg-purple-950/80 hover:bg-purple-200 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-200 dark:border-purple-800 active:scale-95 transition-all shadow-xs flex-shrink-0"
+        >
+          <Bot size={14} />
+          <span>Спросить ИИ</span>
+        </button>
       </div>
 
       {/* Upload Zone */}
@@ -255,6 +266,13 @@ const AnalysesPage: React.FC = () => {
             <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-normal">
               {result.summary}
             </p>
+            <button
+              onClick={() => setShowAiDoctor(true)}
+              className="mt-3 w-full py-2 px-3 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all"
+            >
+              <Bot size={15} />
+              <span>Задать вопрос ИИ-врачу по этому анализу →</span>
+            </button>
           </div>
 
           {/* Biomarkers Table / Cards */}
@@ -361,6 +379,14 @@ const AnalysesPage: React.FC = () => {
       <FamilySwitcherModal
         isOpen={showFamilyModal}
         onClose={() => setShowFamilyModal(false)}
+      />
+
+      {/* AI Doctor Assistant Modal */}
+      <AiDoctorModal
+        isOpen={showAiDoctor}
+        onClose={() => setShowAiDoctor(false)}
+        biomarkers={result?.biomarkers || []}
+        clinicalSummary={result?.summary || ''}
       />
     </div>
   );

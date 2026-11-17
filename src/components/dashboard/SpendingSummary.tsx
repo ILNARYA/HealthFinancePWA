@@ -48,10 +48,16 @@ const SpendingSummary: React.FC<Props> = ({ expenses, monthLabel }) => {
           <div className="text-3xl font-black tracking-tight">
             {privacyMode ? '•••••• ₽' : `${totalAmount.toLocaleString('ru-RU')} ₽`}
           </div>
-          <div className="flex items-center gap-1 text-emerald-300 text-xs font-bold bg-emerald-500/20 px-2 py-0.5 rounded-lg">
-            <TrendingUp size={13} />
-            <span>{expenses.length} операций</span>
-          </div>
+          {expenses.length > 0 ? (
+            <div className="flex items-center gap-1 text-emerald-300 text-xs font-bold bg-emerald-500/20 px-2 py-0.5 rounded-lg">
+              <TrendingUp size={13} />
+              <span>{expenses.length} операций</span>
+            </div>
+          ) : (
+            <div className="text-purple-300 text-xs font-medium bg-white/10 px-2 py-0.5 rounded-lg">
+              0 операций
+            </div>
+          )}
         </div>
 
         <p className="text-xs text-purple-200/90 mb-4 font-normal">
