@@ -66,10 +66,19 @@ interface FamilyContextType {
   setTwoFactorEnabled: (enabled: boolean) => void;
   lockApp: () => void;
   unlockApp: (pin: string) => boolean;
+  showPinSetupModal: boolean;
+  openPinSetup: () => void;
+  closePinSetup: () => void;
+  // Demo mode vs Clean User state
+  isDemoMode: boolean;
+  setIsDemoMode: (val: boolean) => void;
   // Google Account & Sheets Sync
   googleAccount: GoogleAccountInfo;
   appsScriptUrl: string;
   setAppsScriptUrl: (url: string) => void;
+  googleSheetUrl: string;
+  setGoogleSheetUrl: (url: string) => void;
+  lastSyncTime: number | null;
   connectGoogleAccount: () => void;
   disconnectGoogleAccount: () => void;
   syncWithGoogleSheets: () => Promise<boolean>;
@@ -80,7 +89,7 @@ export const defaultUserProfile: UserProfile = {
   personalId: 'MED-1001',
   firstName: 'Алексей',
   lastName: 'Иванов',
-  middleName: 'Сергеевич',
+  middleName: '',
   email: 'alex.ivanov@example.com',
   birthDate: '1995-05-15',
   birthYear: 1995,
@@ -94,6 +103,28 @@ export const defaultUserProfile: UserProfile = {
   avatar: 'АИ',
   familyRole: 'head',
   familyName: 'Семья Ивановых',
+  googleConnected: false,
+};
+
+export const emptyUserProfile: UserProfile = {
+  id: 'user_new',
+  personalId: 'MED-1000',
+  firstName: '',
+  lastName: '',
+  middleName: '',
+  email: '',
+  birthDate: '1995-01-01',
+  birthYear: 1995,
+  gender: 'male',
+  height: 175,
+  weight: 70,
+  bmi: 22.9,
+  bloodType: 'A(II) Rh+',
+  policyOMS: '',
+  policyDMS: '',
+  avatar: '👤',
+  familyRole: 'head',
+  familyName: 'Моя семья',
   googleConnected: false,
 };
 
@@ -233,6 +264,32 @@ const defaultInvites: FamilyInvite[] = [
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Demo Mode tracker
+  const [isDemoMode, setIsDemoModeState] = useState<boolean>(() => {
+    return localStorage.getItem('app-is-demo') === 'true';
+  });
+  const setIsDemoMode = (val: boolean) => {
+    setIsDemoModeState(val);
+    localStorage.setItem('app-is-demo', String(val));
+  };
+
+  const [showPinSetupModal, setShowPinSetupModal] = useState<boolean>(false);
+  const openPinSetup = () => setShowPinSetupModal(true);
+  const closePinSetup = () => setShowPinSetupModal(false);
+
+  const [googleSheetUrl, setGoogleSheetUrlState] = useState<string>(() => {
+    return localStorage.getItem('app-google-sheet-url') || '';
+  });
+  const setGoogleSheetUrl = (url: string) => {
+    setGoogleSheetUrlState(url);
+    localStorage.setItem('app-google-sheet-url', url);
+  };
+
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(() => {
+    const saved = localStorage.getItem('app-last-sync-time');
+    return saved ? Number(saved) : null;
+  });
+
   // Authentication & Session
   const [isAuthenticated, setIsAuthenticatedState] = useState<boolean>(() => {
     return localStorage.getItem('app-is-authenticated') === 'true';
@@ -241,35 +298,45 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Adult Personal Profile
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('app-user-profile');
-    return saved ? JSON.parse(saved) : defaultUserProfile;
+    if (saved) return JSON.parse(saved);
+    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    return isDemo ? defaultUserProfile : emptyUserProfile;
   });
 
   // Family Group Name
   const [familyName, setFamilyNameState] = useState<string>(() => {
-    return localStorage.getItem('app-family-name') || 'Семья Ивановых';
+    const saved = localStorage.getItem('app-family-name');
+    if (saved) return saved;
+    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    return isDemo ? 'Семья Ивановых' : 'Моя семья';
   });
 
   const [members, setMembers] = useState<FamilyMember[]>(() => {
     const saved = localStorage.getItem('app-family-members');
-    return saved ? JSON.parse(saved) : defaultMembers;
+    if (saved) return JSON.parse(saved);
+    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    return isDemo ? defaultMembers : [];
   });
 
   const [invites, setInvites] = useState<FamilyInvite[]>(() => {
     const saved = localStorage.getItem('app-family-invites');
-    return saved ? JSON.parse(saved) : defaultInvites;
+    if (saved) return JSON.parse(saved);
+    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    return isDemo ? defaultInvites : [];
   });
 
   const [activeMemberId, setActiveMemberId] = useState<string>(() => {
-    return localStorage.getItem('app-active-member-id') || 'member_head';
+    return localStorage.getItem('app-active-member-id') || '';
   });
 
   // Security state
-  const [isPinSet, setIsPinSetState] = useState<boolean>(() => {
-    return localStorage.getItem('app-pin-enabled') === 'true';
+  const [pinCode, setPinCodeState] = useState<string>(() => {
+    return localStorage.getItem('app-pin-code') || '';
   });
 
-  const [pinCode, setPinCodeState] = useState<string>(() => {
-    return localStorage.getItem('app-pin-code') || '1234';
+  const [isPinSet, setIsPinSetState] = useState<boolean>(() => {
+    const code = localStorage.getItem('app-pin-code');
+    return localStorage.getItem('app-pin-enabled') === 'true' && !!code;
   });
 
   const [biometricsEnabled, setBiometricsEnabledState] = useState<boolean>(() => {
@@ -583,6 +650,10 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const lockApp = () => {
+    if (!pinCode) {
+      setShowPinSetupModal(true);
+      return;
+    }
     setIsLocked(true);
   };
 
@@ -621,12 +692,15 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const connectGoogleAccount = () => {
+    const extractedId = googleSheetUrl.includes('/d/')
+      ? googleSheetUrl.split('/d/')[1].split('/')[0]
+      : googleSheetUrl;
     setGoogleAccount({
       connected: true,
-      email: userProfile.email,
-      name: `${userProfile.firstName} ${userProfile.lastName}`,
-      sheetName: 'Здоровье и Финансы (Семейная БД)',
-      sheetId: '1XPqCC1SKJYuJ2_guAciuqscGgWglku4zXZGmF6VTzcw',
+      email: userProfile.email || 'user@gmail.com',
+      name: `${userProfile.firstName} ${userProfile.lastName}`.trim() || 'Пользователь',
+      sheetName: userProfile.lastName ? `Здоровье — ${userProfile.lastName}` : 'Семейная база (Google Sheets)',
+      sheetId: extractedId,
       lastSynced: 'Только что',
     });
   };
@@ -643,6 +717,10 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const syncWithGoogleSheets = async (): Promise<boolean> => {
+    const now = Date.now();
+    setLastSyncTime(now);
+    localStorage.setItem('app-last-sync-time', String(now));
+
     if (!appsScriptUrl) {
       await new Promise((r) => setTimeout(r, 600));
       setGoogleAccount((prev) => ({
@@ -770,15 +848,24 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       policyOMS: newProfile.policyOMS,
       avatar: newProfile.avatar,
       color: '#7c3aed',
-      healthScore: 90.0,
+      healthScore: 0,
       analysesCount: 0,
       expensesTotal: 0,
       inviteStatus: 'active',
     };
-    setMembers((prev) => [newMember, ...prev]);
+    setMembers([newMember]);
     setActiveMemberId(newMember.id);
     setIsAuthenticatedState(true);
+    setIsDemoModeState(false);
+    localStorage.setItem('app-is-demo', 'false');
     localStorage.setItem('app-is-authenticated', 'true');
+    localStorage.setItem('app-user-profile', JSON.stringify(newProfile));
+    localStorage.setItem('app-family-members', JSON.stringify([newMember]));
+    localStorage.setItem('app-family-invites', JSON.stringify([]));
+    localStorage.setItem('app-family-name', newProfile.familyName);
+    localStorage.setItem('app-active-member-id', newMember.id);
+    localStorage.setItem('app-expenses-list', JSON.stringify([]));
+    localStorage.removeItem('app-last-analysis');
   };
 
   const loginWithGoogle = (emailParam?: string, nameParam?: string) => {
@@ -802,8 +889,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       weight: 76,
       bmi: 23.5,
       bloodType: 'A(II) Rh+',
-      policyOMS: '1694 0000 0000 0000',
-      policyDMS: 'Премиум ДМС',
+      policyOMS: '',
+      policyDMS: '',
       avatar: `${firstName.slice(0, 1)}${lastName.slice(0, 1)}`.toUpperCase(),
       familyRole: 'head',
       familyName: `Семья ${lastName}`,
@@ -826,7 +913,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       policyOMS: googleProfile.policyOMS,
       avatar: googleProfile.avatar,
       color: '#7c3aed',
-      healthScore: 92.0,
+      healthScore: 0,
       analysesCount: 0,
       expensesTotal: 0,
       inviteStatus: 'active',
@@ -838,28 +925,32 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveMemberId(googleMember.id);
     setFamilyNameState(googleProfile.familyName);
     setIsAuthenticatedState(true);
+    setIsDemoModeState(false);
+    localStorage.setItem('app-is-demo', 'false');
     localStorage.setItem('app-is-authenticated', 'true');
     localStorage.setItem('app-user-profile', JSON.stringify(googleProfile));
     localStorage.setItem('app-family-members', JSON.stringify([googleMember]));
     localStorage.setItem('app-family-invites', JSON.stringify([]));
     localStorage.setItem('app-family-name', googleProfile.familyName);
     localStorage.setItem('app-active-member-id', googleMember.id);
-    localStorage.removeItem('app-expenses-list');
+    localStorage.setItem('app-expenses-list', JSON.stringify([]));
     localStorage.removeItem('app-last-analysis');
   };
 
   const resetToNewUser = () => {
+    localStorage.setItem('app-is-demo', 'false');
+    setIsDemoModeState(false);
     localStorage.removeItem('app-user-profile');
     localStorage.removeItem('app-family-members');
     localStorage.removeItem('app-family-invites');
     localStorage.removeItem('app-family-name');
     localStorage.removeItem('app-active-member-id');
-    localStorage.removeItem('app-expenses-list');
+    localStorage.setItem('app-expenses-list', JSON.stringify([]));
     localStorage.removeItem('app-last-analysis');
     localStorage.setItem('app-is-authenticated', 'false');
 
     setIsAuthenticatedState(false);
-    setUserProfile(defaultUserProfile);
+    setUserProfile(emptyUserProfile);
     setMembers([]);
     setInvites([]);
     setActiveMemberId('');
@@ -867,6 +958,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const loadDemoData = () => {
+    localStorage.setItem('app-is-demo', 'true');
+    setIsDemoModeState(true);
     localStorage.setItem('app-is-authenticated', 'true');
     localStorage.setItem('app-user-profile', JSON.stringify(defaultUserProfile));
     localStorage.setItem('app-family-members', JSON.stringify(defaultMembers));
@@ -947,12 +1040,20 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTwoFactorEnabled,
         lockApp,
         unlockApp,
+        showPinSetupModal,
+        openPinSetup,
+        closePinSetup,
+        isDemoMode,
+        setIsDemoMode,
         googleAccount,
         connectGoogleAccount,
         disconnectGoogleAccount,
         syncWithGoogleSheets,
         appsScriptUrl,
         setAppsScriptUrl,
+        googleSheetUrl,
+        setGoogleSheetUrl,
+        lastSyncTime,
       }}
     >
       {children}

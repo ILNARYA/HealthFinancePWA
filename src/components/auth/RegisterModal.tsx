@@ -13,16 +13,16 @@ interface Props {
 export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { userProfile, updateUserProfile, googleAccount } = useFamily();
 
-  const [lastName, setLastName] = useState(userProfile.lastName || 'Иванов');
-  const [firstName, setFirstName] = useState(userProfile.firstName || 'Алексей');
-  const [middleName, setMiddleName] = useState(userProfile.middleName || 'Сергеевич');
+  const [lastName, setLastName] = useState(userProfile.lastName || '');
+  const [firstName, setFirstName] = useState(userProfile.firstName || '');
+  const [middleName, setMiddleName] = useState(userProfile.middleName || '');
   const [birthYear, setBirthYear] = useState<number>(userProfile.birthYear || 1995);
   const [gender, setGender] = useState<'male' | 'female'>(userProfile.gender || 'male');
   const [height, setHeight] = useState<number>(userProfile.height || 180);
   const [weight, setWeight] = useState<number>(userProfile.weight || 76);
   const [bloodType, setBloodType] = useState(userProfile.bloodType || 'A(II) Rh+');
-  const [policyOMS, setPolicyOMS] = useState(userProfile.policyOMS || '1694 0000 0000 0000');
-  const [policyDMS, setPolicyDMS] = useState(userProfile.policyDMS || 'Премиум ДМС');
+  const [policyOMS, setPolicyOMS] = useState(userProfile.policyOMS || '');
+  const [policyDMS, setPolicyDMS] = useState(userProfile.policyDMS || '');
   const [copied, setCopied] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -261,14 +261,14 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   onChange={(e) => setBloodType(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer"
                 >
-                  <option value="O(I) Rh+">O(I) Rh+</option>
-                  <option value="O(I) Rh-">O(I) Rh-</option>
-                  <option value="A(II) Rh+">A(II) Rh+</option>
-                  <option value="A(II) Rh-">A(II) Rh-</option>
-                  <option value="B(III) Rh+">B(III) Rh+</option>
-                  <option value="B(III) Rh-">B(III) Rh-</option>
-                  <option value="AB(IV) Rh+">AB(IV) Rh+</option>
-                  <option value="AB(IV) Rh-">AB(IV) Rh-</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="O(I) Rh-">O(I) Rh-</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="A(II) Rh-">A(II) Rh-</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="B(III) Rh+">B(III) Rh+</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="B(III) Rh-">B(III) Rh-</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="AB(IV) Rh+">AB(IV) Rh+</option>
+                  <option className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white" value="AB(IV) Rh-">AB(IV) Rh-</option>
                 </select>
                 <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>

@@ -1,7 +1,8 @@
 import React from 'react';
-import { TrendingUp, CreditCard, ArrowRight } from 'lucide-react';
+import { TrendingUp, CreditCard, ArrowRight, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Expense } from '../../types';
+import { useFamily } from '../../context/FamilyContext';
 
 interface Props {
   expenses: Expense[];
@@ -10,6 +11,7 @@ interface Props {
 
 const SpendingSummary: React.FC<Props> = ({ expenses, monthLabel }) => {
   const navigate = useNavigate();
+  const { privacyMode } = useFamily();
   const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
   const doctorExpenses = expenses.filter((e) => e.category === 'doctor').reduce((s, e) => s + e.amount, 0);
   const analysisExpenses = expenses.filter((e) => e.category === 'analysis').reduce((s, e) => s + e.amount, 0);
@@ -30,14 +32,21 @@ const SpendingSummary: React.FC<Props> = ({ expenses, monthLabel }) => {
               Медицинские траты
             </span>
           </div>
-          <span className="text-[11px] font-bold bg-white/10 px-2.5 py-0.5 rounded-full text-purple-100">
-            {monthLabel}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {privacyMode && (
+              <span className="inline-flex items-center gap-1 text-[10px] bg-purple-500/30 border border-purple-400/30 px-2 py-0.5 rounded-full text-purple-200 font-bold">
+                <EyeOff size={10} /> Приватно
+              </span>
+            )}
+            <span className="text-[11px] font-bold bg-white/10 px-2.5 py-0.5 rounded-full text-purple-100">
+              {monthLabel}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-baseline justify-between mb-1">
           <div className="text-3xl font-black tracking-tight">
-            {totalAmount.toLocaleString('ru-RU')} ₽
+            {privacyMode ? '•••••• ₽' : `${totalAmount.toLocaleString('ru-RU')} ₽`}
           </div>
           <div className="flex items-center gap-1 text-emerald-300 text-xs font-bold bg-emerald-500/20 px-2 py-0.5 rounded-lg">
             <TrendingUp size={13} />
@@ -46,22 +55,30 @@ const SpendingSummary: React.FC<Props> = ({ expenses, monthLabel }) => {
         </div>
 
         <p className="text-xs text-purple-200/90 mb-4 font-normal">
-          Расходы на приёмы врачей, анализы и лечение за выбранный месяц
+          {expenses.length === 0
+            ? 'В этом месяце трат ещё не зафиксировано'
+            : 'Расходы на приёмы врачей, анализы и лечение за выбранный месяц'}
         </p>
 
         {/* Breakdown mini cards */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
             <p className="text-[10px] text-purple-200 font-medium mb-0.5">Врачи</p>
-            <p className="text-xs font-bold">{doctorExpenses.toLocaleString('ru-RU')} ₽</p>
+            <p className="text-xs font-bold">
+              {privacyMode ? '•••• ₽' : `${doctorExpenses.toLocaleString('ru-RU')} ₽`}
+            </p>
           </div>
           <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
             <p className="text-[10px] text-purple-200 font-medium mb-0.5">Анализы</p>
-            <p className="text-xs font-bold">{analysisExpenses.toLocaleString('ru-RU')} ₽</p>
+            <p className="text-xs font-bold">
+              {privacyMode ? '•••• ₽' : `${analysisExpenses.toLocaleString('ru-RU')} ₽`}
+            </p>
           </div>
           <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur-md border border-white/5">
             <p className="text-[10px] text-purple-200 font-medium mb-0.5">Препараты</p>
-            <p className="text-xs font-bold">{medicineExpenses.toLocaleString('ru-RU')} ₽</p>
+            <p className="text-xs font-bold">
+              {privacyMode ? '•••• ₽' : `${medicineExpenses.toLocaleString('ru-RU')} ₽`}
+            </p>
           </div>
         </div>
 

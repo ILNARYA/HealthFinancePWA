@@ -9,10 +9,11 @@ import SettingsPage from './pages/SettingsPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { FamilyProvider, useFamily } from './context/FamilyContext';
 import { PinLockModal } from './components/security/PinLockModal';
+import { PinSetupModal } from './components/security/PinSetupModal';
 import { AuthPage } from './pages/AuthPage';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated } = useFamily();
+  const { isAuthenticated, showPinSetupModal, closePinSetup } = useFamily();
 
   React.useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -65,6 +66,9 @@ const AppContent: React.FC = () => {
 
       {/* Secure PIN Lock Screen Modal (Triggered when locked) */}
       <PinLockModal />
+
+      {/* PIN Code Setup Modal */}
+      <PinSetupModal isOpen={showPinSetupModal} onClose={closePinSetup} />
     </div>
   );
 };

@@ -206,6 +206,21 @@ const AnalysesPage: React.FC = () => {
         </div>
       )}
 
+      {/* Empty State for Clean Slate */}
+      {!result && !loading && (
+        <div className="bg-white dark:bg-[#161b26] rounded-3xl p-6 text-center border border-purple-100/60 dark:border-purple-500/20 shadow-sm w-full card-animate">
+          <div className="w-12 h-12 bg-purple-50 dark:bg-purple-950/60 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-400 mx-auto mb-2.5">
+            <Sparkles size={22} />
+          </div>
+          <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
+            У вас пока нет загруженных анализов
+          </h3>
+          <p className="text-xs text-gray-400 max-w-[280px] mx-auto leading-relaxed">
+            Загрузите фото бланка или PDF выше. Либо нажмите на один из готовых образцов (ОАК, Биохимия) для мгновенного теста OCR и ИИ-разбора.
+          </p>
+        </div>
+      )}
+
       {/* Analysis Result */}
       {result && !loading && (
         <div className="flex flex-col gap-3.5 card-animate w-full">

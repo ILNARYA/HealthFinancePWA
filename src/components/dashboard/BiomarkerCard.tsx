@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlaskConical } from 'lucide-react';
 import type { Biomarker } from '../../types';
+import { useFamily } from '../../context/FamilyContext';
 
 interface Props {
   biomarker: Biomarker;
@@ -40,6 +41,7 @@ const BiomarkerCard: React.FC<Props> = ({ biomarker }) => {
     },
   };
 
+  const { privacyMode } = useFamily();
   const config = statusConfig[biomarker.status];
 
   // Normalized position between 8% and 92% to strictly prevent overflow
@@ -116,7 +118,7 @@ const BiomarkerCard: React.FC<Props> = ({ biomarker }) => {
       {/* Range Info & Description */}
       <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-1.5 border-t border-gray-50 dark:border-gray-800/80 mt-1 gap-2">
         <span className="truncate flex-1 min-w-0" title={biomarker.clinicalNote || config.description}>
-          {biomarker.clinicalNote || config.description}
+          {privacyMode ? '••••••••••••••••' : (biomarker.clinicalNote || config.description)}
         </span>
         <span className="font-semibold text-gray-600 dark:text-gray-300 flex-shrink-0 whitespace-nowrap">
           {biomarker.refMin}–{biomarker.refMax} {biomarker.unit}

@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera
+  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera, EyeOff
 } from 'lucide-react';
 import { monthsData, demoDoctors, categoryLabels, categoryColors, allDemoExpenses } from '../data/demo';
 import type { Expense } from '../types';
@@ -28,7 +28,7 @@ const monthPrefixes: Record<string, string> = {
 
 const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp } = useFamily();
+  const { activeMember, lockApp, privacyMode, setPrivacyMode } = useFamily();
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
@@ -185,6 +185,15 @@ const FinancesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {privacyMode && (
+            <button
+              onClick={() => setPrivacyMode(false)}
+              className="w-9 h-9 bg-purple-100 dark:bg-purple-950/80 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs border border-purple-300 dark:border-purple-800 transition-colors"
+              title="Приватный режим включен. Нажмите, чтобы отключить"
+            >
+              <EyeOff size={16} />
+            </button>
+          )}
           <button
             onClick={() => setShowReceiptScanner(true)}
             className="w-9 h-9 bg-purple-100/90 dark:bg-purple-950/90 hover:bg-purple-200 text-purple-700 dark:text-purple-300 rounded-2xl flex items-center justify-center border border-purple-200 dark:border-purple-800 shadow-xs active:scale-95 transition-all"
@@ -398,7 +407,7 @@ const FinancesPage: React.FC = () => {
                         {activeCategoryObj.name}
                       </span>
                       <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
-                        {activeCategoryObj.value.toLocaleString('ru-RU')} ₽
+                        {privacyMode ? '•••••• ₽' : `${activeCategoryObj.value.toLocaleString('ru-RU')} ₽`}
                       </span>
                       <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
                         {activeCategoryObj.percentage}%
@@ -410,7 +419,7 @@ const FinancesPage: React.FC = () => {
                         Всего
                       </span>
                       <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">
-                        {totalAmount.toLocaleString('ru-RU')} ₽
+                        {privacyMode ? '•••••• ₽' : `${totalAmount.toLocaleString('ru-RU')} ₽`}
                       </span>
                       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                         100%
@@ -447,7 +456,7 @@ const FinancesPage: React.FC = () => {
                     <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 pl-3.5">
                       <span className="font-semibold text-purple-700 dark:text-purple-300">{c.percentage}%</span>
                       <span className="font-black text-gray-900 dark:text-white">
-                        {c.value.toLocaleString('ru-RU')} ₽
+                        {privacyMode ? '•••••• ₽' : `${c.value.toLocaleString('ru-RU')} ₽`}
                       </span>
                     </div>
                   </div>
@@ -545,7 +554,7 @@ const FinancesPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black text-gray-900 dark:text-white whitespace-nowrap">
-                      −{exp.amount.toLocaleString('ru-RU')} ₽
+                      {privacyMode ? '−•••••• ₽' : `−${exp.amount.toLocaleString('ru-RU')} ₽`}
                     </span>
                     <button
                       onClick={() => handleDelete(exp.id)}

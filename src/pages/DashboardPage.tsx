@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import HealthIndex from '../components/dashboard/HealthIndex';
 import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
 import { monthsData, demoHealthTrend } from '../data/demo';
-import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users } from 'lucide-react';
+import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users, FileSearch, Plus, EyeOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
 
 const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
   const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp } = useFamily();
+  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode } = useFamily();
+
+  const isNewUser = !isDemoMode && activeMember.analysesCount === 0;
 
   const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
 
@@ -57,11 +61,17 @@ const DashboardPage: React.FC = () => {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
-                Привет, {activeMember.name}
+                Привет, {activeMember.name || 'Пользователь'}
               </h1>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
-                <Sparkles size={9} /> Норма
-              </span>
+              {isNewUser ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[10px] font-bold border border-purple-200 dark:border-purple-800 flex-shrink-0">
+                  Новый профиль
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+                  <Sparkles size={9} /> Норма
+                </span>
+              )}
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-400 font-medium truncate flex items-center gap-1">
               <span>{activeMember.roleLabel}</span>
@@ -73,6 +83,17 @@ const DashboardPage: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Privacy Mode Quick Toggle Pill */}
+          {privacyMode && (
+            <button
+              onClick={() => setPrivacyMode(false)}
+              className="w-9 h-9 bg-purple-100 dark:bg-purple-950/80 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs border border-purple-300 dark:border-purple-800 transition-colors"
+              title="Приватный режим включен. Нажмите, чтобы отключить"
+            >
+              <EyeOff size={16} />
+            </button>
+          )}
+
           {/* Quick Lock Button */}
           <button
             onClick={lockApp}
@@ -93,65 +114,86 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Primary Visual Zone: Charts side-by-side switcher ("диаграмму паука" и графики рядом) */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
-            Оценка показателей здоровья
-          </span>
-
-          {/* Quick tab switcher between Spider Radar & Range Dynamics */}
-          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
-            <button
-              onClick={() => setActiveChartTab('radar')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                activeChartTab === 'radar'
-                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <Layers size={11} />
-              <span>Паук (Score)</span>
-            </button>
-            <button
-              onClick={() => setActiveChartTab('range')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                activeChartTab === 'range'
-                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <BarChart3 size={11} />
-              <span>Диапазоны</span>
-            </button>
+      {isNewUser ? (
+        <div className="bg-white dark:bg-[#161b26] rounded-3xl p-6 text-center border border-purple-100/60 dark:border-purple-500/20 shadow-sm card-animate">
+          <div className="w-14 h-14 mx-auto rounded-3xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center mb-3 shadow-inner">
+            <FileSearch size={28} />
           </div>
+          <h2 className="text-base font-extrabold text-gray-900 dark:text-white">
+            У вас пока нет загруженных анализов
+          </h2>
+          <p className="text-xs text-gray-400 mt-1.5 max-w-[280px] mx-auto leading-relaxed">
+            Загрузите медицинский PDF-бланк (Инвитро, Гемотест, Медси) или внесите биомаркеры для расчёта индекса здоровья.
+          </p>
+          <button
+            onClick={() => navigate('/analyses')}
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl text-xs font-bold shadow-lg shadow-purple-500/25 active:scale-95 transition-all"
+          >
+            <Plus size={15} />
+            <span>Загрузить первый анализ</span>
+          </button>
         </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+              Оценка показателей здоровья
+            </span>
 
-        {/* Dynamic active chart view */}
-        {activeChartTab === 'radar' ? (
-          <HealthIndex
-            score={currentMonth.score}
-            selectedMonthId={selectedMonthId}
-            onMonthChange={setSelectedMonthId}
-            availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
-          />
-        ) : (
-          <div className="space-y-3">
-            <BiomarkerRangeChart />
-            {/* Quick switcher back or month info */}
-            <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
-              <span className="text-purple-900 dark:text-purple-200 font-semibold">
-                Выбран месяц: {currentMonth.label}
-              </span>
+            {/* Quick tab switcher between Spider Radar & Range Dynamics */}
+            <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
               <button
                 onClick={() => setActiveChartTab('radar')}
-                className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  activeChartTab === 'radar'
+                    ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                    : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
               >
-                К радар-диаграмме →
+                <Layers size={11} />
+                <span>Паук (Score)</span>
+              </button>
+              <button
+                onClick={() => setActiveChartTab('range')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  activeChartTab === 'range'
+                    ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                    : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <BarChart3 size={11} />
+                <span>Диапазоны</span>
               </button>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Dynamic active chart view */}
+          {activeChartTab === 'radar' ? (
+            <HealthIndex
+              score={currentMonth.score}
+              selectedMonthId={selectedMonthId}
+              onMonthChange={setSelectedMonthId}
+              availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+            />
+          ) : (
+            <div className="space-y-3">
+              <BiomarkerRangeChart />
+              {/* Quick switcher back or month info */}
+              <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
+                <span className="text-purple-900 dark:text-purple-200 font-semibold">
+                  Выбран месяц: {currentMonth.label}
+                </span>
+                <button
+                  onClick={() => setActiveChartTab('radar')}
+                  className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
+                >
+                  К радар-диаграмме →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Monthly Medical Finance Card */}
       <SpendingSummary
@@ -167,79 +209,91 @@ const DashboardPage: React.FC = () => {
               Показатели анализов крови ({currentMonth.label})
             </h3>
             <p className="text-[11px] text-gray-400 dark:text-gray-400">
-              {currentMonth.notes}
+              {isNewUser ? 'Ожидание первого медицинского бланка' : currentMonth.notes}
             </p>
           </div>
-          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
-            {currentMonth.biomarkers.length} пок.
-          </span>
+          {!isNewUser && (
+            <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
+              {currentMonth.biomarkers.length} пок.
+            </span>
+          )}
         </div>
 
-        <div className="space-y-2.5">
-          {currentMonth.biomarkers.map((bio) => (
-            <BiomarkerCard key={bio.id} biomarker={bio} />
-          ))}
-        </div>
+        {isNewUser ? (
+          <div className="bg-purple-50/40 dark:bg-[#161b26]/50 rounded-3xl p-5 border border-dashed border-purple-200 dark:border-purple-800/60 text-center">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 max-w-[260px] mx-auto">
+              Биомаркеры появятся здесь после расшифровки вашего первого бланка анализов
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {currentMonth.biomarkers.map((bio) => (
+              <BiomarkerCard key={bio.id} biomarker={bio} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 6-Month Trend Line Chart */}
-      <div className="bg-white dark:bg-[#161b26] rounded-3xl p-5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
-              Динамика индекса здоровья
-            </h3>
-            <p className="text-[11px] text-gray-400 dark:text-gray-400">За последние 6 месяцев (+8.8 п.)</p>
+      {/* 6-Month Trend Line Chart (Only shown when historical data exists) */}
+      {!isNewUser && (
+        <div className="bg-white dark:bg-[#161b26] rounded-3xl p-5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
+                Динамика индекса здоровья
+              </h3>
+              <p className="text-[11px] text-gray-400 dark:text-gray-400">За последние 6 месяцев (+8.8 п.)</p>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
+              <Activity size={18} />
+            </div>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
-            <Activity size={18} />
-          </div>
-        </div>
 
-        <div className="h-[140px] w-full overflow-hidden">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={demoHealthTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-gray-800" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                domain={[76, 92]}
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
-                axisLine={false}
-                tickLine={false}
-                width={28}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: '#0f172a',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  color: '#fff',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                  padding: '6px 12px',
-                }}
-                formatter={(value: any) => [
-                  typeof value === 'number' ? value.toFixed(1) : String(value ?? ''),
-                  'Индекс',
-                ]}
-              />
-              <Line
-                type="monotone"
-                dataKey="score"
-                stroke="#7c3aed"
-                strokeWidth={3}
-                dot={{ fill: '#7c3aed', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
-                activeDot={{ r: 6, fill: '#7c3aed', stroke: '#ffffff', strokeWidth: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="h-[140px] w-full overflow-hidden">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={demoHealthTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-gray-800" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  domain={[76, 92]}
+                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: '#0f172a',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    color: '#fff',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                    padding: '6px 12px',
+                  }}
+                  formatter={(value: any) => [
+                    typeof value === 'number' ? value.toFixed(1) : String(value ?? ''),
+                    'Индекс',
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#7c3aed"
+                  strokeWidth={3}
+                  dot={{ fill: '#7c3aed', r: 4, strokeWidth: 2, stroke: '#ffffff' }}
+                  activeDot={{ r: 6, fill: '#7c3aed', stroke: '#ffffff', strokeWidth: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
       {/* Family Cabinet Switcher Modal */}
       <FamilySwitcherModal
         isOpen={showFamilyModal}

@@ -62,7 +62,7 @@ export const PinLockModal: React.FC = () => {
         {/* 4-digit PIN Dots */}
         <div className={`flex flex-col items-center my-4 ${errorShake ? 'animate-bounce text-rose-400' : ''}`}>
           <p className="text-xs text-gray-400 mb-3 font-medium">
-            {errorShake ? 'Неверный PIN-код (попробуйте 1234)' : 'Введите PIN-код для разблокировки'}
+            {errorShake ? 'Неверный PIN-код. Повторите попытку' : 'Введите 4-значный PIN-код'}
           </p>
           <div className="flex items-center gap-4">
             {[0, 1, 2, 3].map((idx) => {
