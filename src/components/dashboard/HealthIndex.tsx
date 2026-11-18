@@ -15,6 +15,7 @@ interface Props {
   selectedMonthId: string;
   onMonthChange: (monthId: string) => void;
   availableMonths: { id: string; label: string }[];
+  isEmpty?: boolean;
 }
 
 const HealthIndex: React.FC<Props> = ({
@@ -22,6 +23,7 @@ const HealthIndex: React.FC<Props> = ({
   selectedMonthId,
   onMonthChange,
   availableMonths,
+  isEmpty = false,
 }) => {
   const [showInfo, setShowInfo] = useState(false);
 
@@ -29,42 +31,42 @@ const HealthIndex: React.FC<Props> = ({
   const radarData = [
     {
       subject: 'Метаболизм',
-      user: score.metabolism,
+      user: isEmpty ? 0 : score.metabolism,
       target: 92,
       fullMark: 100,
       note: 'Глюкоза, Липиды, Мочевая кислота',
     },
     {
       subject: 'Сон & Отдых',
-      user: score.sleepRecovery,
+      user: isEmpty ? 0 : score.sleepRecovery,
       target: 90,
       fullMark: 100,
       note: 'Витамин D3, Ферритин, Магний',
     },
     {
       subject: 'Иммунитет',
-      user: score.immune,
+      user: isEmpty ? 0 : score.immune,
       target: 95,
       fullMark: 100,
       note: 'Лейкоциты, СОЭ, СРБ',
     },
     {
       subject: 'Почки',
-      user: score.kidney,
+      user: isEmpty ? 0 : score.kidney,
       target: 94,
       fullMark: 100,
       note: 'eGFR, Креатинин, Мочевина, Калий',
     },
     {
       subject: 'Печень',
-      user: score.liver,
+      user: isEmpty ? 0 : score.liver,
       target: 90,
       fullMark: 100,
       note: 'АЛТ, АСТ, Билирубин, ЩФ',
     },
     {
       subject: 'Кровь (O2)',
-      user: score.blood,
+      user: isEmpty ? 0 : score.blood,
       target: 95,
       fullMark: 100,
       note: 'Гемоглобин, Эритроциты, Тромбоциты',
@@ -163,11 +165,13 @@ const HealthIndex: React.FC<Props> = ({
 
       {/* Big Score matching healthcare_2.png */}
       <div className="text-center pt-1 pb-2">
-        <div className="text-6xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
-          {score.overall.toFixed(1).replace('.', ',')}
+        <div className={`text-6xl font-black tracking-tight leading-none ${isEmpty ? 'text-gray-300 dark:text-gray-600 font-mono tracking-widest' : 'text-gray-900 dark:text-white'}`}>
+          {isEmpty ? '— —' : score.overall.toFixed(1).replace('.', ',')}
         </div>
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mt-2">
-          {score.overall >= 85
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-2">
+          {isEmpty
+            ? 'Ожидание загрузки первого медицинского анализа'
+            : score.overall >= 85
             ? 'Отличное состояние здоровья'
             : score.overall >= 80
             ? 'Хорошее состояние, есть маркеры для контроля'
@@ -177,9 +181,9 @@ const HealthIndex: React.FC<Props> = ({
         {/* Legend */}
         <div className="flex items-center justify-center gap-4 mt-3">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] dark:bg-[#a855f7]" />
+            <span className={`w-2.5 h-2.5 rounded-full ${isEmpty ? 'bg-gray-300 dark:bg-gray-600' : 'bg-[#7c3aed] dark:bg-[#a855f7]'}`} />
             <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-              Ваши анализы
+              {isEmpty ? 'Ваши анализы (пусто)' : 'Ваши анализы'}
             </span>
           </div>
           <div className="flex items-center gap-1.5">

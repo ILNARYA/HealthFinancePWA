@@ -52,6 +52,9 @@ interface FamilyContextType {
     bloodType: string;
     policyOMS: string;
   }) => { success: boolean; message: string; autoApproved: boolean };
+  // View scope (Личный профиль vs Семейный хаб)
+  viewScope: 'personal' | 'family';
+  setViewScope: (scope: 'personal' | 'family') => void;
   // Security
   isPinSet: boolean;
   pinCode: string;
@@ -275,6 +278,15 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('app-is-demo', String(val));
   };
 
+  // View Scope: 'personal' (Только мои данные) vs 'family' (Сводный семейный бюджет и анализы)
+  const [viewScope, setViewScopeState] = useState<'personal' | 'family'>(() => {
+    return (localStorage.getItem('app-view-scope') as 'personal' | 'family') || 'family';
+  });
+  const setViewScope = (scope: 'personal' | 'family') => {
+    setViewScopeState(scope);
+    localStorage.setItem('app-view-scope', scope);
+  };
+
   const [showPinSetupModal, setShowPinSetupModal] = useState<boolean>(false);
   const openPinSetup = () => setShowPinSetupModal(true);
   const closePinSetup = () => setShowPinSetupModal(false);
@@ -433,10 +445,20 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateUserProfile = (data: Partial<UserProfile>) => {
     setUserProfile((prev) => {
       const updated = { ...prev, ...data };
-      // Recalculate BMI if height or weight changed
+      // Recalculate BMI and record weight history if height or weight changed
       if (data.height || data.weight) {
         const hMeter = updated.height / 100;
         updated.bmi = Math.round((updated.weight / (hMeter * hMeter)) * 10) / 10;
+        const currentHist = prev.metricsHistory || [];
+        const todayStr = new Date().toLocaleDateString('ru-RU');
+        const newRecord = {
+          date: todayStr,
+          weight: updated.weight,
+          height: updated.height,
+          bmi: updated.bmi,
+          timestamp: Date.now(),
+        };
+        updated.metricsHistory = [newRecord, ...currentHist.filter(h => h.date !== todayStr)].slice(0, 20);
       }
       return updated;
     });
@@ -1121,6 +1143,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         acceptFamilyInvite,
         declineFamilyInvite,
         addChildMember,
+        viewScope,
+        setViewScope,
         isPinSet,
         pinCode,
         isLocked,

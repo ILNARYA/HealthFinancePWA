@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  UserCheck, X, Check, Copy, Sparkles, Scale, ChevronDown
+  UserCheck, X, Check, Copy, Sparkles, Scale, ChevronDown, History
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
 import { formatYears } from '../../utils/formatters';
@@ -16,10 +16,10 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [lastName, setLastName] = useState(userProfile.lastName || '');
   const [firstName, setFirstName] = useState(userProfile.firstName || '');
   const [middleName, setMiddleName] = useState(userProfile.middleName || '');
-  const [birthYear, setBirthYear] = useState<number>(userProfile.birthYear || 1995);
+  const [birthYear, setBirthYear] = useState<number | ''>(userProfile.birthYear || 1995);
   const [gender, setGender] = useState<'male' | 'female'>(userProfile.gender || 'male');
-  const [height, setHeight] = useState<number>(userProfile.height || 180);
-  const [weight, setWeight] = useState<number>(userProfile.weight || 76);
+  const [height, setHeight] = useState<number | ''>(userProfile.height || 180);
+  const [weight, setWeight] = useState<number | ''>(userProfile.weight || 76);
   const [bloodType, setBloodType] = useState(userProfile.bloodType || 'A(II) Rh+');
   const [policyOMS, setPolicyOMS] = useState(userProfile.policyOMS || '');
   const [policyDMS, setPolicyDMS] = useState(userProfile.policyDMS || '');
@@ -29,9 +29,12 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   // Real-time BMI calculation
-  const heightMeters = (height || 170) / 100;
-  const bmi = Math.round(((weight || 70) / (heightMeters * heightMeters)) * 10) / 10;
-  const age = 2026 - birthYear;
+  const numHeight = Number(height) || 170;
+  const numWeight = Number(weight) || 70;
+  const numBirthYear = Number(birthYear) || 1995;
+  const heightMeters = numHeight / 100;
+  const bmi = Math.round((numWeight / (heightMeters * heightMeters)) * 10) / 10;
+  const age = 2026 - numBirthYear;
 
   const getBmiBadge = (val: number) => {
     if (val < 18.5) return { label: 'Дефицит массы', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/60 border-amber-200' };
@@ -54,10 +57,10 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
       lastName: lastName.trim(),
       firstName: firstName.trim(),
       middleName: middleName.trim(),
-      birthYear,
+      birthYear: numBirthYear,
       gender,
-      height,
-      weight,
+      height: numHeight,
+      weight: numWeight,
       bmi,
       bloodType,
       policyOMS: policyOMS.trim(),
@@ -172,12 +175,16 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <span className="text-[9px] font-bold text-gray-500">{formatYears(age)}</span>
               </div>
               <input
-                type="number"
-                min="1930"
-                max="2026"
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
                 value={birthYear}
-                onChange={(e) => setBirthYear(Number(e.target.value))}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold"
+                onChange={(e) => {
+                  const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                  setBirthYear(clean === '' ? '' : Number(clean));
+                }}
+                placeholder="1995"
+                className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold"
               />
             </div>
             <div>
@@ -221,23 +228,31 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <div>
                 <label className="text-[10px] font-semibold text-gray-400 block mb-0.5">Рост (см)</label>
                 <input
-                  type="number"
-                  min="120"
-                  max="220"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={3}
                   value={height}
-                  onChange={(e) => setHeight(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold dark:[color-scheme:dark]"
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                    setHeight(clean === '' ? '' : Number(clean));
+                  }}
+                  placeholder="175"
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold"
                 />
               </div>
               <div>
                 <label className="text-[10px] font-semibold text-gray-400 block mb-0.5">Вес (кг)</label>
                 <input
-                  type="number"
-                  min="30"
-                  max="200"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={3}
                   value={weight}
-                  onChange={(e) => setWeight(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold dark:[color-scheme:dark]"
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                    setWeight(clean === '' ? '' : Number(clean));
+                  }}
+                  placeholder="70"
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold"
                 />
               </div>
             </div>
@@ -248,6 +263,33 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 {bmi} <span className="text-[10px] font-normal text-gray-400">кг/м²</span>
               </span>
             </div>
+
+            {/* History of Weight & Height Measurements */}
+            {userProfile.metricsHistory && userProfile.metricsHistory.length > 0 && (
+              <div className="pt-2 border-t border-purple-100/80 dark:border-purple-900/50">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <History size={11} className="text-purple-600 dark:text-purple-400" />
+                    <span>История замеров веса:</span>
+                  </span>
+                  <span className="text-[9px] text-purple-600 dark:text-purple-400 font-bold">
+                    {userProfile.metricsHistory.length} запис.
+                  </span>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto py-1 no-scrollbar">
+                  {userProfile.metricsHistory.slice(0, 4).map((rec, idx) => (
+                    <div
+                      key={idx}
+                      className="flex-shrink-0 px-2 py-1 rounded-xl bg-white dark:bg-[#161b26] border border-purple-100 dark:border-purple-900/50 text-[10px] shadow-2xs"
+                    >
+                      <span className="text-gray-400 block text-[9px] font-medium">{rec.date}</span>
+                      <span className="font-extrabold text-purple-700 dark:text-purple-300">{rec.weight} кг</span>
+                      <span className="text-gray-400 text-[9px] ml-1">({rec.bmi})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Blood Type & Policy */}

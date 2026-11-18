@@ -28,7 +28,7 @@ const monthPrefixes: Record<string, string> = {
 
 const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode } = useFamily();
+  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope } = useFamily();
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
@@ -93,7 +93,10 @@ const FinancesPage: React.FC = () => {
   }, [allExpenses, isDemoMode, demoExpenseIds]);
 
   const activePrefix = monthPrefixes[selectedMonth] || '2026-11';
-  const expenses = allExpenses.filter((e) => e.date ? e.date.startsWith(activePrefix) : true);
+  const monthFiltered = allExpenses.filter((e) => e.date ? e.date.startsWith(activePrefix) : true);
+  const expenses = viewScope === 'personal' && activeMember
+    ? monthFiltered.filter((e) => !e.memberId || e.memberId === activeMember.id || e.memberName === activeMember.name)
+    : monthFiltered;
 
   const filteredExpenses = selectedCategory === 'all'
     ? expenses
@@ -241,6 +244,32 @@ const FinancesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* View Scope Switcher: Личный vs Семейный */}
+          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
+            <button
+              onClick={() => setViewScope('personal')}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                viewScope === 'personal'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+              title="Режим: Только мои личные расходы"
+            >
+              Мой
+            </button>
+            <button
+              onClick={() => setViewScope('family')}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                viewScope === 'family'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+              title="Режим: Общий семейный бюджет"
+            >
+              Семья
+            </button>
+          </div>
+
           <button
             onClick={() => setPrivacyMode(!privacyMode)}
             className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors border shadow-xs ${

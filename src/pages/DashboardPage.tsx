@@ -5,19 +5,21 @@ import HealthIndex from '../components/dashboard/HealthIndex';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
 import { monthsData, demoHealthTrend } from '../data/demo';
-import { Activity, Sparkles, Moon, Sun, BarChart3, Lock, Users, FileSearch, EyeOff, Wallet, Bot } from 'lucide-react';
+import { Activity, Sparkles, Moon, Sun, BarChart3, Lock, Users, EyeOff, Bot, FileUp, Receipt } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
 import { AiDoctorModal } from '../components/ai/AiDoctorModal';
+import { ReceiptScannerModal } from '../components/finances/ReceiptScannerModal';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode } = useFamily();
+  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope } = useFamily();
 
   const isNewUser = !isDemoMode && activeMember.analysesCount === 0;
 
@@ -30,6 +32,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const currentMonthExpenses = React.useMemo(() => {
+    let list: any[] = [];
     if (!isDemoMode) {
       try {
         const saved = localStorage.getItem('app-expenses-list');
@@ -37,16 +40,31 @@ const DashboardPage: React.FC = () => {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             const prefix = monthPrefixes[selectedMonthId] || '2026-11';
-            return parsed
+            list = parsed
               .filter((e: any) => !['e1','e2','e3','e4','e5','e6','e7','oe1','oe2','oe3','oe4','oe5','oe6','oe7','se1','se2','se3','se4','se5'].includes(e.id))
               .filter((e: any) => e.date?.startsWith(prefix));
           }
         }
       } catch {}
-      return [];
+    } else {
+      list = currentMonth.expenses;
     }
-    return currentMonth.expenses;
-  }, [isDemoMode, selectedMonthId, currentMonth.expenses]);
+
+    if (viewScope === 'personal' && activeMember) {
+      return list.filter((e: any) => !e.memberId || e.memberId === activeMember.id || e.memberName === activeMember.name);
+    }
+    return list;
+  }, [isDemoMode, selectedMonthId, currentMonth.expenses, viewScope, activeMember]);
+
+  const handleSaveScannedExpense = (exp: any) => {
+    try {
+      const saved = localStorage.getItem('app-expenses-list');
+      const list = saved ? JSON.parse(saved) : [];
+      const updated = [exp, ...list];
+      localStorage.setItem('app-expenses-list', JSON.stringify(updated));
+    } catch {}
+    setShowReceiptScanner(false);
+  };
 
   return (
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4 w-full">
@@ -85,32 +103,58 @@ const DashboardPage: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* View Scope Switcher: Личный vs Семейный */}
+          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
+            <button
+              onClick={() => setViewScope('personal')}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                viewScope === 'personal'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+              title="Режим: Только мои личные расходы и анализы"
+            >
+              Мой
+            </button>
+            <button
+              onClick={() => setViewScope('family')}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                viewScope === 'family'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+              title="Режим: Общий семейный бюджет всей семьи"
+            >
+              Семья
+            </button>
+          </div>
+
           {/* Privacy Mode Quick Toggle Pill */}
           {privacyMode && (
             <button
               onClick={() => setPrivacyMode(false)}
-              className="w-9 h-9 bg-purple-100 dark:bg-purple-950/80 rounded-2xl flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs border border-purple-300 dark:border-purple-800 transition-colors"
+              className="w-8 h-8 bg-purple-100 dark:bg-purple-950/80 rounded-xl flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs border border-purple-300 dark:border-purple-800 transition-colors"
               title="Приватный режим включен. Нажмите, чтобы отключить"
             >
-              <EyeOff size={16} />
+              <EyeOff size={15} />
             </button>
           )}
 
           {/* Quick Lock Button */}
           <button
             onClick={lockApp}
-            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 hover:text-purple-600 dark:text-gray-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            className="w-8 h-8 bg-white dark:bg-[#1e2433] rounded-xl flex items-center justify-center text-gray-500 hover:text-purple-600 dark:text-gray-400 shadow-xs border border-gray-100 dark:border-gray-800 transition-colors"
             title="Заблокировать экран (PIN-код)"
           >
-            <Lock size={16} />
+            <Lock size={15} />
           </button>
           {/* Dark Mode Quick Toggle */}
           <button
             onClick={toggleTheme}
-            className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 dark:text-yellow-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
+            className="w-8 h-8 bg-white dark:bg-[#1e2433] rounded-xl flex items-center justify-center text-gray-500 dark:text-yellow-400 shadow-xs border border-gray-100 dark:border-gray-800 transition-colors"
             title={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
           >
-            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
         </div>
       </div>
@@ -120,23 +164,23 @@ const DashboardPage: React.FC = () => {
         <button
           onClick={() => navigate('/analyses')}
           className="p-2.5 rounded-2xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:border-purple-300 group"
-          title="Лабораторные анализы и бланки"
+          title="Загрузить лабораторный бланк (PDF / фото)"
         >
           <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <FileSearch size={16} />
+            <FileUp size={16} />
           </div>
-          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Анализы</span>
+          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">+ Анализ</span>
         </button>
 
         <button
-          onClick={() => navigate('/finances')}
+          onClick={() => setShowReceiptScanner(true)}
           className="p-2.5 rounded-2xl bg-white dark:bg-[#161b26] border border-purple-100/60 dark:border-purple-500/20 shadow-xs flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:border-purple-300 group"
-          title="Медицинские чеки и расходы"
+          title="Сканировать или внести чек расхода"
         >
           <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Wallet size={16} />
+            <Receipt size={16} />
           </div>
-          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">Финансы</span>
+          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">+ Чек</span>
         </button>
 
         <button
@@ -187,16 +231,16 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {isNewUser && (
-          <div className="bg-purple-50/70 dark:bg-purple-950/30 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 flex items-center justify-between text-xs">
+          <div className="bg-purple-50/80 dark:bg-purple-950/40 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse flex-shrink-0" />
-              <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium truncate">
-                Показан ориентир норм. Загрузите PDF-анализ для персонального расчёта.
+              <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium leading-tight">
+                Ориентир клинических норм. Загрузите PDF-бланк для расчёта.
               </p>
             </div>
             <button
               onClick={() => navigate('/analyses')}
-              className="ml-2 px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[10px] font-bold flex-shrink-0 transition-colors shadow-xs"
+              className="px-2.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[10px] font-bold flex-shrink-0 transition-colors shadow-xs"
             >
               + Анализ
             </button>
@@ -209,6 +253,7 @@ const DashboardPage: React.FC = () => {
           selectedMonthId={selectedMonthId}
           onMonthChange={setSelectedMonthId}
           availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+          isEmpty={isNewUser}
         />
       </div>
 
@@ -321,6 +366,13 @@ const DashboardPage: React.FC = () => {
       <AiDoctorModal
         isOpen={showAiModal}
         onClose={() => setShowAiModal(false)}
+      />
+
+      {/* Quick Receipt Scanner Modal */}
+      <ReceiptScannerModal
+        isOpen={showReceiptScanner}
+        onClose={() => setShowReceiptScanner(false)}
+        onSaveExpense={handleSaveScannedExpense}
       />
     </div>
   );

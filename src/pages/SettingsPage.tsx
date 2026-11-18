@@ -6,7 +6,7 @@ import {
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
   Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
   UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2,
-  Link2, Share2, Download
+  Link2, Share2, Download, User
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -56,12 +56,12 @@ const SettingsPage: React.FC = () => {
     googleSheetUrl,
     setGoogleSheetUrl,
     lastSyncTime,
-    isDemoMode,
     lockApp,
     logout,
-    resetToNewUser,
     purgeAllDataAndReset,
     loadDemoData,
+    viewScope,
+    setViewScope,
   } = useFamily();
 
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
@@ -1032,58 +1032,64 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Mode Switcher: Presentation Demo vs Clean Slate Personal Account */}
+      {/* 6. Режим охвата данных: Личный профиль vs Семейный хаб */}
       <div className="bg-white dark:bg-[#161b26] rounded-3xl p-4.5 shadow-sm border border-purple-100/60 dark:border-purple-500/20 card-animate transition-colors w-full">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
-              <Sparkles size={17} />
+              <Users size={17} />
             </div>
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
-                Режим работы приложения
+                Область учёта расходов и анализов
               </h3>
-              <p className="text-[10px] text-gray-400">Презентация возможностей vs Личный аккаунт</p>
+              <p className="text-[10px] text-gray-400">Личный профиль vs Семейный сквозной хаб</p>
             </div>
           </div>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-            isDemoMode
+            viewScope === 'family'
               ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
               : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
           }`}>
-            {isDemoMode ? '✨ Демо-презентация' : '🛡️ Личный аккаунт'}
+            {viewScope === 'family' ? '👨‍👩‍👧‍👦 Семейный бюджет' : '👤 Только личные'}
           </span>
         </div>
 
-        <div className="p-3 rounded-2xl bg-gray-50/60 dark:bg-[#1a202c]/50 border border-gray-100 dark:border-gray-800 mb-3 text-xs">
-          {isDemoMode ? (
-            <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
-              <strong>Активен демонстрационный режим:</strong> отображаются тестовые профили семьи Ивановых, 33 050 ₽ трат и 8 биомаркеров для наглядного показа всех функций и графиков.
-            </p>
-          ) : (
-            <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
-              <strong>Активен чистый личный кабинет:</strong> все тестовые расходы и демо-показатели скрыты. Отображаются только ваши реальные записи, чеки и приглашённые члены семьи.
-            </p>
-          )}
+        {/* Scope Selector Segmented Switcher */}
+        <div className="bg-gray-100 dark:bg-[#1a202c] p-1 rounded-2xl flex gap-1 mb-3 border border-gray-200/50 dark:border-gray-800">
+          <button
+            onClick={() => setViewScope('personal')}
+            className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              viewScope === 'personal'
+                ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
+                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
+            }`}
+          >
+            <User size={13} />
+            <span>Личный режим</span>
+          </button>
+          <button
+            onClick={() => setViewScope('family')}
+            className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              viewScope === 'family'
+                ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
+                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
+            }`}
+          >
+            <Users size={13} />
+            <span>Семейный хаб</span>
+          </button>
         </div>
 
-        <div className="flex gap-2">
-          {isDemoMode ? (
-            <button
-              onClick={resetToNewUser}
-              className="flex-1 py-2.5 px-3 bg-purple-700 hover:bg-purple-800 active:scale-98 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              <ShieldCheck size={14} />
-              <span>Переключить на чистый личный аккаунт</span>
-            </button>
+        <div className="p-3 rounded-2xl bg-gray-50/60 dark:bg-[#1a202c]/50 border border-gray-100 dark:border-gray-800 text-xs">
+          {viewScope === 'family' ? (
+            <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
+              <strong>Сквозной семейный хаб активен:</strong> расходы мужа, жены и детей автоматически суммируются в общий семейный бюджет и синхронизируются в единую семейную базу Google Таблиц.
+            </p>
           ) : (
-            <button
-              onClick={loadDemoData}
-              className="flex-1 py-2.5 px-3 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-            >
-              <Sparkles size={14} />
-              <span>Включить демо-данные для презентации</span>
-            </button>
+            <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
+              <strong>Личный режим активен:</strong> на экране отображаются только ваши персональные анализы и расходы. Траты других членов семьи скрыты для конфиденциальности.
+            </p>
           )}
         </div>
       </div>
