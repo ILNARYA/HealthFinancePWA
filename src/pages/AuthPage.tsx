@@ -475,6 +475,7 @@ export const AuthPage: React.FC = () => {
                 setMode('welcome');
                 setRegStep('form');
                 setCodeError(null);
+                setSuccessToast(null);
               }}
               className="text-xs font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-white flex items-center gap-1.5 transition-colors"
             >
@@ -491,7 +492,10 @@ export const AuthPage: React.FC = () => {
           <div className="bg-gray-100 dark:bg-[#161b26] p-1 rounded-2xl flex items-center gap-1 mb-4 border border-gray-200/60 dark:border-gray-800">
             <button
               type="button"
-              onClick={() => setMode('login')}
+              onClick={() => {
+                setMode('login');
+                setSuccessToast(null);
+              }}
               className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${
                 mode === 'login'
                   ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
@@ -505,6 +509,7 @@ export const AuthPage: React.FC = () => {
               onClick={() => {
                 setMode('register');
                 setRegStep('form');
+                setSuccessToast(null);
               }}
               className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${
                 mode === 'register'
@@ -517,8 +522,8 @@ export const AuthPage: React.FC = () => {
           </div>
         )}
 
-        {/* Toast */}
-        {successToast && (
+        {/* Toast: never shown on welcome screen */}
+        {successToast && mode !== 'welcome' && (
           <div className="mb-3 p-3 rounded-2xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-2 animate-slide-up shadow-lg">
             <CheckCircle2 size={16} />
             <span>{successToast}</span>
