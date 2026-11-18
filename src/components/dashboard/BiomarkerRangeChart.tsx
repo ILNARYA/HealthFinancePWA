@@ -149,7 +149,12 @@ export const biomarkerConfigs: BiomarkerRangeConfig[] = [
   },
 ];
 
-const BiomarkerRangeChart: React.FC = () => {
+interface Props {
+  isEmpty?: boolean;
+  onUploadClick?: () => void;
+}
+
+const BiomarkerRangeChart: React.FC<Props> = ({ isEmpty = false, onUploadClick }) => {
   const [selectedBioId, setSelectedBioId] = useState<string>('potassium');
   const [activeIndex, setActiveIndex] = useState<number>(5); // default to latest year (2026)
 
@@ -230,104 +235,127 @@ const BiomarkerRangeChart: React.FC = () => {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-              {activeData.min} – {activeData.max}
+              {isEmpty ? '— —' : `${activeData.min} – ${activeData.max}`}
             </span>
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
               {biomarker.unit}
             </span>
           </div>
           <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5 truncate">
-            {activeIndex === biomarker.dataPoints.length - 1
+            {isEmpty
+              ? 'Ориентир нормы: ' + biomarker.targetRange + ' ' + biomarker.unit
+              : activeIndex === biomarker.dataPoints.length - 1
               ? biomarker.subtitle
               : `Диапазон за ${activeData.period} год`}
           </p>
           <p className="text-[11px] text-gray-400 dark:text-gray-500">
-            {biomarker.dateRange}
+            {isEmpty ? 'Ожидание первого лабораторного анализа' : biomarker.dateRange}
           </p>
         </div>
       </div>
 
-      {/* Chart Canvas with dedicated vertical headroom */}
-      <div className="relative h-48 mt-2 px-1">
-        {/* Background Grid Lines (Dashed) */}
-        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none py-3">
-          <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
-          <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
-          <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
-          <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
+      {isEmpty ? (
+        <div className="h-48 mt-2 p-4 rounded-2xl bg-gray-50/50 dark:bg-[#1a202c]/40 border border-dashed border-purple-200 dark:border-purple-800/60 flex flex-col items-center justify-center text-center">
+          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+            Многолетняя динамика формируется
+          </p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-400 max-w-[280px] mt-1 leading-relaxed">
+            Загрузите медицинский бланк, чтобы система автоматически выстроила свечной график коридоров нормы
+          </p>
+          {onUploadClick && (
+            <button
+              onClick={onUploadClick}
+              className="mt-3 px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all"
+            >
+              + Загрузить анализ
+            </button>
+          )}
         </div>
+      ) : (
+        /* Chart Canvas with dedicated vertical headroom */
+        <div className="relative h-48 mt-2 px-1">
+          {/* Background Grid Lines (Dashed) */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none py-3">
+            <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
+            <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
+            <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
+            <div className="border-b border-dashed border-gray-100 dark:border-gray-800 w-full" />
+          </div>
 
-        {/* Floating Candlestick Bars */}
-        <div className="relative h-full flex items-end justify-between px-1">
-          {biomarker.dataPoints.map((dp, idx) => {
-            const topPercent = getYPercent(dp.max);
-            const bottomPercent = getYPercent(dp.min);
-            const heightPercent = Math.max(8, bottomPercent - topPercent);
-            const isActive = activeIndex === idx;
+          {/* Floating Candlestick Bars */}
+          <div className="relative h-full flex items-end justify-between px-1">
+            {biomarker.dataPoints.map((dp, idx) => {
+              const topPercent = getYPercent(dp.max);
+              const bottomPercent = getYPercent(dp.min);
+              const heightPercent = Math.max(8, bottomPercent - topPercent);
+              const isActive = activeIndex === idx;
 
-            return (
-              <div
-                key={dp.period}
-                className="relative flex flex-col items-center h-full cursor-pointer select-none group"
-                onClick={() => setActiveIndex(idx)}
-                style={{ width: '44px' }}
-              >
-                {/* Active Column Vertical Guide Line */}
-                {isActive && (
-                  <div className="absolute inset-y-0 w-px border-l border-dashed border-purple-400/40 dark:border-purple-500/40 pointer-events-none" />
-                )}
+              return (
+                <div
+                  key={dp.period}
+                  className="relative flex flex-col items-center h-full cursor-pointer select-none group"
+                  onClick={() => setActiveIndex(idx)}
+                  style={{ width: '44px' }}
+                >
+                  {/* Active Column Vertical Guide Line */}
+                  {isActive && (
+                    <div className="absolute inset-y-0 w-px border-l border-dashed border-purple-400/40 dark:border-purple-500/40 pointer-events-none" />
+                  )}
 
-                {/* Floating Tooltip positioned right above dp.max - NEVER overlaps header */}
-                {isActive && (
+                  {/* Floating Tooltip positioned right above dp.max - NEVER overlaps header */}
+                  {isActive && (
+                    <div
+                      className="absolute z-30 transition-all duration-200 pointer-events-none flex flex-col items-center"
+                      style={{
+                        top: `${topPercent}%`,
+                        transform: 'translateY(-100%)',
+                        marginTop: '-6px',
+                      }}
+                    >
+                      <div className="bg-slate-900 dark:bg-purple-950 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-lg border border-purple-500/30 flex items-center gap-1 whitespace-nowrap">
+                        <span>{dp.min} – {dp.max}</span>
+                      </div>
+                      {/* Downward pointing triangle arrow */}
+                      <div className="w-1.5 h-1.5 bg-slate-900 dark:bg-purple-950 rotate-45 -mt-0.5 border-r border-b border-purple-500/30" />
+                    </div>
+                  )}
+
+                  {/* Vertical Candlestick Pill Bar */}
                   <div
-                    className="absolute z-30 transition-all duration-200 pointer-events-none flex flex-col items-center"
+                    className={`absolute w-3.5 rounded-full transition-all duration-300 ${
+                      isActive ? 'scale-110' : 'group-hover:opacity-90'
+                    }`}
                     style={{
                       top: `${topPercent}%`,
-                      transform: 'translateY(-100%)',
-                      marginTop: '-6px',
+                      height: `${heightPercent}%`,
+                      backgroundColor: isActive ? '#7c3aed' : '#334155',
+                      boxShadow: isActive ? '0 4px 14px rgba(124, 58, 237, 0.5)' : 'none',
+                      opacity: isActive ? 1 : 0.75,
                     }}
+                  />
+
+                  {/* X Axis Year Label */}
+                  <span
+                    className={`absolute bottom-0 text-[11px] font-semibold transition-colors ${
+                      isActive ? 'text-purple-700 dark:text-purple-400 font-extrabold scale-105' : 'text-gray-400 dark:text-gray-500'
+                    }`}
                   >
-                    <div className="bg-slate-900 dark:bg-purple-950 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-lg border border-purple-500/30 flex items-center gap-1 whitespace-nowrap">
-                      <span>{dp.min} – {dp.max}</span>
-                    </div>
-                    {/* Downward pointing triangle arrow */}
-                    <div className="w-1.5 h-1.5 bg-slate-900 dark:bg-purple-950 rotate-45 -mt-0.5 border-r border-b border-purple-500/30" />
-                  </div>
-                )}
-
-                {/* Vertical Candlestick Pill Bar */}
-                <div
-                  className={`absolute w-3.5 rounded-full transition-all duration-300 ${
-                    isActive ? 'scale-110' : 'group-hover:opacity-90'
-                  }`}
-                  style={{
-                    top: `${topPercent}%`,
-                    height: `${heightPercent}%`,
-                    backgroundColor: isActive ? '#7c3aed' : '#334155',
-                    boxShadow: isActive ? '0 4px 14px rgba(124, 58, 237, 0.5)' : 'none',
-                    opacity: isActive ? 1 : 0.75,
-                  }}
-                />
-
-                {/* X Axis Year Label */}
-                <span
-                  className={`absolute bottom-0 text-[11px] font-semibold transition-colors ${
-                    isActive ? 'text-purple-700 dark:text-purple-400 font-extrabold scale-105' : 'text-gray-400 dark:text-gray-500'
-                  }`}
-                >
-                  {dp.period}
-                </span>
-              </div>
-            );
-          })}
+                    {dp.period}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Target Corridor & Status Footer */}
-      <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2.5 border-t border-gray-100 dark:border-gray-800 gap-2">
-        <div className="flex items-center gap-1 min-w-0">
+      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2.5 border-t border-gray-100 dark:border-gray-800 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-gray-400 flex-shrink-0">Целевой коридор:</span>
-          <span className="font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">{biomarker.targetRange} {biomarker.unit}</span>
+          <span className="font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+            {biomarker.targetRange} {biomarker.unit}
+          </span>
         </div>
         <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold flex-shrink-0">
           <CheckCircle2 size={12} />

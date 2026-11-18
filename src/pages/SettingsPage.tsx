@@ -68,6 +68,8 @@ const SettingsPage: React.FC = () => {
   const [showAdvancedApi, setShowAdvancedApi] = useState(false);
   const [isEditingScriptUrl, setIsEditingScriptUrl] = useState(false);
   const [newScriptUrlInput, setNewScriptUrlInput] = useState('');
+  const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(false);
+  const [newSheetUrlInput, setNewSheetUrlInput] = useState('');
 
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('app-gemini-api-key') || '');
   const [geminiSaved, setGeminiSaved] = useState(false);
@@ -118,6 +120,21 @@ const SettingsPage: React.FC = () => {
       setUrlSaved(false);
       setMessage(null);
     }, 3500);
+  };
+
+  const handleSaveNewSheetUrl = () => {
+    if (newSheetUrlInput.trim()) {
+      setGoogleSheetUrl(newSheetUrlInput.trim());
+      setSheetUrlInput(newSheetUrlInput.trim());
+      setIsEditingSheetUrl(false);
+      setNewSheetUrlInput('');
+      setUrlSaved(true);
+      setMessage('Ссылка на семейную Google Таблицу успешно обновлена!');
+      setTimeout(() => {
+        setUrlSaved(false);
+        setMessage(null);
+      }, 3500);
+    }
   };
 
   const currentSheetLink = sheetUrlInput.trim()
@@ -732,27 +749,54 @@ const SettingsPage: React.FC = () => {
           </div>
 
           <div className="space-y-2.5">
-            {/* Google Sheet Direct Link / ID */}
+            {/* Google Sheet Direct Link / ID - Masked for Privacy */}
             <div>
-              <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1">
-                Ссылка на вашу семейную Google Таблицу:
-              </label>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={sheetUrlInput}
-                  onChange={(e) => setSheetUrlInput(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono text-[11px]"
-                />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                  Ссылка на вашу семейную Google Таблицу:
+                </label>
                 <button
-                  onClick={handleSaveScriptUrl}
-                  className="px-3 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0"
+                  type="button"
+                  onClick={() => {
+                    setIsEditingSheetUrl(!isEditingSheetUrl);
+                    if (!isEditingSheetUrl) setNewSheetUrlInput(sheetUrlInput);
+                  }}
+                  className="text-[10px] text-purple-700 dark:text-purple-300 hover:underline font-bold"
                 >
-                  {urlSaved ? <Check size={14} /> : null}
-                  {urlSaved ? 'Сохранено' : 'Сохранить'}
+                  {isEditingSheetUrl ? 'Отмена' : (sheetUrlInput ? 'Заменить ссылку' : 'Указать ссылку')}
                 </button>
               </div>
+
+              {!isEditingSheetUrl && sheetUrlInput ? (
+                <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-800 text-[11px] font-mono">
+                  <span className="text-gray-400 select-none tracking-widest truncate mr-2">
+                    https://docs.google.com/spreadsheets/d/••••••••••••••••/edit
+                  </span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+                    Замаскирована
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={isEditingSheetUrl ? newSheetUrlInput : sheetUrlInput}
+                    onChange={(e) => {
+                      if (isEditingSheetUrl) setNewSheetUrlInput(e.target.value);
+                      else setSheetUrlInput(e.target.value);
+                    }}
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-purple-300 dark:border-purple-600 bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono text-[11px]"
+                  />
+                  <button
+                    onClick={isEditingSheetUrl ? handleSaveNewSheetUrl : handleSaveScriptUrl}
+                    className="px-3 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0 shadow-xs"
+                  >
+                    {urlSaved ? <Check size={14} /> : null}
+                    {urlSaved ? 'Сохранено' : 'Сохранить'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-0.5">

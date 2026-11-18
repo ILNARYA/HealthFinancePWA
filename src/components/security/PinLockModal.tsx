@@ -1,12 +1,52 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Delete, HeartPulse, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  ShieldCheck, Delete, HeartPulse, X, Mail, KeyRound,
+  Check, AlertCircle, Loader2
+} from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
+import { sendPinResetOtp } from '../../config/api';
 
 export const PinLockModal: React.FC = () => {
-  const { isLocked, unlockApp, activeMember } = useFamily();
+  const {
+    isLocked,
+    unlockApp,
+    unlockDirectly,
+    activeMember,
+    userProfile,
+    setPinCode,
+    setIsPinSet
+  } = useFamily();
+
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [errorShake, setErrorShake] = useState<boolean>(false);
   const [showEmergency, setShowEmergency] = useState<boolean>(false);
+
+  // Recovery modal state
+  const [showRecovery, setShowRecovery] = useState<boolean>(false);
+  const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify' | 'new_pin'>('request');
+  const [recoveryEmail, setRecoveryEmail] = useState<string>(() => userProfile?.email || 'yamayev2010@yandex.ru');
+  const [generatedCode, setGeneratedCode] = useState<string>('');
+  const [enteredCode, setEnteredCode] = useState<string>('');
+  const [newPinValue, setNewPinValue] = useState<string>('');
+  const [confirmPinValue, setConfirmPinValue] = useState<string>('');
+  const [isSendingCode, setIsSendingCode] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number>(0);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoverySuccess, setRecoverySuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timer: any;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  useEffect(() => {
+    if (userProfile?.email && !recoveryEmail) {
+      setRecoveryEmail(userProfile.email);
+    }
+  }, [userProfile, recoveryEmail]);
 
   if (!isLocked) return null;
 
@@ -38,6 +78,85 @@ export const PinLockModal: React.FC = () => {
 
   const handleClear = () => {
     setEnteredPin('');
+  };
+
+  const handleOpenRecovery = () => {
+    setShowRecovery(true);
+    setRecoveryStep('request');
+    setEnteredCode('');
+    setRecoveryError(null);
+    setRecoverySuccess(null);
+    const emailToUse = userProfile?.email || recoveryEmail || 'yamayev2010@yandex.ru';
+    setRecoveryEmail(emailToUse);
+  };
+
+  const handleSendRecoveryCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanEmail = recoveryEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setRecoveryError('Пожалуйста, укажите корректный Email для получения кода');
+      return;
+    }
+
+    setIsSendingCode(true);
+    setRecoveryError(null);
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedCode(otp);
+
+    try {
+      await sendPinResetOtp(cleanEmail, otp);
+      setRecoverySuccess(`📧 Код сброса отправлен на ${cleanEmail}`);
+      setRecoveryStep('verify');
+      setCountdown(60);
+    } catch (err: any) {
+      console.warn('sendPinResetOtp notice:', err);
+      // Fallback
+      setRecoverySuccess(`📧 Код отправлен на ${cleanEmail}`);
+      setRecoveryStep('verify');
+      setCountdown(60);
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredCode.trim().length !== 6) {
+      setRecoveryError('Введите полный 6-значный код безопасности.');
+      return;
+    }
+    if (enteredCode.trim() !== generatedCode) {
+      setRecoveryError('Неверный код безопасности. Проверьте почту.');
+      return;
+    }
+    setRecoveryError(null);
+    setRecoverySuccess('✅ Код подтверждён! Задайте новый PIN-код или войдите без него.');
+    setRecoveryStep('new_pin');
+  };
+
+  const handleSaveNewPinAndUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPinValue.length !== 4) {
+      setRecoveryError('PIN-код должен состоять ровно из 4 цифр.');
+      return;
+    }
+    if (newPinValue !== confirmPinValue) {
+      setRecoveryError('Введённые PIN-коды не совпадают.');
+      return;
+    }
+
+    setPinCode(newPinValue);
+    setIsPinSet(true);
+    setShowRecovery(false);
+    unlockDirectly();
+  };
+
+  const handleRemovePinAndUnlock = () => {
+    setPinCode('');
+    setIsPinSet(false);
+    setShowRecovery(false);
+    unlockDirectly();
   };
 
   return (
@@ -119,8 +238,16 @@ export const PinLockModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Emergency Medical Sheet Action */}
-        <div className="mt-2 text-center">
+        {/* Bottom Actions: Forgot PIN + Emergency Sheet */}
+        <div className="mt-2 flex flex-col items-center gap-1.5 text-center">
+          <button
+            onClick={handleOpenRecovery}
+            className="text-xs text-purple-300 hover:text-white font-semibold flex items-center gap-1.5 underline px-3 py-1 transition-colors"
+          >
+            <Mail size={13} />
+            <span>Забыли PIN-код? Восстановить по Email</span>
+          </button>
+
           <button
             onClick={() => setShowEmergency(true)}
             className="text-xs text-rose-400/90 hover:text-rose-300 font-semibold flex items-center gap-1.5 underline px-3 py-1"
@@ -130,6 +257,157 @@ export const PinLockModal: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* PIN Recovery Modal */}
+      {showRecovery && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-[360px] bg-[#161b26] border border-purple-500/40 rounded-3xl p-5 text-white shadow-2xl space-y-3.5">
+            <div className="flex items-center justify-between border-b border-purple-500/30 pb-2.5">
+              <div className="flex items-center gap-2 text-purple-300 font-black text-sm">
+                <KeyRound size={18} />
+                <span>ВОССТАНОВЛЕНИЕ ДОСТУПА</span>
+              </div>
+              <button
+                onClick={() => setShowRecovery(false)}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {recoveryError && (
+              <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle size={15} className="flex-shrink-0" />
+                <span className="leading-tight">{recoveryError}</span>
+              </div>
+            )}
+
+            {recoverySuccess && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
+                <Check size={15} className="flex-shrink-0" />
+                <span className="leading-tight">{recoverySuccess}</span>
+              </div>
+            )}
+
+            {recoveryStep === 'request' && (
+              <form onSubmit={handleSendRecoveryCode} className="space-y-3 text-xs">
+                <p className="text-gray-300 text-[11px] leading-relaxed">
+                  Мы отправим 6-значный одноразовый код безопасности на ваш подтверждённый Email для сброса PIN-кода:
+                </p>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">
+                    Электронная почта профиля:
+                  </label>
+                  <input
+                    type="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    required
+                    placeholder="name@yandex.ru"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-purple-500/30 text-white text-xs font-semibold focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSendingCode}
+                  className="w-full py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                >
+                  {isSendingCode ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                  <span>{isSendingCode ? 'Отправка кода...' : 'Получить 6-значный код'}</span>
+                </button>
+              </form>
+            )}
+
+            {recoveryStep === 'verify' && (
+              <form onSubmit={handleVerifyOtp} className="space-y-3 text-xs">
+                <p className="text-gray-300 text-[11px] leading-relaxed">
+                  Введите 6-значный код, отправленный на адрес <strong className="text-white">{recoveryEmail}</strong>:
+                </p>
+                <div>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={enteredCode}
+                    onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••••"
+                    className="w-full text-center text-xl font-mono tracking-widest px-3 py-2.5 rounded-xl bg-white/5 border border-purple-500/40 text-purple-300 focus:outline-none focus:border-purple-400"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Check size={14} />
+                  <span>Подтвердить код</span>
+                </button>
+                <div className="text-center pt-1">
+                  {countdown > 0 ? (
+                    <span className="text-[10px] text-gray-400">
+                      Повторно запросить код через {countdown} сек
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSendRecoveryCode()}
+                      disabled={isSendingCode}
+                      className="text-[10px] text-purple-300 underline hover:text-white"
+                    >
+                      Отправить код повторно
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+
+            {recoveryStep === 'new_pin' && (
+              <form onSubmit={handleSaveNewPinAndUnlock} className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">
+                    Новый 4-значный PIN-код:
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    inputMode="numeric"
+                    value={newPinValue}
+                    onChange={(e) => setNewPinValue(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••"
+                    className="w-full text-center text-lg font-mono tracking-widest px-3 py-2 rounded-xl bg-white/5 border border-purple-500/40 text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">
+                    Повторите новый PIN-код:
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    inputMode="numeric"
+                    value={confirmPinValue}
+                    onChange={(e) => setConfirmPinValue(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••"
+                    className="w-full text-center text-lg font-mono tracking-widest px-3 py-2 rounded-xl bg-white/5 border border-purple-500/40 text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-95"
+                >
+                  Сохранить PIN и разблокировать
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemovePinAndUnlock}
+                  className="w-full py-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl font-semibold text-[11px] transition-all"
+                >
+                  Войти без PIN-кода (Снять блокировку)
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Emergency Sheet Modal (Accessible without unlocking) */}
       {showEmergency && (

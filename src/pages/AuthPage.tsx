@@ -189,7 +189,10 @@ export const AuthPage: React.FC = () => {
     }
 
     // 2FA VERIFICATION CHECK:
-    const is2faActive = localStorage.getItem('app-2fa-enabled') === 'true' || matchedUser?.twoFactorEnabled;
+    const is2faActive =
+      localStorage.getItem('app-2fa-enabled') === 'true' ||
+      localStorage.getItem(`app-2fa-${cleanLogin}`) === 'true' ||
+      Boolean(matchedUser?.twoFactorEnabled);
     if (is2faActive) {
       setPending2FaLogin({ cleanLogin, loginPassword, matchedUser });
       setTwoFactorCode('');
@@ -292,7 +295,10 @@ export const AuthPage: React.FC = () => {
     }
 
     if (userRecord) {
-      const is2faActive = localStorage.getItem('app-2fa-enabled') === 'true' || userRecord?.twoFactorEnabled;
+      const is2faActive =
+        localStorage.getItem('app-2fa-enabled') === 'true' ||
+        localStorage.getItem(`app-2fa-${cleanEmail}`) === 'true' ||
+        Boolean(userRecord?.twoFactorEnabled);
       if (is2faActive) {
         setPending2FaLogin({ cleanLogin: cleanEmail, loginPassword: '', matchedUser: userRecord });
         setTwoFactorCode('');

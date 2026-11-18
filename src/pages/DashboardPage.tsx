@@ -231,19 +231,11 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {isNewUser && (
-          <div className="bg-purple-50/80 dark:bg-purple-950/40 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse flex-shrink-0" />
-              <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium leading-tight">
-                Ориентир клинических норм. Загрузите PDF-бланк для расчёта.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/analyses')}
-              className="px-2.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[10px] font-bold flex-shrink-0 transition-colors shadow-xs"
-            >
-              + Анализ
-            </button>
+          <div className="bg-purple-50/80 dark:bg-purple-950/40 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 flex items-center gap-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse flex-shrink-0" />
+            <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium leading-tight">
+              Ориентир клинических норм. Для расчёта персонального индекса используйте кнопку «+ Анализ» выше.
+            </p>
           </div>
         )}
 

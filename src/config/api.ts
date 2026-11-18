@@ -207,9 +207,63 @@ export async function sendPasswordResetOtp(email: string, code: string): Promise
       }),
     });
     const data = await res.json();
+    if (!data.success && data.error === 'USER_NOT_FOUND') {
+      // Fallback: send as standard verification code so older GAS deployments still dispatch
+      const fallbackRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'sendVerificationCode',
+          email: cleanEmail,
+          code,
+          purpose: 'pin_reset',
+        }),
+      });
+      return await fallbackRes.json();
+    }
     return data;
   } catch (err: any) {
     console.warn('sendPasswordResetOtp error:', err);
+    return { success: false, error: err.message || 'NETWORK_ERROR' };
+  }
+}
+
+/**
+ * Send 6-digit OTP code specifically for PIN-code reset
+ */
+export async function sendPinResetOtp(email: string, code: string): Promise<{ success: boolean; error?: string; message?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return { success: false, error: 'INVALID_EMAIL' };
+  const url = getAppsScriptUrl();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'sendPinResetCode',
+        email: cleanEmail,
+        code,
+        purpose: 'pin_reset',
+      }),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      // Fallback to sendVerificationCode
+      const fallbackRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'sendVerificationCode',
+          email: cleanEmail,
+          code,
+          purpose: 'pin_reset',
+        }),
+      });
+      return await fallbackRes.json();
+    }
+    return data;
+  } catch (err: any) {
+    console.warn('sendPinResetOtp error:', err);
     return { success: false, error: err.message || 'NETWORK_ERROR' };
   }
 }

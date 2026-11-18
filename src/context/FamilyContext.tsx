@@ -68,6 +68,7 @@ interface FamilyContextType {
   setTwoFactorEnabled: (enabled: boolean) => void;
   lockApp: () => void;
   unlockApp: (pin: string) => boolean;
+  unlockDirectly: () => void;
   showPinSetupModal: boolean;
   openPinSetup: () => void;
   closePinSetup: () => void;
@@ -660,6 +661,23 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const setTwoFactorEnabled = (enabled: boolean) => {
     setTwoFactorEnabledState(enabled);
     localStorage.setItem('app-2fa-enabled', String(enabled));
+    if (userProfile && userProfile.email) {
+      localStorage.setItem(`app-2fa-${userProfile.email.toLowerCase().trim()}`, String(enabled));
+    }
+    setUserProfile((prev) => ({ ...prev, twoFactorEnabled: enabled }));
+    try {
+      const db = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+      const updated = db.map((u: any) => {
+        if (
+          (userProfile.email && u.email?.toLowerCase() === userProfile.email.toLowerCase()) ||
+          (userProfile.personalId && u.personalId === userProfile.personalId)
+        ) {
+          return { ...u, twoFactorEnabled: enabled };
+        }
+        return u;
+      });
+      localStorage.setItem('app-users-registry-db', JSON.stringify(updated));
+    } catch {}
   };
 
   const lockApp = () => {
@@ -676,6 +694,10 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     }
     return false;
+  };
+
+  const unlockDirectly = () => {
+    setIsLocked(false);
   };
 
   const addMember = (member: Omit<FamilyMember, 'id'>) => {
@@ -839,6 +861,9 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem('app-active-member-id', member.id);
       localStorage.setItem('app-expenses-list', JSON.stringify([]));
       localStorage.removeItem('app-last-analysis');
+      const user2fa = Boolean(profile.twoFactorEnabled) || localStorage.getItem(`app-2fa-${profile.email.toLowerCase()}`) === 'true';
+      setTwoFactorEnabledState(user2fa);
+      localStorage.setItem('app-2fa-enabled', String(user2fa));
       return true;
     }
 
@@ -1146,6 +1171,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTwoFactorEnabled,
         lockApp,
         unlockApp,
+        unlockDirectly,
         showPinSetupModal,
         openPinSetup,
         closePinSetup,

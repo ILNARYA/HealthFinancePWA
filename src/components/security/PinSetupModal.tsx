@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, X, Check, AlertCircle, Mail, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
-import { sendPasswordResetOtp } from '../../config/api';
+import { sendPinResetOtp } from '../../config/api';
 
 interface Props {
   isOpen: boolean;
@@ -134,7 +134,7 @@ export const PinSetupModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) =
     setOtpCode(gen);
 
     try {
-      await sendPasswordResetOtp(targetEmail, gen);
+      await sendPinResetOtp(targetEmail, gen);
       setOtpSent(true);
       setOtpCountdown(60);
     } catch (err: any) {

@@ -56,7 +56,8 @@ const categoryLabelsRu: Record<string, string> = {
 
 const AnalysesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp } = useFamily();
+  const { activeMember, lockApp, isDemoMode } = useFamily();
+  const isNewUser = !isDemoMode && activeMember.analysesCount === 0;
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(() => {
     const saved = localStorage.getItem('app-last-analysis');
@@ -236,10 +237,14 @@ const AnalysesPage: React.FC = () => {
               selectedMonthId={selectedMonthId}
               onMonthChange={setSelectedMonthId}
               availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+              isEmpty={isNewUser}
             />
           ) : (
             <div className="space-y-3">
-              <BiomarkerRangeChart />
+              <BiomarkerRangeChart
+                isEmpty={isNewUser}
+                onUploadClick={() => setSubTab('upload')}
+              />
               <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
                 <span className="text-purple-900 dark:text-purple-200 font-semibold">
                   Период наблюдения: {currentMonth.label}

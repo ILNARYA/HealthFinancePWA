@@ -254,21 +254,12 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName, purpose)
     }
   }
 
-  // Для РЕГИСТРАЦИИ: если уже есть, возвращаем USER_ALREADY_EXISTS
+  // Для РЕГИСТРАЦИИ: если уже есть, возвращаем предупреждение (но не блокируем принудительно)
   if (purpose === 'register' && userFound) {
     return jsonResponse({
       success: false,
       error: 'USER_ALREADY_EXISTS',
       message: 'Пользователь с адресом ' + cleanEmail + ' уже зарегистрирован! Пожалуйста, выполните вход.'
-    });
-  }
-
-  // Для СБРОСА ПАРОЛЯ: если пользователь НЕ найден, сообщаем об этом
-  if (purpose === 'reset_password' && !userFound) {
-    return jsonResponse({
-      success: false,
-      error: 'USER_NOT_FOUND',
-      message: 'Пользователь с адресом ' + cleanEmail + ' не найден в базе данных.'
     });
   }
 
@@ -282,13 +273,13 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName, purpose)
   codeSheet.appendRow([cleanEmail, code, now.toISOString(), expiresAt.toISOString(), 'ACTIVE', purpose]);
 
   // Заголовок и текст письма в зависимости от назначения
-  var isReset = (purpose === 'reset_password');
+  var isReset = (purpose === 'reset_password' || purpose === 'reset_pin' || purpose === 'pin_reset');
   var subject = isReset 
-    ? 'Код сброса пароля: ' + code + ' — Здоровье & Финансы' 
+    ? 'Код сброса доступа (PIN / пароль): ' + code + ' — Здоровье & Финансы' 
     : 'Код подтверждения: ' + code + ' — Здоровье & Финансы';
 
   var purposeDesc = isReset
-    ? 'Вы запросили сброс пароля для входа в семейный хаб.'
+    ? 'Вы запросили сброс PIN-кода или пароля для доступа в семейный кабинет.'
     : 'Вы указали этот адрес электронной почты для регистрации личного кабинета.';
 
   var greeting = userName ? 'Здравствуйте, ' + userName + '!' : 'Здравствуйте!';
@@ -438,11 +429,11 @@ function doPost(e) {
     var action = payload.action || 'sync';
 
     // 1. ОТПРАВКА 6-ЗНАЧНОГО КОДА НА EMAIL ЧЕРЕЗ MailApp
-    if (action === 'sendVerificationCode' || action === 'sendPasswordResetCode') {
+    if (action === 'sendVerificationCode' || action === 'sendPasswordResetCode' || action === 'sendPinResetCode') {
       var targetEmail = (payload.email || '').trim().toLowerCase();
       var otpCode = payload.code || '';
       var userName = payload.name || '';
-      var purpose = payload.purpose || (action === 'sendPasswordResetCode' ? 'reset_password' : 'register');
+      var purpose = payload.purpose || (action === 'sendPinResetCode' ? 'pin_reset' : action === 'sendPasswordResetCode' ? 'reset_password' : 'register');
       return handleSendVerificationCode(ss, targetEmail, otpCode, userName, purpose);
     }
 

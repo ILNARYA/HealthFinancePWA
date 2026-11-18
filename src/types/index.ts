@@ -123,6 +123,7 @@ export interface UserProfile {
   familyRole: 'head' | 'spouse' | 'parent' | 'child';
   familyName: string;
   googleConnected: boolean;
+  twoFactorEnabled?: boolean;
   metricsHistory?: Array<{ date: string; weight: number; height: number; bmi: number; timestamp?: number }>;
 }
 
