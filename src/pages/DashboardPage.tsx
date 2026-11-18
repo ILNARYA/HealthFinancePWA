@@ -21,8 +21,10 @@ const DashboardPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope, userProfile } = useFamily();
 
-  const isActuallyDemo = Boolean(isDemoMode && (!userProfile?.email || userProfile?.email === 'alex.ivanov@example.com'));
-  const isNewUser = !isActuallyDemo && activeMember.analysesCount === 0;
+  const isRealUser = Boolean(userProfile?.email && userProfile?.email !== 'alex.ivanov@example.com');
+  const isActuallyDemo = Boolean(isDemoMode && !isRealUser);
+  const hasUploadedAnalyses = Boolean(localStorage.getItem('app-last-analysis') || (!isRealUser && activeMember.analysesCount > 0));
+  const isNewUser = isRealUser ? !hasUploadedAnalyses : (!isActuallyDemo && activeMember.analysesCount === 0);
 
   const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
 
@@ -52,7 +54,11 @@ const DashboardPage: React.FC = () => {
     }
 
     if (viewScope === 'personal' && activeMember) {
-      return list.filter((e: any) => !e.memberId || e.memberId === activeMember.id || e.memberName === activeMember.name);
+      return list.filter((e: any) => {
+        if (e.memberId) return e.memberId === activeMember.id;
+        if (e.memberName && activeMember.name) return e.memberName.toLowerCase() === activeMember.name.toLowerCase();
+        return false;
+      });
     }
     return list;
   }, [isActuallyDemo, selectedMonthId, currentMonth.expenses, viewScope, activeMember]);
@@ -210,12 +216,12 @@ const DashboardPage: React.FC = () => {
       {/* Primary Visual Zone: Compact Health Radar with deep-link to detailed charts */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
-              Оценка показателей здоровья
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 truncate">
+              Оценка здоровья
             </span>
             {isNewUser && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex-shrink-0">
                 Ориентир норм
               </span>
             )}
@@ -223,7 +229,7 @@ const DashboardPage: React.FC = () => {
 
           <button
             onClick={() => navigate('/analyses?tab=charts')}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 transition-all active:scale-95 shadow-2xs"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 transition-all active:scale-95 shadow-2xs flex-shrink-0"
             title="Открыть все графики и диапазоны на странице Анализы"
           >
             <BarChart3 size={12} />
@@ -234,8 +240,8 @@ const DashboardPage: React.FC = () => {
         {isNewUser && (
           <div className="bg-purple-50/80 dark:bg-purple-950/40 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 flex items-center gap-2 text-xs">
             <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse flex-shrink-0" />
-            <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium leading-tight">
-              Ориентир клинических норм. Для расчёта персонального индекса используйте кнопку «+ Анализ» выше.
+            <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium leading-relaxed">
+              Показан ориентир клинических норм. Для расчёта персонального индекса загрузите первый лабораторный бланк.
             </p>
           </div>
         )}

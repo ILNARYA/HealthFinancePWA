@@ -56,13 +56,15 @@ const categoryLabelsRu: Record<string, string> = {
 
 const AnalysesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp, isDemoMode } = useFamily();
-  const isNewUser = !isDemoMode && activeMember.analysesCount === 0;
-  const [showFamilyModal, setShowFamilyModal] = useState(false);
+  const { activeMember, lockApp, isDemoMode, userProfile } = useFamily();
   const [result, setResult] = useState<AnalysisResult | null>(() => {
     const saved = localStorage.getItem('app-last-analysis');
     return saved ? JSON.parse(saved) : null;
   });
+  const isRealUser = Boolean(userProfile?.email && userProfile?.email !== 'alex.ivanov@example.com');
+  const hasUploadedAnalyses = Boolean(result || (!isRealUser && activeMember.analysesCount > 0));
+  const isNewUser = isRealUser ? !hasUploadedAnalyses : (!isDemoMode && activeMember.analysesCount === 0);
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [showAiDoctor, setShowAiDoctor] = useState(false);

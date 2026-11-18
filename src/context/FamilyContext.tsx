@@ -434,6 +434,35 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
         }
       } catch {}
+
+      // If members array still contains Ivanov demo members, replace with the real user's profile member
+      if (members.some((m) => m.id === 'member_head' || m.name === 'Алексей' || m.id === 'member_spouse')) {
+        const userMember: FamilyMember = {
+          id: userProfile.id || 'head_user',
+          name: userProfile.firstName || 'Пользователь',
+          lastName: userProfile.lastName || '',
+          personalId: userProfile.personalId || 'MED-NEW',
+          role: 'head',
+          roleLabel: 'Глава семьи',
+          birthYear: userProfile.birthYear,
+          gender: userProfile.gender,
+          height: userProfile.height,
+          weight: userProfile.weight,
+          bmi: userProfile.bmi,
+          bloodType: userProfile.bloodType,
+          policyOMS: userProfile.policyOMS,
+          avatar: userProfile.avatar || '👤',
+          color: '#7c3aed',
+          healthScore: 0,
+          analysesCount: 0,
+          expensesTotal: 0,
+          inviteStatus: 'active',
+        };
+        setMembers([userMember]);
+        setActiveMemberId(userMember.id);
+        localStorage.setItem('app-family-members', JSON.stringify([userMember]));
+        localStorage.setItem('app-active-member-id', userMember.id);
+      }
     }
   }, [userProfile]);
 

@@ -474,6 +474,35 @@ function doPost(e) {
       return handleGeminiVision(payload);
     }
 
+    // 5.5. ЗАГРУЗКА ИСТОРИИ ЧАТА ИИ-ВРАЧА
+    if (action === 'loadChatHistory') {
+      var chatEmail = (payload.email || '').trim().toLowerCase();
+      if (!chatEmail) {
+        return jsonResponse({ success: false, error: 'EMAIL_REQUIRED' });
+      }
+      var chatSheet = ss.getSheetByName('ИИ_Врач_Чат');
+      if (!chatSheet) {
+        return jsonResponse({ success: true, messages: [] });
+      }
+      var chatData = chatSheet.getDataRange().getValues();
+      var chatMessages = [];
+      for (var ci = 1; ci < chatData.length; ci++) {
+        if ((chatData[ci][0] || '').toString().toLowerCase().trim() === chatEmail) {
+          chatMessages.push({
+            timestamp: (chatData[ci][1] || '').toString(),
+            role: (chatData[ci][2] || '').toString(),
+            text: (chatData[ci][3] || '').toString(),
+            model: (chatData[ci][4] || '').toString()
+          });
+        }
+      }
+      // Возвращаем последние 40 сообщений
+      return jsonResponse({
+        success: true,
+        messages: chatMessages.slice(-40)
+      });
+    }
+
     // 6. ОБЫЧНОЕ ДОБАВЛЕНИЕ ЗАПИСИ (expenses, biomarkers, users)
     var targetTable = payload.table || 'expenses';
     var sheetToAppend = resolveSheet(ss, targetTable);
@@ -490,8 +519,9 @@ function doPost(e) {
 
 function handleGeminiChat(payload) {
   var userPrompt = payload.prompt || payload.text || '';
-  var systemInstruction = payload.systemInstruction || '';
+  var passedSystemInstruction = payload.systemInstruction || '';
   var passedKey = (payload.apiKey || '').trim();
+  var userEmail = (payload.email || '').trim().toLowerCase();
 
   var props = PropertiesService.getScriptProperties();
   var apiKey = passedKey || props.getProperty('GEMINI_API_KEY');
@@ -504,21 +534,99 @@ function handleGeminiChat(payload) {
     });
   }
 
-  // Перебор современных моделей Google (gemini-2.5-flash, 2.0-flash, 1.5-flash)
-  var models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+  // ======= МЕДИЦИНСКИЙ СИСТЕМНЫЙ ПРОМПТ =======
+  var MEDICAL_SYSTEM_PROMPT = 'Ты — ИИ-Врач Консультант, высококвалифицированный доказательный медицинский ИИ-ассистент семейного медицинского хаба «Здоровье & Финансы».\n\n'
+    + '## Твоя роль:\n'
+    + '- Ты анализируешь лабораторные показатели крови (биомаркеры), интерпретируешь результаты анализов и даёшь клинически обоснованные рекомендации.\n'
+    + '- Ты отвечаешь профессионально, клинически точно, доброжелательно, на понятном русском языке.\n'
+    + '- Ты структурируешь ответ списками, таблицами и чёткими практическими рекомендациями.\n'
+    + '- Для каждого биомаркера ты указываешь референсные диапазоны, клиническое значение отклонений и конкретные шаги.\n\n'
+    + '## Правила ответов:\n'
+    + '1. Всегда учитывай возраст, пол, рост, вес, ИМТ и группу крови пациента при интерпретации.\n'
+    + '2. При отклонениях указывай: возможные причины, к какому врачу обратиться, через сколько пересдать.\n'
+    + '3. При нормальных показателях — подтверди норму и дай профилактические советы.\n'
+    + '4. Используй маркированные списки (•) и нумерацию для структуры.\n'
+    + '5. Рекомендуй конкретные обследования с частотой (ежегодно, раз в 2 года и т.д.).\n'
+    + '6. Советуй по питанию, водному балансу, физической активности, сну.\n'
+    + '7. В конце КАЖДОГО ответа обязательно добавляй медицинский дисклеймер:\n'
+    + '   «⚕️ Данная консультация носит информационный характер и не заменяет очный визит к врачу. Для постановки диагноза обратитесь к профильному специалисту.»\n\n'
+    + '## Ежегодный лабораторный минимум для мужчин 25–35 лет:\n'
+    + '- ОАК с лейкоцитарной формулой и СОЭ\n'
+    + '- Биохимия (АЛТ, АСТ, билирубин, креатинин, мочевина, мочевая кислота)\n'
+    + '- Липидограмма (общий холестерин, ЛПВП, ЛПНП, триглицериды)\n'
+    + '- Углеводный обмен (глюкоза натощак + HbA1c)\n'
+    + '- Витамин D (25-OH) и ферритин\n'
+    + '- ОАМ\n'
+    + '- Флюорография 1 раз в год, ЭКГ 1 раз в 1-2 года\n'
+    + '- УЗИ брюшной полости 1 раз в 2-3 года\n';
+
+  var fullSystemPrompt = MEDICAL_SYSTEM_PROMPT;
+  if (passedSystemInstruction) {
+    fullSystemPrompt += '\n## Контекст пациента (из приложения):\n' + passedSystemInstruction;
+  }
+
+  // ======= ЗАГРУЗКА ИСТОРИИ ЧАТА ИЗ GOOGLE SHEETS =======
+  var chatHistory = [];
+  if (userEmail) {
+    try {
+      var ss = getSpreadsheet();
+      var chatSheetName = 'ИИ_Врач_Чат';
+      var chatSheet = ss.getSheetByName(chatSheetName);
+      if (!chatSheet) {
+        chatSheet = ss.insertSheet(chatSheetName);
+        chatSheet.appendRow(['Email', 'Timestamp', 'Role', 'Message', 'Model', 'PatientContext']);
+        var hdr = chatSheet.getRange(1, 1, 1, 6);
+        hdr.setFontWeight('bold');
+        hdr.setBackground('#f3e8ff');
+        hdr.setFontColor('#581c87');
+      }
+      // Загружаем последние 20 сообщений пользователя
+      var allData = chatSheet.getDataRange().getValues();
+      if (allData.length > 1) {
+        var userRows = [];
+        for (var r = 1; r < allData.length; r++) {
+          if ((allData[r][0] || '').toString().toLowerCase().trim() === userEmail) {
+            userRows.push({
+              role: (allData[r][2] || '').toString().toLowerCase() === 'user' ? 'user' : 'model',
+              text: (allData[r][3] || '').toString()
+            });
+          }
+        }
+        // Берём последние 20 сообщений для контекста
+        chatHistory = userRows.slice(-20);
+      }
+    } catch (histErr) {
+      Logger.log('Chat history load notice: ' + histErr);
+    }
+  }
+
+  // ======= ФОРМИРОВАНИЕ ЗАПРОСА С ИСТОРИЕЙ =======
+  var contents = [];
+
+  // Системная инструкция как первое сообщение (role: user → model)
+  contents.push({ role: 'user', parts: [{ text: fullSystemPrompt + '\n\nПодтверди, что ты готов помогать пациенту.' }] });
+  contents.push({ role: 'model', parts: [{ text: 'Понял. Я ИИ-Врач Консультант, готов анализировать биомаркеры и давать клинические рекомендации. Жду вопрос пациента.' }] });
+
+  // История предыдущих сообщений
+  for (var h = 0; h < chatHistory.length; h++) {
+    contents.push({
+      role: chatHistory[h].role,
+      parts: [{ text: chatHistory[h].text }]
+    });
+  }
+
+  // Текущий вопрос пользователя
+  contents.push({ role: 'user', parts: [{ text: userPrompt }] });
+
+  // ======= КАСКАД МОДЕЛЕЙ: gemini-3.8-flash (Free) → gemini-2.5-flash → gemini-2.0-flash =======
+  var models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
   var lastError = '';
 
   for (var m = 0; m < models.length; m++) {
     var modelName = models[m];
     var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + apiKey;
 
-    var body = {
-      contents: [
-        {
-          parts: [{ text: (systemInstruction ? systemInstruction + '\n\n' : '') + userPrompt }]
-        }
-      ]
-    };
+    var body = { contents: contents };
 
     try {
       var options = {
@@ -535,6 +643,22 @@ function handleGeminiChat(payload) {
       if (code >= 200 && code < 300) {
         var parsed = JSON.parse(responseText);
         var reply = (parsed && parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content && parsed.candidates[0].content.parts && parsed.candidates[0].content.parts[0] && parsed.candidates[0].content.parts[0].text) || '';
+
+        // ======= СОХРАНЕНИЕ В ИСТОРИЮ GOOGLE SHEETS =======
+        if (userEmail && reply) {
+          try {
+            var ss2 = getSpreadsheet();
+            var saveSheet = ss2.getSheetByName('ИИ_Врач_Чат');
+            if (saveSheet) {
+              var now = new Date().toISOString();
+              saveSheet.appendRow([userEmail, now, 'user', userPrompt, '', '']);
+              saveSheet.appendRow([userEmail, now, 'model', reply, modelName, passedSystemInstruction.substring(0, 500)]);
+            }
+          } catch (saveErr) {
+            Logger.log('Chat save notice: ' + saveErr);
+          }
+        }
+
         return jsonResponse({
           success: true,
           model: modelName,
@@ -568,7 +692,8 @@ function handleGeminiVision(payload) {
     return jsonResponse({ success: false, error: 'GEMINI_KEY_MISSING' });
   }
 
-  var models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  var models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  var lastError = '';
   for (var m = 0; m < models.length; m++) {
     var modelName = models[m];
     var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + apiKey;
@@ -592,12 +717,16 @@ function handleGeminiVision(payload) {
       var res = UrlFetchApp.fetch(url, options);
       if (res.getResponseCode() >= 200 && res.getResponseCode() < 300) {
         var parsed = JSON.parse(res.getContentText());
-        var reply = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        var reply = (parsed && parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content && parsed.candidates[0].content.parts && parsed.candidates[0].content.parts[0] && parsed.candidates[0].content.parts[0].text) || '';
         return jsonResponse({ success: true, model: modelName, text: reply });
+      } else {
+        lastError = 'HTTP ' + res.getResponseCode() + ' (' + modelName + ')';
       }
-    } catch (e) {}
+    } catch (e) {
+      lastError = e.toString();
+    }
   }
-  return jsonResponse({ success: false, error: 'VISION_FAILED' });
+  return jsonResponse({ success: false, error: 'VISION_FAILED', message: lastError });
 }
 
 function jsonResponse(data) {
