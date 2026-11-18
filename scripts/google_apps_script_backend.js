@@ -118,7 +118,14 @@ function doGet(e) {
     var action = (e && e.parameter && e.parameter.action) || 'ping';
     var email = (e && e.parameter && e.parameter.email) || '';
 
-    // 1. Проверка существования пользователя
+    // 1. Отправка 6-значного кода на Email (поддержка GET)
+    if (action === 'sendVerificationCode' && email) {
+      var code = (e && e.parameter && e.parameter.code) || '';
+      var name = (e && e.parameter && e.parameter.name) || '';
+      return handleSendVerificationCode(ss, email, code, name);
+    }
+
+    // 2. Проверка существования пользователя
     if (action === 'checkUser' && email) {
       var userSheet = resolveSheet(ss, 'users');
       var data = userSheet.getDataRange().getValues();
@@ -143,7 +150,7 @@ function doGet(e) {
       return jsonResponse({ success: true, exists: exists, user: userData });
     }
 
-    // 2. Получение данных по таблицам
+    // 3. Получение данных по таблицам
     var tableParam = (e && e.parameter && e.parameter.table) || 'users';
     var sheet = resolveSheet(ss, tableParam);
     var sheetData = sheet.getDataRange().getValues();
@@ -168,6 +175,99 @@ function doGet(e) {
   }
 }
 
+function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
+  var cleanEmail = (targetEmail || '').trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return jsonResponse({ success: false, error: 'INVALID_EMAIL', message: 'Некорректный адрес email' });
+  }
+
+  // Проверка: зарегистрирован ли уже пользователь
+  var userSheet = resolveSheet(ss, 'users');
+  var usersData = userSheet.getDataRange().getValues();
+  if (usersData.length > 1) {
+    var uHeaders = usersData[0].map(function(h) { return h ? h.toString().trim().replace(/^\ufeff/, '').toLowerCase() : ''; });
+    var emailCol = uHeaders.indexOf('email');
+    if (emailCol === -1) emailCol = 6;
+
+    for (var i = 1; i < usersData.length; i++) {
+      var curEmail = (usersData[i][emailCol] || '').toString().toLowerCase().trim();
+      if (curEmail === cleanEmail) {
+        return jsonResponse({
+          success: false,
+          error: 'USER_ALREADY_EXISTS',
+          message: 'Пользователь с адресом ' + cleanEmail + ' уже зарегистрирован! Пожалуйста, выполните вход.'
+        });
+      }
+    }
+  }
+
+  // Генерация / использование кода
+  var code = otpCode || Math.floor(100000 + Math.random() * 900000).toString();
+  var now = new Date();
+  var expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+
+  // Сохранение в лист Коды_Верификации
+  var codeSheet = resolveSheet(ss, 'codes');
+  codeSheet.appendRow([cleanEmail, code, now.toISOString(), expiresAt.toISOString(), 'ACTIVE']);
+
+  // Отправка письма
+  var subject = 'Код подтверждения: ' + code + ' — Здоровье & Финансы';
+  var greeting = userName ? 'Здравствуйте, ' + userName + '!' : 'Здравствуйте!';
+  var htmlBody = 
+    '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e9d5ff; border-radius: 20px; background-color: #ffffff; color: #1e1b4b;">' +
+      '<div style="text-align: center; margin-bottom: 24px;">' +
+        '<div style="width: 48px; height: 48px; margin: 0 auto 12px; background: #7c3aed; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 24px; font-weight: bold; line-height: 48px;">' +
+          '❤' +
+        '</div>' +
+        '<h2 style="color: #7c3aed; margin: 0; font-size: 22px; font-weight: 800;">Здоровье & Финансы</h2>' +
+        '<p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Единый семейный медицинский хаб</p>' +
+      '</div>' +
+      '<p style="font-size: 14px; color: #334155; line-height: 1.5; margin-bottom: 16px;">' +
+        greeting + ' Вы указали этот адрес электронной почты для регистрации личного кабинета.' +
+      '</p>' +
+      '<p style="font-size: 14px; font-weight: bold; color: #1e1b4b; margin-bottom: 8px;">' +
+        'Ваш одноразовый код подтверждения:' +
+      '</p>' +
+      '<div style="text-align: center; margin: 20px 0;">' +
+        '<span style="display: inline-block; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #7c3aed; background: #faf5ff; border: 2px dashed #c084fc; padding: 12px 28px; border-radius: 16px;">' +
+          code +
+        '</span>' +
+      '</div>' +
+      '<p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-top: 16px;">' +
+        '• Код действует <strong>10 минут</strong>.<br/>' +
+        '• Никому не сообщайте этот код.<br/>' +
+        '• Если вы не регистрировались в приложении, просто проигнорируйте это письмо.' +
+      '</p>' +
+      '<hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0 16px;" />' +
+      '<p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">' +
+        'Безопасность медицинских данных · 152-ФЗ · AES-256 GCM' +
+      '</p>' +
+    '</div>';
+
+  try {
+    MailApp.sendEmail({
+      to: cleanEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+  } catch (mailErr) {
+    try {
+      GmailApp.sendEmail(cleanEmail, subject, 'Ваш код: ' + code, { htmlBody: htmlBody });
+    } catch (gmailErr) {
+      return jsonResponse({
+        success: false,
+        error: 'EMAIL_SEND_FAILED',
+        message: 'Ошибка отправки через Google Mail: ' + mailErr.toString()
+      });
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    message: 'Код подтверждения успешно отправлен на адрес ' + cleanEmail
+  });
+}
+
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -183,93 +283,9 @@ function doPost(e) {
     // 1. ОТПРАВКА 6-ЗНАЧНОГО КОДА НА EMAIL ЧЕРЕЗ MailApp
     if (action === 'sendVerificationCode') {
       var targetEmail = (payload.email || '').trim().toLowerCase();
-      if (!targetEmail || !targetEmail.includes('@')) {
-        return jsonResponse({ success: false, error: 'INVALID_EMAIL', message: 'Некорректный адрес email' });
-      }
-
-      // Проверка: зарегистрирован ли уже пользователь
-      var userSheet = resolveSheet(ss, 'users');
-      var usersData = userSheet.getDataRange().getValues();
-      var uHeaders = usersData[0].map(function(h) { return h ? h.toString().trim().replace(/^\ufeff/, '').toLowerCase() : ''; });
-      var emailCol = uHeaders.indexOf('email');
-      if (emailCol === -1) emailCol = 6;
-
-      for (var i = 1; i < usersData.length; i++) {
-        var curEmail = (usersData[i][emailCol] || '').toString().toLowerCase().trim();
-        if (curEmail === targetEmail) {
-          return jsonResponse({
-            success: false,
-            error: 'USER_ALREADY_EXISTS',
-            message: 'Пользователь с адресом ' + targetEmail + ' уже зарегистрирован! Пожалуйста, выполните вход.'
-          });
-        }
-      }
-
-      // Генерация 6-значного кода
-      var otpCode = payload.code || Math.floor(100000 + Math.random() * 900000).toString();
-      var now = new Date();
-      var expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 минут
-
-      // Запись кода в лист Коды_Верификации
-      var codeSheet = resolveSheet(ss, 'codes');
-      codeSheet.appendRow([targetEmail, otpCode, now.toISOString(), expiresAt.toISOString(), 'ACTIVE']);
-
-      // Отправка реального красивого HTML-письма через Google MailApp
-      var subject = 'Код подтверждения: ' + otpCode + ' — Здоровье & Финансы';
-      var htmlBody = 
-        '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e9d5ff; border-radius: 20px; background-color: #ffffff; color: #1e1b4b;">' +
-          '<div style="text-align: center; margin-bottom: 24px;">' +
-            '<div style="width: 48px; height: 48px; margin: 0 auto 12px; background: #7c3aed; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 24px; font-weight: bold; line-height: 48px;">' +
-              '❤' +
-            '</div>' +
-            '<h2 style="color: #7c3aed; margin: 0; font-size: 22px; font-weight: 800;">Здоровье & Финансы</h2>' +
-            '<p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Единый семейный медицинский хаб</p>' +
-          '</div>' +
-          '<p style="font-size: 14px; color: #334155; line-height: 1.5; margin-bottom: 16px;">' +
-            'Здравствуйте! Вы указали этот адрес электронной почты для регистрации личного кабинета.' +
-          '</p>' +
-          '<p style="font-size: 14px; font-weight: bold; color: #1e1b4b; margin-bottom: 8px;">' +
-            'Ваш одноразовый код подтверждения:' +
-          '</p>' +
-          '<div style="text-align: center; margin: 20px 0;">' +
-            '<span style="display: inline-block; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #7c3aed; background: #faf5ff; border: 2px dashed #c084fc; padding: 12px 28px; border-radius: 16px;">' +
-              otpCode +
-            '</span>' +
-          '</div>' +
-          '<p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-top: 16px;">' +
-            '• Код действует <strong>10 минут</strong>.<br/>' +
-            '• Никому не сообщайте этот код.<br/>' +
-            '• Если вы не регистрировались в приложении, просто проигнорируйте это письмо.' +
-          '</p>' +
-          '<hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0 16px;" />' +
-          '<p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">' +
-            'Безопасность медицинских данных · 152-ФЗ · AES-256 GCM' +
-          '</p>' +
-        '</div>';
-
-      try {
-        MailApp.sendEmail({
-          to: targetEmail,
-          subject: subject,
-          htmlBody: htmlBody
-        });
-      } catch (mailErr) {
-        // Fallback to GmailApp if MailApp has issues
-        try {
-          GmailApp.sendEmail(targetEmail, subject, 'Ваш код: ' + otpCode, { htmlBody: htmlBody });
-        } catch (gmailErr) {
-          return jsonResponse({
-            success: false,
-            error: 'EMAIL_SEND_FAILED',
-            message: 'Ошибка отправки через Google Mail: ' + mailErr.toString()
-          });
-        }
-      }
-
-      return jsonResponse({
-        success: true,
-        message: 'Код подтверждения успешно отправлен на адрес ' + targetEmail
-      });
+      var otpCode = payload.code || '';
+      var userName = payload.name || '';
+      return handleSendVerificationCode(ss, targetEmail, otpCode, userName);
     }
 
     // 2. ВЕРИФИКАЦИЯ КОДА И СОХРАНЕНИЕ ПОЛЬЗОВАТЕЛЯ
