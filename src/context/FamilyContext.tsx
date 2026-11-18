@@ -73,6 +73,7 @@ interface FamilyContextType {
   // Demo mode vs Clean User state
   isDemoMode: boolean;
   setIsDemoMode: (val: boolean) => void;
+  purgeAllDataAndReset: () => void;
   // Google Account & Sheets Sync
   googleAccount: GoogleAccountInfo;
   appsScriptUrl: string;
@@ -787,7 +788,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         avatar: `${(u.firstName || u.name || 'П').slice(0, 1)}${(u.lastName || '').slice(0, 1)}`.toUpperCase() || 'ЯИ',
         familyRole: u.familyRole || 'head',
         familyName: u.familyName || 'Моя семья',
-        googleConnected: true,
+        googleConnected: u.registeredMethod === 'google',
       };
 
       const member: FamilyMember = {
@@ -825,6 +826,8 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem('app-family-invites', JSON.stringify([]));
       localStorage.setItem('app-family-name', profile.familyName);
       localStorage.setItem('app-active-member-id', member.id);
+      localStorage.setItem('app-expenses-list', JSON.stringify([]));
+      localStorage.removeItem('app-last-analysis');
       return true;
     }
 
@@ -1044,6 +1047,11 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setFamilyNameState('Моя семья');
   };
 
+  const purgeAllDataAndReset = () => {
+    localStorage.removeItem('app-users-registry-db');
+    resetToNewUser();
+  };
+
   const loadDemoData = () => {
     localStorage.setItem('app-is-demo', 'true');
     setIsDemoModeState(true);
@@ -1132,6 +1140,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         closePinSetup,
         isDemoMode,
         setIsDemoMode,
+        purgeAllDataAndReset,
         googleAccount,
         connectGoogleAccount,
         disconnectGoogleAccount,

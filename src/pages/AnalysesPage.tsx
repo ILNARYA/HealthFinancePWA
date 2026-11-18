@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, AlertTriangle, CheckCircle2,
   XCircle, Loader2, ShieldAlert, Sparkles,
-  FileCheck2, Stethoscope, Moon, Sun, Lock, Users, Bot
+  FileCheck2, Stethoscope, Moon, Sun, Lock, Users, Bot,
+  Layers, BarChart3, FileText
 } from 'lucide-react';
 import type { AnalysisResult, Biomarker } from '../types';
 import { simulateAnalysis } from '../utils/analysisEngine';
@@ -10,6 +11,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
 import { AiDoctorModal } from '../components/ai/AiDoctorModal';
+import HealthIndex from '../components/dashboard/HealthIndex';
+import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
+import { monthsData } from '../data/demo';
 
 const StatusBadge: React.FC<{ status: Biomarker['status'] }> = ({ status }) => {
   const config = {
@@ -60,6 +64,10 @@ const AnalysesPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [showAiDoctor, setShowAiDoctor] = useState(false);
+  const [subTab, setSubTab] = useState<'upload' | 'charts'>('upload');
+  const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
+  const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
+  const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (name: string) => {
@@ -160,7 +168,91 @@ const AnalysesPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Upload Zone */}
+      {/* Sub-tab Navigation: Upload / Clinical Charts */}
+      <div className="flex bg-gray-100/80 dark:bg-[#1a202c] p-1 rounded-2xl border border-gray-200/50 dark:border-gray-800">
+        <button
+          onClick={() => setSubTab('upload')}
+          className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            subTab === 'upload'
+              ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+          }`}
+        >
+          <FileText size={13} />
+          <span>Бланки и загрузка</span>
+        </button>
+        <button
+          onClick={() => setSubTab('charts')}
+          className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            subTab === 'charts'
+              ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+          }`}
+        >
+          <BarChart3 size={13} />
+          <span>Графика и динамика</span>
+        </button>
+      </div>
+
+      {subTab === 'charts' ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+              Графики биомаркеров
+            </span>
+            <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
+              <button
+                onClick={() => setActiveChartTab('radar')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  activeChartTab === 'radar'
+                    ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                    : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <Layers size={11} />
+                <span>Паук (Score)</span>
+              </button>
+              <button
+                onClick={() => setActiveChartTab('range')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  activeChartTab === 'range'
+                    ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                    : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <BarChart3 size={11} />
+                <span>Свечи (Диапазоны)</span>
+              </button>
+            </div>
+          </div>
+
+          {activeChartTab === 'radar' ? (
+            <HealthIndex
+              score={currentMonth.score}
+              selectedMonthId={selectedMonthId}
+              onMonthChange={setSelectedMonthId}
+              availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+            />
+          ) : (
+            <div className="space-y-3">
+              <BiomarkerRangeChart />
+              <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
+                <span className="text-purple-900 dark:text-purple-200 font-semibold">
+                  Период наблюдения: {currentMonth.label}
+                </span>
+                <button
+                  onClick={() => setActiveChartTab('radar')}
+                  className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
+                >
+                  К паук-диаграмме →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Upload Zone */}
       <div
         onClick={() => fileInputRef.current?.click()}
         className="relative overflow-hidden border-2 border-dashed border-purple-300 dark:border-purple-600/60 hover:border-purple-600 dark:hover:border-purple-400 rounded-3xl p-4.5 text-center cursor-pointer bg-purple-50/30 dark:bg-[#161b26]/50 hover:bg-purple-50/60 transition-all duration-300 group shadow-sm w-full"
@@ -373,6 +465,8 @@ const AnalysesPage: React.FC = () => {
             </p>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* Family Cabinet Switcher Modal */}

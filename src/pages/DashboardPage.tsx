@@ -6,7 +6,7 @@ import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
 import { monthsData, demoHealthTrend } from '../data/demo';
-import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users, FileSearch, Plus, EyeOff, Wallet, Bot } from 'lucide-react';
+import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users, FileSearch, EyeOff, Wallet, Bot } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
@@ -39,7 +39,9 @@ const DashboardPage: React.FC = () => {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             const prefix = monthPrefixes[selectedMonthId] || '2026-11';
-            return parsed.filter((e: any) => e.date?.startsWith(prefix));
+            return parsed
+              .filter((e: any) => !['e1','e2','e3','e4','e5','e6','e7','oe1','oe2','oe3','oe4','oe5','oe6','oe7','se1','se2','se3','se4','se5'].includes(e.id))
+              .filter((e: any) => e.date?.startsWith(prefix));
           }
         }
       } catch {}
@@ -163,86 +165,89 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Primary Visual Zone: Charts side-by-side switcher ("диаграмму паука" и графики рядом) */}
-      {isNewUser ? (
-        <div className="bg-white dark:bg-[#161b26] rounded-3xl p-6 text-center border border-purple-100/60 dark:border-purple-500/20 shadow-sm card-animate">
-          <div className="w-14 h-14 mx-auto rounded-3xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center mb-3 shadow-inner">
-            <FileSearch size={28} />
-          </div>
-          <h2 className="text-base font-extrabold text-gray-900 dark:text-white">
-            У вас пока нет загруженных анализов
-          </h2>
-          <p className="text-xs text-gray-400 mt-1.5 max-w-[280px] mx-auto leading-relaxed">
-            Загрузите медицинский PDF-бланк (Инвитро, Гемотест, Медси) или внесите биомаркеры для расчёта индекса здоровья.
-          </p>
-          <button
-            onClick={() => navigate('/analyses')}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl text-xs font-bold shadow-lg shadow-purple-500/25 active:scale-95 transition-all"
-          >
-            <Plus size={15} />
-            <span>Загрузить первый анализ</span>
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between px-1">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
               Оценка показателей здоровья
             </span>
+            {isNewUser && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                Ориентир норм
+              </span>
+            )}
+          </div>
 
-            {/* Quick tab switcher between Spider Radar & Range Dynamics */}
-            <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
+          {/* Quick tab switcher between Spider Radar & Range Dynamics */}
+          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
+            <button
+              onClick={() => setActiveChartTab('radar')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                activeChartTab === 'radar'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Layers size={11} />
+              <span>Паук (Score)</span>
+            </button>
+            <button
+              onClick={() => setActiveChartTab('range')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                activeChartTab === 'range'
+                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <BarChart3 size={11} />
+              <span>Диапазоны</span>
+            </button>
+          </div>
+        </div>
+
+        {isNewUser && (
+          <div className="bg-purple-50/70 dark:bg-purple-950/30 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse flex-shrink-0" />
+              <p className="text-[11px] text-purple-900 dark:text-purple-200 font-medium truncate">
+                Показан ориентир норм. Загрузите PDF-анализ для персонального расчёта.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/analyses')}
+              className="ml-2 px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[10px] font-bold flex-shrink-0 transition-colors shadow-xs"
+            >
+              + Анализ
+            </button>
+          </div>
+        )}
+
+        {/* Dynamic active chart view */}
+        {activeChartTab === 'radar' ? (
+          <HealthIndex
+            score={currentMonth.score}
+            selectedMonthId={selectedMonthId}
+            onMonthChange={setSelectedMonthId}
+            availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+          />
+        ) : (
+          <div className="space-y-3">
+            <BiomarkerRangeChart />
+            {/* Quick switcher back or month info */}
+            <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
+              <span className="text-purple-900 dark:text-purple-200 font-semibold">
+                Выбран месяц: {currentMonth.label}
+              </span>
               <button
                 onClick={() => setActiveChartTab('radar')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                  activeChartTab === 'radar'
-                    ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                    : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
+                className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
               >
-                <Layers size={11} />
-                <span>Паук (Score)</span>
-              </button>
-              <button
-                onClick={() => setActiveChartTab('range')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                  activeChartTab === 'range'
-                    ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                    : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <BarChart3 size={11} />
-                <span>Диапазоны</span>
+                К радар-диаграмме →
               </button>
             </div>
           </div>
-
-          {/* Dynamic active chart view */}
-          {activeChartTab === 'radar' ? (
-            <HealthIndex
-              score={currentMonth.score}
-              selectedMonthId={selectedMonthId}
-              onMonthChange={setSelectedMonthId}
-              availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
-            />
-          ) : (
-            <div className="space-y-3">
-              <BiomarkerRangeChart />
-              {/* Quick switcher back or month info */}
-              <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
-                <span className="text-purple-900 dark:text-purple-200 font-semibold">
-                  Выбран месяц: {currentMonth.label}
-                </span>
-                <button
-                  onClick={() => setActiveChartTab('radar')}
-                  className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
-                >
-                  К радар-диаграмме →
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Monthly Medical Finance Card */}
       <SpendingSummary

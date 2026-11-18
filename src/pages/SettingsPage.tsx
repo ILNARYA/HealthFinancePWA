@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Cloud, Table, HardDrive, Image, Upload,
-  Check, Smartphone, Bell, ShieldCheck,
+  Cloud, Table, Upload,
+  Check, Smartphone, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
   Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
   UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2,
-  Link2, Share2
+  Link2, Share2, Download
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -28,6 +29,7 @@ interface Connection {
 }
 
 const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const {
     userProfile,
@@ -58,12 +60,15 @@ const SettingsPage: React.FC = () => {
     lockApp,
     logout,
     resetToNewUser,
+    purgeAllDataAndReset,
     loadDemoData,
   } = useFamily();
 
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [sheetUrlInput, setSheetUrlInput] = useState(googleSheetUrl);
   const [urlSaved, setUrlSaved] = useState(false);
+  const [showAdvancedApi, setShowAdvancedApi] = useState(false);
+  const [showScriptUrlMask, setShowScriptUrlMask] = useState(false);
 
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('app-gemini-api-key') || '');
   const [geminiSaved, setGeminiSaved] = useState(false);
@@ -99,7 +104,7 @@ const SettingsPage: React.FC = () => {
             ? `https://docs.google.com/spreadsheets/d/${googleAccount.sheetId}/edit`
             : ''));
 
-  const handleDownloadDriveBackup = () => {
+  const handleDownloadJsonBackup = () => {
     const backupData = {
       exportedAt: new Date().toISOString(),
       userProfile,
@@ -116,8 +121,8 @@ const SettingsPage: React.FC = () => {
     a.download = `HealthFinance_Backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setMessage('Резервная копия базы (JSON) скачана для загрузки на Google Диск!');
-    setTimeout(() => setMessage(null), 4000);
+    setMessage('Резервная копия базы (JSON) успешно сохранена!');
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const handleCopyFamilyLink = () => {
@@ -144,31 +149,14 @@ const SettingsPage: React.FC = () => {
   const [connections, setConnections] = useState<Connection[]>([
     {
       id: 'sheets',
-      name: 'Google Таблицы',
-      description: 'Автосинхронизация чеков, трат и биомаркеров',
+      name: 'Google Таблицы (Облачная база)',
+      description: 'Сквозная синхронизация чеков, трат и биомаркеров через Apps Script',
       icon: Table,
-      connected: true,
-      details: 'Таблица: «Медицинский учёт 2026»',
-    },
-    {
-      id: 'drive',
-      name: 'Google Диск',
-      description: 'Облачное хранилище PDF-бланков и выписок',
-      icon: HardDrive,
-      connected: true,
-      details: 'Папка: /Мой Диск/Здоровье/Анализы',
-    },
-    {
-      id: 'photos',
-      name: 'Google Фото',
-      description: 'Бэкап фотоснимков рецептов и чеков',
-      icon: Image,
-      connected: false,
-      details: 'Альбом: «МедЧек»',
+      connected: Boolean(appsScriptUrl),
+      details: googleSheetUrl ? 'Личная таблица подключена' : 'Таблица семейного хаба активна',
     },
   ]);
 
-  const [notifications, setNotifications] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -761,7 +749,7 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Apps Script Web App API Integration Card */}
+        {/* Cloud Sync & Google Sheets Card */}
         <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors overflow-hidden">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -769,8 +757,8 @@ const SettingsPage: React.FC = () => {
                 <Link2 size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">API Apps Script</p>
-                <p className="text-[10px] text-gray-400 truncate">Сквозная синхронизация для семьи</p>
+                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Облачная база Google Таблиц</p>
+                <p className="text-[10px] text-gray-400 truncate">Сквозной семейный учёт через Apps Script</p>
               </div>
             </div>
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
@@ -778,38 +766,15 @@ const SettingsPage: React.FC = () => {
                 ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                 : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
             }`}>
-              {appsScriptUrl ? 'Подключен' : 'Ожидает URL'}
+              {appsScriptUrl ? '● Сервер подключен' : 'Ожидает настройки'}
             </span>
           </div>
 
           <div className="space-y-2.5">
-            {/* 1. Apps Script Exec URL */}
+            {/* Google Sheet Direct Link / ID */}
             <div>
               <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1">
-                URL развертывания веб-приложения (Web App Exec URL):
-              </label>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={scriptUrlInput}
-                  onChange={(e) => setScriptUrlInput(e.target.value)}
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 font-mono text-[11px]"
-                />
-                <button
-                  onClick={handleSaveScriptUrl}
-                  className="px-3 py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 flex-shrink-0"
-                >
-                  {urlSaved ? <Check size={14} /> : null}
-                  {urlSaved ? 'Сохранено' : 'Сохранить'}
-                </button>
-              </div>
-            </div>
-
-            {/* 2. Google Sheet Direct Link / ID */}
-            <div>
-              <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1">
-                Ссылка на вашу личную Google Таблицу (для кнопки перехода):
+                Ссылка на вашу семейную Google Таблицу:
               </label>
               <div className="flex items-center gap-1.5">
                 <input
@@ -829,9 +794,9 @@ const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-0.5">
               <span className="text-[10px] text-gray-400">
-                {appsScriptUrl ? 'Синхронизирует расходы и анализы с Google Таблицей' : 'Вставьте скопированный URL после развертывания'}
+                Защищённое SSL-соединение
               </span>
               <button
                 onClick={handleSyncNow}
@@ -841,6 +806,53 @@ const SettingsPage: React.FC = () => {
                 <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
                 <span>{syncing ? 'Проверка...' : 'Проверить связь'}</span>
               </button>
+            </div>
+
+            {/* Collapsible Advanced Engineering Gateway Settings (Hidden by default) */}
+            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedApi(!showAdvancedApi)}
+                className="text-[10px] font-bold text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 flex items-center justify-between w-full transition-colors"
+              >
+                <span>⚙️ Инженерный шлюз API (Apps Script)</span>
+                <span>{showAdvancedApi ? 'Скрыть ▲' : 'Показать настройки ▼'}</span>
+              </button>
+
+              {showAdvancedApi && (
+                <div className="mt-2 p-2.5 rounded-2xl bg-gray-50/80 dark:bg-[#1a202c]/70 border border-gray-200/60 dark:border-gray-700/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                      Web App Exec URL:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowScriptUrlMask(!showScriptUrlMask)}
+                      className="text-[10px] text-purple-600 dark:text-purple-400 font-bold hover:underline"
+                    >
+                      {showScriptUrlMask ? 'Скрыть маской' : 'Показать URL'}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type={showScriptUrlMask ? 'text' : 'password'}
+                      value={scriptUrlInput}
+                      onChange={(e) => setScriptUrlInput(e.target.value)}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                      className="flex-1 text-xs px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121620] text-gray-900 dark:text-white font-mono text-[10px]"
+                    />
+                    <button
+                      onClick={handleSaveScriptUrl}
+                      className="px-2.5 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl text-[10px] font-bold flex-shrink-0"
+                    >
+                      OK
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-gray-400">
+                    URL защищён от случайного просмотра. Менять только при обновлении версии в Google Apps Script.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 border-t border-purple-100 dark:border-purple-900/40">
@@ -939,15 +951,14 @@ const SettingsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                  {conn.id === 'drive' && (
-                    <button
-                      onClick={handleDownloadDriveBackup}
-                      className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition-colors border border-purple-200 dark:border-purple-800"
-                      title="Скачать файл бэкапа для сохранения на Google Диск"
-                    >
-                      Бэкап
-                    </button>
-                  )}
+                  <button
+                    onClick={handleDownloadJsonBackup}
+                    className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition-colors border border-purple-200 dark:border-purple-800 flex items-center gap-1"
+                    title="Скачать файл бэкапа JSON"
+                  >
+                    <Download size={12} />
+                    <span>Бэкап</span>
+                  </button>
                   <button
                     onClick={() => toggleConnection(conn.id)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -1017,29 +1028,6 @@ const SettingsPage: React.FC = () => {
             <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800">
               Готово к офлайну
             </span>
-          </div>
-
-          {/* Notifications */}
-          <div className="flex items-center justify-between p-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 flex items-center justify-center">
-                <Bell size={16} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-900 dark:text-white">Напоминания о приеме</p>
-                <p className="text-[10px] text-gray-400">Уведомления о визитах и анализах</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setNotifications(!notifications)}
-              className={`w-11 h-6 rounded-full transition-colors relative ${
-                notifications ? 'bg-purple-700' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
-                notifications ? 'translate-x-5.5' : 'translate-x-0.5'
-              }`} />
-            </button>
           </div>
         </div>
       </div>
@@ -1127,12 +1115,17 @@ const SettingsPage: React.FC = () => {
 
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex gap-2">
           <button
-            onClick={resetToNewUser}
+            onClick={() => {
+              if (window.confirm('Сбросить локальные данные и профиль на этом устройстве для чистой регистрации?')) {
+                purgeAllDataAndReset();
+                navigate('/');
+              }
+            }}
             className="flex-1 py-2 px-2.5 rounded-xl bg-gray-100 hover:bg-rose-50 dark:bg-gray-800 dark:hover:bg-rose-950/40 text-gray-700 hover:text-rose-600 dark:text-gray-200 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-800"
             title="Очистить все локальные данные и вернуться к регистрации"
           >
             <Trash2 size={13} className="text-rose-500" />
-            <span>Очистить данные (Новый пользователь)</span>
+            <span>Очистить данные (Сброс для перерегистрации)</span>
           </button>
           <button
             onClick={loadDemoData}

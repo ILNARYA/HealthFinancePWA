@@ -12,7 +12,8 @@ import {
   getAppsScriptUrl,
   fetchRemoteUsers,
   findUserByEmail,
-  appendUserToRemoteSheet
+  appendUserToRemoteSheet,
+  deleteRemoteUser
 } from '../config/api';
 
 export const AuthPage: React.FC = () => {
@@ -49,6 +50,7 @@ export const AuthPage: React.FC = () => {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
   const [isSendingCode, setIsSendingCode] = useState(false);
+  const [duplicatePromptEmail, setDuplicatePromptEmail] = useState<string | null>(null);
 
   React.useEffect(() => {
     let timer: any;
@@ -265,12 +267,7 @@ export const AuthPage: React.FC = () => {
     const existing = await findUserByEmail(cleanEmail);
     if (existing) {
       setIsSendingCode(false);
-      setSuccessToast(`⚠️ Email «${cleanEmail}» уже зарегистрирован! Пожалуйста, выполните вход.`);
-      setTimeout(() => {
-        setMode('login');
-        setLoginId(cleanEmail);
-        setSuccessToast(null);
-      }, 2200);
+      setDuplicatePromptEmail(cleanEmail);
       return;
     }
 
@@ -315,7 +312,12 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
-    // Standard Registration: Generate 6-digit OTP code and send real email
+    await dispatchOtpCode(cleanEmail);
+  };
+
+  const dispatchOtpCode = async (cleanEmail: string) => {
+    setIsSendingCode(true);
+    setDuplicatePromptEmail(null);
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(generatedOtp);
     setCodeError(null);
@@ -334,12 +336,7 @@ export const AuthPage: React.FC = () => {
       const data = await response.json();
       if (!data.success && data.error === 'USER_ALREADY_EXISTS') {
         setIsSendingCode(false);
-        setSuccessToast(`⚠️ ${data.message}`);
-        setTimeout(() => {
-          setMode('login');
-          setLoginId(cleanEmail);
-          setSuccessToast(null);
-        }, 2200);
+        setDuplicatePromptEmail(cleanEmail);
         return;
       }
     } catch (err: any) {
@@ -961,6 +958,48 @@ export const AuthPage: React.FC = () => {
                 />
               </div>
             </div>
+
+            {duplicatePromptEmail && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-xs space-y-2 animate-fade-in">
+                <p className="font-bold text-amber-900 dark:text-amber-200 text-xs">
+                  ⚠️ Пользователь «{duplicatePromptEmail}» уже зарегистрирован
+                </p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                  Вы можете выполнить вход по паролю или полностью сбросить старую запись и получить новый код подтверждения.
+                </p>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login');
+                      setLoginId(duplicatePromptEmail);
+                      setDuplicatePromptEmail(null);
+                    }}
+                    className="flex-1 py-1.5 px-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                  >
+                    Войти в кабинет
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const target = duplicatePromptEmail;
+                      setDuplicatePromptEmail(null);
+                      setIsSendingCode(true);
+                      await deleteRemoteUser(target);
+                      try {
+                        const local = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+                        const filtered = local.filter((u: any) => u.email?.toLowerCase() !== target);
+                        localStorage.setItem('app-users-registry-db', JSON.stringify(filtered));
+                      } catch {}
+                      await dispatchOtpCode(target);
+                    }}
+                    className="flex-1 py-1.5 px-2.5 bg-amber-100 dark:bg-amber-900/60 hover:bg-amber-200 text-amber-900 dark:text-amber-200 rounded-xl text-xs font-bold transition-all border border-amber-300 dark:border-amber-700"
+                  >
+                    Сбросить и выслать код
+                  </button>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"

@@ -34,8 +34,26 @@ const FinancesPage: React.FC = () => {
 
   // Combine expenses across all months for state
   const [selectedMonth, setSelectedMonth] = useState<string>('nov2026');
+  const demoExpenseIds = React.useMemo(() => new Set([
+    'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7',
+    'oe1', 'oe2', 'oe3', 'oe4', 'oe5', 'oe6', 'oe7',
+    'se1', 'se2', 'se3', 'se4', 'se5'
+  ]), []);
+
   const [allExpenses, setAllExpenses] = useState<Expense[]>(() => {
     const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    if (!isDemo) {
+      const saved = localStorage.getItem('app-expenses-list');
+      if (saved !== null) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.filter((e) => !['e1','e2','e3','e4','e5','e6','e7','oe1','oe2','oe3','oe4','oe5','oe6','oe7','se1','se2','se3','se4','se5'].includes(e.id));
+          }
+        } catch {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('app-expenses-list');
     if (saved !== null) {
       try {
@@ -43,7 +61,7 @@ const FinancesPage: React.FC = () => {
         if (Array.isArray(parsed)) return parsed;
       } catch {}
     }
-    return isDemo ? allDemoExpenses : [];
+    return allDemoExpenses;
   });
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
@@ -61,8 +79,18 @@ const FinancesPage: React.FC = () => {
   };
 
   useEffect(() => {
+    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    if (!isDemo) {
+      const hasDemoData = allExpenses.some((e) => demoExpenseIds.has(e.id));
+      if (hasDemoData) {
+        const cleanList = allExpenses.filter((e) => !demoExpenseIds.has(e.id));
+        setAllExpenses(cleanList);
+        localStorage.setItem('app-expenses-list', JSON.stringify(cleanList));
+        return;
+      }
+    }
     localStorage.setItem('app-expenses-list', JSON.stringify(allExpenses));
-  }, [allExpenses]);
+  }, [allExpenses, isDemoMode, demoExpenseIds]);
 
   const activePrefix = monthPrefixes[selectedMonth] || '2026-11';
   const expenses = allExpenses.filter((e) => e.date ? e.date.startsWith(activePrefix) : true);

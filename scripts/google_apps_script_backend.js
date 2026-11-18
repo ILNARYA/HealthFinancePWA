@@ -166,6 +166,11 @@ function doGet(e) {
       return jsonResponse({ success: true, exists: exists, user: userData });
     }
 
+    // 2.5. Удаление пользователя для очистки базы и повторной регистрации
+    if (action === 'deleteUser' && email) {
+      return handleDeleteUser(ss, email);
+    }
+
     // 3. Получение данных по таблицам
     var tableParam = (e && e.parameter && e.parameter.table) || 'users';
     var sheet = resolveSheet(ss, tableParam);
@@ -284,6 +289,36 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
   });
 }
 
+function handleDeleteUser(ss, targetEmail) {
+  var cleanEmail = (targetEmail || '').trim().toLowerCase();
+  if (!cleanEmail) {
+    return jsonResponse({ success: false, error: 'Email required' });
+  }
+  var userSheet = resolveSheet(ss, 'users');
+  var data = userSheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return jsonResponse({ success: true, count: 0, message: 'Таблица пользователей пуста' });
+  }
+  var headers = data[0].map(function(h) { return h ? h.toString().trim().replace(/^\ufeff/, '').toLowerCase() : ''; });
+  var emailIndex = headers.indexOf('email');
+  if (emailIndex === -1) emailIndex = 6;
+
+  var deletedCount = 0;
+  for (var i = data.length - 1; i >= 1; i--) {
+    var rowEmail = (data[i][emailIndex] || '').toString().toLowerCase().trim();
+    if (rowEmail === cleanEmail) {
+      userSheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    deletedCount: deletedCount,
+    message: 'Пользователь ' + cleanEmail + ' удалён из базы (' + deletedCount + ' строк).'
+  });
+}
+
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -318,6 +353,11 @@ function doPost(e) {
         message: 'Пользователь успешно сохранен в базе данных',
         user: recordData
       });
+    }
+
+    // 2.5. УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ ОЧИСТКИ И ПЕРЕРЕГИСТРАЦИИ
+    if (action === 'deleteUser' && payload.email) {
+      return handleDeleteUser(ss, payload.email);
     }
 
     // 3. ОБЫЧНОЕ ДОБАВЛЕНИЕ ЗАПИСИ (expenses, biomarkers, users)

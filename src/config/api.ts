@@ -166,3 +166,24 @@ export async function appendUserToRemoteSheet(user: {
     return false;
   }
 }
+
+/**
+ * Delete a user from remote Google Sheet by email
+ */
+export async function deleteRemoteUser(email: string): Promise<boolean> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return false;
+  const url = getAppsScriptUrl();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'deleteUser', email: cleanEmail }),
+    });
+    const data = await res.json();
+    return Boolean(data && data.success);
+  } catch (err) {
+    console.warn('deleteRemoteUser error:', err);
+    return false;
+  }
+}
