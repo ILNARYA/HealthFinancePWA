@@ -268,8 +268,15 @@ const defaultInvites: FamilyInvite[] = [
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Demo Mode tracker
+  // Demo Mode tracker: MUST NEVER be true if the user is registered with a real email
   const [isDemoMode, setIsDemoModeState] = useState<boolean>(() => {
+    try {
+      const savedProfile = JSON.parse(localStorage.getItem('app-user-profile') || '{}');
+      if (savedProfile.email && savedProfile.email !== 'alex.ivanov@example.com') {
+        localStorage.setItem('app-is-demo', 'false');
+        return false;
+      }
+    } catch {}
     return localStorage.getItem('app-is-demo') === 'true';
   });
   const setIsDemoMode = (val: boolean) => {
@@ -410,6 +417,24 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     localStorage.setItem('app-user-profile', JSON.stringify(userProfile));
+    // If the active profile has a real email (not Ivanov demo), guarantee demo mode is false and purge demo expenses
+    if (userProfile.email && userProfile.email !== 'alex.ivanov@example.com') {
+      setIsDemoModeState(false);
+      localStorage.setItem('app-is-demo', 'false');
+      try {
+        const savedExpenses = localStorage.getItem('app-expenses-list');
+        if (savedExpenses) {
+          const parsed = JSON.parse(savedExpenses);
+          if (Array.isArray(parsed)) {
+            const demoIds = new Set(['e1','e2','e3','e4','e5','e6','e7','oe1','oe2','oe3','oe4','oe5','oe6','oe7','se1','se2','se3','se4','se5']);
+            const clean = parsed.filter((e: any) => !demoIds.has(e.id));
+            if (clean.length !== parsed.length) {
+              localStorage.setItem('app-expenses-list', JSON.stringify(clean));
+            }
+          }
+        }
+      } catch {}
+    }
   }, [userProfile]);
 
   useEffect(() => {

@@ -28,7 +28,8 @@ const monthPrefixes: Record<string, string> = {
 
 const FinancesPage: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope } = useFamily();
+  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope, userProfile } = useFamily();
+  const isActuallyDemo = Boolean(isDemoMode && (!userProfile?.email || userProfile?.email === 'alex.ivanov@example.com'));
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
@@ -41,8 +42,7 @@ const FinancesPage: React.FC = () => {
   ]), []);
 
   const [allExpenses, setAllExpenses] = useState<Expense[]>(() => {
-    const isDemo = isDemoMode && localStorage.getItem('app-is-demo') === 'true';
-    if (!isDemo) {
+    if (!isActuallyDemo) {
       const saved = localStorage.getItem('app-expenses-list');
       if (saved !== null) {
         try {
@@ -79,8 +79,7 @@ const FinancesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const isDemo = isDemoMode && localStorage.getItem('app-is-demo') === 'true';
-    if (!isDemo) {
+    if (!isActuallyDemo) {
       const hasDemoData = allExpenses.some((e) => demoExpenseIds.has(e.id));
       if (hasDemoData) {
         const cleanList = allExpenses.filter((e) => !demoExpenseIds.has(e.id));
@@ -90,7 +89,7 @@ const FinancesPage: React.FC = () => {
       }
     }
     localStorage.setItem('app-expenses-list', JSON.stringify(allExpenses));
-  }, [allExpenses, isDemoMode, demoExpenseIds]);
+  }, [allExpenses, isActuallyDemo, demoExpenseIds]);
 
   const activePrefix = monthPrefixes[selectedMonth] || '2026-11';
   const monthFiltered = allExpenses.filter((e) => e.date ? e.date.startsWith(activePrefix) : true);

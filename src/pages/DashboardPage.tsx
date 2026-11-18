@@ -19,9 +19,10 @@ const DashboardPage: React.FC = () => {
   const [showAiModal, setShowAiModal] = useState(false);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const { isDark, toggleTheme } = useTheme();
-  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope } = useFamily();
+  const { activeMember, lockApp, isDemoMode, privacyMode, setPrivacyMode, viewScope, setViewScope, userProfile } = useFamily();
 
-  const isNewUser = !isDemoMode && activeMember.analysesCount === 0;
+  const isActuallyDemo = Boolean(isDemoMode && (!userProfile?.email || userProfile?.email === 'alex.ivanov@example.com'));
+  const isNewUser = !isActuallyDemo && activeMember.analysesCount === 0;
 
   const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];
 
@@ -33,7 +34,7 @@ const DashboardPage: React.FC = () => {
 
   const currentMonthExpenses = React.useMemo(() => {
     let list: any[] = [];
-    if (!isDemoMode) {
+    if (!isActuallyDemo) {
       try {
         const saved = localStorage.getItem('app-expenses-list');
         if (saved !== null) {
@@ -54,7 +55,7 @@ const DashboardPage: React.FC = () => {
       return list.filter((e: any) => !e.memberId || e.memberId === activeMember.id || e.memberName === activeMember.name);
     }
     return list;
-  }, [isDemoMode, selectedMonthId, currentMonth.expenses, viewScope, activeMember]);
+  }, [isActuallyDemo, selectedMonthId, currentMonth.expenses, viewScope, activeMember]);
 
   const handleSaveScannedExpense = (exp: any) => {
     try {
