@@ -302,7 +302,8 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <select
                   value={bloodType}
                   onChange={(e) => setBloodType(e.target.value)}
-                  className="w-full pl-3 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer dark:[color-scheme:dark]"
+                  style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+                  className="w-full pl-3 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold cursor-pointer dark:[color-scheme:dark]"
                 >
                   <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
                   <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh-">O(I) Rh-</option>

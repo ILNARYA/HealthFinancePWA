@@ -192,7 +192,8 @@ const BiomarkerRangeChart: React.FC<Props> = ({ isEmpty = false, onUploadClick }
           <select
             value={selectedBioId}
             onChange={(e) => handleBiomarkerChange(e.target.value)}
-            className="appearance-none bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 text-xs font-bold pl-3 pr-7 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+            style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+            className="bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 text-xs font-bold pl-3 pr-7 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/40"
           >
             {biomarkerConfigs.map((b) => (
               <option key={b.id} value={b.id} className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white">

@@ -503,7 +503,8 @@ export const ReceiptScannerModal: React.FC<Props> = ({ isOpen, onClose, onSaveEx
                   <select
                     value={targetMemberId}
                     onChange={(e) => setTargetMemberId(e.target.value)}
-                    className="w-full pl-2.5 pr-8 py-2 rounded-xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white appearance-none cursor-pointer"
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+                    className="w-full pl-2.5 pr-8 py-2 rounded-xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white cursor-pointer"
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
