@@ -1340,7 +1340,7 @@ export const AuthPage: React.FC = () => {
                   <select
                     value={regBloodType}
                     onChange={(e) => setRegBloodType(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer dark:[color-scheme:dark]"
+                    className="w-full pl-2.5 pr-8 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer dark:[color-scheme:dark]"
                   >
                     <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
                     <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>

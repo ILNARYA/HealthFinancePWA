@@ -465,7 +465,16 @@ function doPost(e) {
       return handleDeleteUser(ss, payload.email);
     }
 
-    // 5. ОБЫЧНОЕ ДОБАВЛЕНИЕ ЗАПИСИ (expenses, biomarkers, users)
+    // 5. НЕЙРОСЕТЕВОЙ КЛИНИЧЕСКИЙ ШЛЮЗ GEMINI API (РАБОТАЕТ БЕЗ РЕГИОНАЛЬНЫХ БЛОКИРОВОК)
+    if (action === 'geminiChat' || action === 'aiDoctor') {
+      return handleGeminiChat(payload);
+    }
+
+    if (action === 'geminiVision' || action === 'ocrReceipt') {
+      return handleGeminiVision(payload);
+    }
+
+    // 6. ОБЫЧНОЕ ДОБАВЛЕНИЕ ЗАПИСИ (expenses, biomarkers, users)
     var targetTable = payload.table || 'expenses';
     var sheetToAppend = resolveSheet(ss, targetTable);
     if (payload.data) {
@@ -477,6 +486,118 @@ function doPost(e) {
   } catch (err) {
     return jsonResponse({ success: false, error: err.toString() });
   }
+}
+
+function handleGeminiChat(payload) {
+  var userPrompt = payload.prompt || payload.text || '';
+  var systemInstruction = payload.systemInstruction || '';
+  var passedKey = (payload.apiKey || '').trim();
+
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = passedKey || props.getProperty('GEMINI_API_KEY');
+
+  if (!apiKey) {
+    return jsonResponse({
+      success: false,
+      error: 'GEMINI_KEY_MISSING',
+      message: 'Укажите API ключ Gemini в приложении или в свойствах скрипта (GEMINI_API_KEY).'
+    });
+  }
+
+  // Перебор современных моделей Google (gemini-2.5-flash, 2.0-flash, 1.5-flash)
+  var models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+  var lastError = '';
+
+  for (var m = 0; m < models.length; m++) {
+    var modelName = models[m];
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + apiKey;
+
+    var body = {
+      contents: [
+        {
+          parts: [{ text: (systemInstruction ? systemInstruction + '\n\n' : '') + userPrompt }]
+        }
+      ]
+    };
+
+    try {
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(body),
+        muteHttpExceptions: true
+      };
+
+      var res = UrlFetchApp.fetch(url, options);
+      var code = res.getResponseCode();
+      var responseText = res.getContentText();
+
+      if (code >= 200 && code < 300) {
+        var parsed = JSON.parse(responseText);
+        var reply = (parsed && parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content && parsed.candidates[0].content.parts && parsed.candidates[0].content.parts[0] && parsed.candidates[0].content.parts[0].text) || '';
+        return jsonResponse({
+          success: true,
+          model: modelName,
+          text: reply
+        });
+      } else {
+        lastError = 'HTTP ' + code + ' (' + modelName + '): ' + responseText;
+      }
+    } catch (e) {
+      lastError = e.toString();
+    }
+  }
+
+  return jsonResponse({
+    success: false,
+    error: 'GEMINI_FAILED',
+    message: 'Ошибка при вызове Gemini API: ' + lastError
+  });
+}
+
+function handleGeminiVision(payload) {
+  var imageBase64 = payload.image || payload.base64 || '';
+  var mimeType = payload.mimeType || 'image/jpeg';
+  var prompt = payload.prompt || 'Распознай фискальный чек или медицинскую квитанцию на русском языке.';
+  var passedKey = (payload.apiKey || '').trim();
+
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = passedKey || props.getProperty('GEMINI_API_KEY');
+
+  if (!apiKey) {
+    return jsonResponse({ success: false, error: 'GEMINI_KEY_MISSING' });
+  }
+
+  var models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  for (var m = 0; m < models.length; m++) {
+    var modelName = models[m];
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + apiKey;
+    var body = {
+      contents: [
+        {
+          parts: [
+            { inline_data: { mime_type: mimeType, data: imageBase64 } },
+            { text: prompt }
+          ]
+        }
+      ]
+    };
+    try {
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(body),
+        muteHttpExceptions: true
+      };
+      var res = UrlFetchApp.fetch(url, options);
+      if (res.getResponseCode() >= 200 && res.getResponseCode() < 300) {
+        var parsed = JSON.parse(res.getContentText());
+        var reply = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        return jsonResponse({ success: true, model: modelName, text: reply });
+      }
+    } catch (e) {}
+  }
+  return jsonResponse({ success: false, error: 'VISION_FAILED' });
 }
 
 function jsonResponse(data) {

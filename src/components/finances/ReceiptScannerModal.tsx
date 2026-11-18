@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Camera, Upload, X, Check, Loader2,
   Receipt, Stethoscope, TestTube, Pill, HeartPulse,
-  Store, CloudUpload
+  Store, CloudUpload, ChevronDown
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
 import type { Expense } from '../../types';
@@ -79,7 +79,7 @@ const categoryIcons: Record<Expense['category'], React.ComponentType<{ size?: nu
 };
 
 export const ReceiptScannerModal: React.FC<Props> = ({ isOpen, onClose, onSaveExpense }) => {
-  const { members, activeMemberId, addExpenseToMember, syncWithGoogleSheets } = useFamily();
+  const { members, activeMemberId, addExpenseToMember, syncWithGoogleSheets, appsScriptUrl } = useFamily();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
@@ -122,9 +122,9 @@ export const ReceiptScannerModal: React.FC<Props> = ({ isOpen, onClose, onSaveEx
     setLoading(true);
     setParsedData(null);
 
-    // 1. If user configured Gemini API Key, perform real Gemini 1.5 Flash Vision Multimodal OCR!
-    if (apiKey) {
-      setLoadingStep('Подключение к нейросети Google Gemini 1.5 Vision...');
+    // 1. If user configured Gemini API Key or Apps Script relay, perform real Multimodal OCR
+    if (apiKey || (appsScriptUrl && appsScriptUrl.includes('script.google.com'))) {
+      setLoadingStep('Подключение к нейросети Google Gemini Vision...');
       try {
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve, reject) => {
@@ -153,28 +153,69 @@ export const ReceiptScannerModal: React.FC<Props> = ({ isOpen, onClose, onSaveEx
 }`;
 
         const mime = file.type || 'image/jpeg';
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { inline_data: { mime_type: mime, data: base64Data } },
-                    { text: prompt },
-                  ],
-                },
-              ],
-            }),
-          }
-        );
+        let rawAiText = '';
 
-        if (res.ok) {
-          const data = await res.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Попытка 1: Через Google Apps Script Cloud Relay (без блокировок)
+        if (appsScriptUrl && appsScriptUrl.includes('script.google.com')) {
+          try {
+            const gasRes = await fetch(appsScriptUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'geminiVision',
+                image: base64Data,
+                mimeType: mime,
+                prompt,
+                apiKey: apiKey.trim(),
+              }),
+            });
+            if (gasRes.ok) {
+              const gasData = await gasRes.json();
+              if (gasData.success && gasData.text) {
+                rawAiText = gasData.text;
+              }
+            }
+          } catch (gasErr) {
+            console.warn('Apps Script Gemini Vision relay notice:', gasErr);
+          }
+        }
+
+        // Попытка 2: Прямой запрос к Google API с перебором современных моделей
+        if (!rawAiText && apiKey.trim()) {
+          const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+          for (const model of candidateModels) {
+            try {
+              const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contents: [
+                      {
+                        parts: [
+                          { inline_data: { mime_type: mime, data: base64Data } },
+                          { text: prompt },
+                        ],
+                      },
+                    ],
+                  }),
+                }
+              );
+
+              if (res.ok) {
+                const data = await res.json();
+                rawAiText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                if (rawAiText) break;
+              }
+            } catch (err) {
+              console.warn(`Gemini Vision ${model} error:`, err);
+            }
+          }
+        }
+
+        if (rawAiText) {
+          const cleanJson = rawAiText.replace(/```json/g, '').replace(/```/g, '').trim();
           const parsed = JSON.parse(cleanJson);
 
           setOcrEngine('gemini');
@@ -458,17 +499,20 @@ export const ReceiptScannerModal: React.FC<Props> = ({ isOpen, onClose, onSaveEx
                 <label className="text-[10px] font-bold text-gray-400 block mb-1">
                   Член семьи
                 </label>
-                <select
-                  value={targetMemberId}
-                  onChange={(e) => setTargetMemberId(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white"
-                >
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.roleLabel})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={targetMemberId}
+                    onChange={(e) => setTargetMemberId(e.target.value)}
+                    className="w-full pl-2.5 pr-8 py-2 rounded-xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white appearance-none cursor-pointer"
+                  >
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.roleLabel})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
 

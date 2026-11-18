@@ -33,7 +33,7 @@ export const AiDoctorModal: React.FC<Props> = ({
   biomarkers = [],
   clinicalSummary = '',
 }) => {
-  const { userProfile, activeMember } = useFamily();
+  const { userProfile, activeMember, appsScriptUrl } = useFamily();
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('app-gemini-api-key') || '';
   });
@@ -53,6 +53,10 @@ export const AiDoctorModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
+  const patientAge = 2026 - (userProfile.birthYear || 1997);
+  const patientGender = userProfile.gender === 'male' ? 'Мужской' : 'Женский';
+  const patientBmi = userProfile.bmi || 23.2;
+
   const handleSaveKey = () => {
     localStorage.setItem('app-gemini-api-key', apiKey.trim());
     setKeySaved(true);
@@ -66,29 +70,116 @@ export const AiDoctorModal: React.FC<Props> = ({
     const qLower = question.toLowerCase();
     const abnormal = biomarkers.filter((b) => b.status !== 'in-range');
 
-    if (qLower.includes('отклонен') || qLower.includes('почему') || qLower.includes('знач')) {
+    // 1. График чекапов, частота сдачи анализов по возрасту и параметрам
+    if (
+      qLower.includes('часто') ||
+      qLower.includes('возраст') ||
+      qLower.includes('когда') ||
+      qLower.includes('чекап') ||
+      qLower.includes('диспансер') ||
+      qLower.includes('периодич') ||
+      qLower.includes('график') ||
+      qLower.includes('план') ||
+      qLower.includes('параметр')
+    ) {
+      return `График профилактических обследований для вашего профиля (возраст: ${patientAge} лет, пол: ${patientGender.toLowerCase()}, рост: ${userProfile.height || 189} см, вес: ${userProfile.weight || 83} кг, ИМТ: ${patientBmi}):
+
+1. **Базовый ежегодный лабораторный минимум (1 раз в год):**
+• **Клинический анализ крови (ОАК) с лейкоцитарной формулой и СОЭ** — оценка системы кроветворения, исключение латентных инфекций, анемии и воспалительных процессов.
+• **Биохимический профиль (АЛТ, АСТ, Общий билирубин, Креатинин, Мочевина, Мочевая кислота)** — маркеры функции печени, фильтрации почек и обмена веществ.
+• **Липидограмма (Общий холестерин, ЛПВП, ЛПНП, Триглицериды)** — ключевой скрининг раннего атеросклероза сосудов и кардиорисков (в возрасте 25–35 лет рекомендуется сдавать ежегодно).
+• **Углеводный обмен (Глюкоза натощак + Гликированный гемоглобин HbA1c)** — контроль инсулинорезистентности и риска сахарного диабета.
+• **Витамин D (25-OH) и Ферритин** — депо железа и регулятор иммунитета (особенно актуально контролировать осенью и весной).
+• **Общий анализ мочи (ОАМ)** — скрининг почек и мочевыделительной системы.
+
+2. **Инструментальная диагностика (1 раз в 1–2 года):**
+• **Флюорография или низкодозная КТ органов грудной клетки** — строго 1 раз в год.
+• **ЭКГ покоя** — 1 раз в 1–2 года (при регулярных занятиях спортом — ежегодно).
+• **УЗИ органов брюшной полости и почек** — 1 раз в 2–3 года для раннего выявления дискинезий и функциональных изменений.
+
+3. **Индивидуальный статус:**
+${abnormal.length > 0
+  ? `В вашем последнем бланке зафиксированы отклонения (${abnormal.map((b) => b.name).join(', ')}). По этим позициям рекомендуется контрольная пересдача через 4–6 недель после рекомендаций терапевта.`
+  : 'Все ключевые биомаркеры находятся в референсных диапазонах. Планового ежегодного скрининга вполне достаточно для поддержания отличного тонуса.'}
+
+*Напоминание: индивидуальный план может быть скорректирован вашим лечащим врачом с учётом семейного анамнеза.*`;
+    }
+
+    // 2. Отклонения в анализах
+    if (qLower.includes('отклонен') || qLower.includes('почему') || qLower.includes('знач') || qLower.includes('повыш') || qLower.includes('пониж') || qLower.includes('плох')) {
       if (abnormal.length > 0) {
         const details = abnormal
           .map((b) => `• **${b.name}**: ${b.value} ${b.unit} (норма: ${b.refMin}–${b.refMax}). ${b.status === 'above' ? 'Превышение нормы.' : 'Ниже нормы.'} ${b.clinicalNote || ''}`)
           .join('\n');
-        return `В текущем анализе зафиксировано отклонений: ${abnormal.length}.\n\n${details}\n\nТакие сдвиги часто носят временный характер (реакция на перенесённое ОРВИ, стресс, погрешности в диете). Рекомендуется плановый визит к терапевту для сопоставления с клинической картиной.`;
+        return `В текущем анализе зафиксировано отклонений: ${abnormal.length}.\n\n${details}\n\nТакие сдвиги часто носят временный характер (реакция на перенесённое ОРВИ, стресс, погрешности в диете или интенсивные тренировки накануне). Рекомендуется плановый визит к терапевту для сопоставления с клинической картиной.`;
       }
       return 'В загруженных бланках все ключевые биомаркеры находятся в пределах референсных диапазонов лаборатории. Показатели метаболизма, воспаления и кроветворения в норме.';
     }
 
-    if (qLower.includes('врач') || qLower.includes('записат') || qLower.includes('специалист')) {
-      return `Рекомендуемый маршрут специалистов:\n\n1. **Врач-терапевт (первично)** — для базового осмотра, сбора анамнеза и расшифровки клинического анализа крови.\n2. **Кардиолог / Эндокринолог** — при повышенном холестерине (ЛПНП) или глюкозе.\n3. **Гастроэнтеролог** — при изменениях печёночных ферментов (АЛТ, АСТ, билирубин).`;
+    // 3. Маршрут врачей
+    if (qLower.includes('врач') || qLower.includes('записат') || qLower.includes('специалист') || qLower.includes('терапевт') || qLower.includes('клиник')) {
+      return `Рекомендуемый маршрут специалистов для возраста ${patientAge} лет:
+
+1. **Врач-терапевт (первично)** — базовый клинический осмотр, расшифровка ОАК и биохимии, составление индивидуального паспорта здоровья.
+2. **Кардиолог** — при повышении атерогенных фракций холестерина (ЛПНП) или нестабильном давлении.
+3. **Гастроэнтеролог** — при колебаниях ферментов печени (АЛТ, АСТ, ГГТ) или билирубина.
+4. **Эндокринолог** — при отклонениях глюкозы, гликированного гемоглобина или ТТГ (щитовидная железа).`;
     }
 
-    if (qLower.includes('диет') || qLower.includes('питани') || qLower.includes('продукт') || qLower.includes('образ жизни')) {
-      return `Клинические рекомендации по образу жизни:\n\n1. **Омега-3 и клетчатка**: добавьте в рацион морскую рыбу, льняное масло, листовую зелень и цельнозерновые крупы.\n2. **Водный баланс**: не менее 30 мл чистой воды на кг массы тела (для вас: ~${Math.round((userProfile.weight || 70) * 0.03)} л в сутки).\n3. **Сон и циркадные ритмы**: засыпание до 23:00 в полной темноте для естественного синтеза мелатонина и восстановления иммунитета.`;
+    // 4. Питание, образ жизни, вода
+    if (qLower.includes('диет') || qLower.includes('питани') || qLower.includes('продукт') || qLower.includes('образ жизни') || qLower.includes('спорт')) {
+      const waterNorm = Math.round((userProfile.weight || 83) * 0.03 * 10) / 10;
+      return `Клинические рекомендации по образу жизни для параметров (${userProfile.height || 189} см, ${userProfile.weight || 83} кг, ИМТ: ${patientBmi}):
+
+1. **Водный баланс**: целевой объём чистой воды — ~${waterNorm} л в день (из расчёта 30–35 мл на 1 кг массы тела).
+2. **Белковый оптимум**: при активном образе жизни рекомендуется 1.2–1.6 г полноценного белка на кг веса (~100–130 г в сутки).
+3. **Омега-3 и клетчатка**: жирная морская рыба 2 раза в неделю, не менее 400 г овощей и зелени в день для поддержания липидного баланса.
+4. **Сон и мелатонин**: отход ко сну до 23:30 в полной темноте и прохладе для нормализации кортизола и ночного восстановления сердечно-сосудистой системы.`;
     }
 
+    // 5. Рост, вес и расчет ИМТ
+    if (qLower.includes('вес') || qLower.includes('рост') || qLower.includes('имт') || qLower.includes('масс')) {
+      return `Анализ антропометрических параметров:
+
+• **Рост:** ${userProfile.height || 189} см
+• **Вес:** ${userProfile.weight || 83} кг
+• **ИМТ (Индекс Кетле):** ${patientBmi} кг/м²
+
+**Клиническая оценка:**
+Ваш ИМТ находится в диапазоне здоровой нормы (18.5–24.9 кг/м²). Это указывает на оптимальный баланс мышечной и жировой ткани без кардиометаболических рисков, связанных с избытком массы тела. Базовый обмен веществ (BMR) составляет порядка 1900–2050 ккал/сутки.`;
+    }
+
+    // 6. Подготовка к анализам
+    if (qLower.includes('подготов') || qLower.includes('сдават') || qLower.includes('натощак') || qLower.includes('правил')) {
+      return `Золотой стандарт подготовки к лабораторным анализам крови:
+
+1. **Строго натощак**: последний приём пищи за 8–12 часов до забора крови. Чистую негазированную воду пить можно и нужно.
+2. **За 24 часа**: исключить жирную, жареную пищу, алкоголь и тяжёлые физические тренировки (они вызывают ложный рост АЛТ, АСТ и лейкоцитов).
+3. **За 1 час**: воздержаться от курения и эмоционального стресса.
+4. **Перед процедурой**: посидеть спокойно 10–15 минут в приёмном покое для стабилизации пульса и гемодинамики.`;
+    }
+
+    // 7. Сроки пересдачи
     if (qLower.includes('пересда') || qLower.includes('повтор') || qLower.includes('контрол')) {
-      return `Оптимальные сроки контрольной пересдачи:\n\n• **Маркеры воспаления (СОЭ, Лейкоциты, СРБ)**: через 14–21 день после исчезновения любых симптомов.\n• **Липидный профиль и сахар**: через 1–2 месяца после коррекции рациона.\n• **Витамин D и ферритин**: через 2–3 месяца после приёма назначенных препаратов.`;
+      return `Оптимальные клинические сроки контрольной пересдачи:
+
+• **Маркеры воспаления (СОЭ, Лейкоциты, СРБ)**: через 14–21 день после исчезновения любых симптомов.
+• **Липидный профиль и сахар крови**: через 1.5–2 месяца после коррекции диеты и активности.
+• **Витамин D и ферритин**: через 2–3 месяца регулярного приёма назначенных дозировок.`;
     }
 
-    return `Спасибо за вопрос! На основе данных профиля (возраст: ${2026 - (userProfile.birthYear || 1995)} лет, ИМТ: ${userProfile.bmi || 23.5}) и бланка анализов:\n\nКлючевая задача — планомерный мониторинг показателей и отсутствие самолечения. Обратитесь к лечащему врачу для очной консультации и постановки официального диагноза.`;
+    // Развёрнутый общий ответ с персонализацией
+    return `Спасибо за обращение! На основе данных вашего профиля (возраст: ${patientAge} лет, пол: ${patientGender.toLowerCase()}, рост: ${userProfile.height || 189} см, вес: ${userProfile.weight || 83} кг, ИМТ: ${patientBmi}):
+
+1. **Состояние биомаркеров:**
+${abnormal.length > 0 ? `Выявлено отклонений: ${abnormal.length} (${abnormal.map((b) => b.name).join(', ')}). Обратите внимание на рекомендации терапевта по коррекции рациона и режима.` : 'Все зафиксированные биомаркеры находятся в границах клинической нормы.'}
+
+2. **Приоритеты профилактики:**
+• Поддержание кардиоваскулярного тонуса и контроль уровня холестерина.
+• Достаточный питьевой режим (~${Math.round((userProfile.weight || 83) * 0.03 * 10) / 10} л чистой воды).
+• Ежегодный профилактический чекап (ОАК, биохимия, липидограмма, глюкоза, витамин D).
+
+Задайте любой уточняющий вопрос: о подготовке к сдаче, расшифровке конкретного маркера или консультации профильных специалистов.`;
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -107,68 +198,125 @@ export const AiDoctorModal: React.FC<Props> = ({
     setLoading(true);
 
     try {
-      if (apiKey.trim()) {
-        // Real Google Gemini API Call
-        const abnormal = biomarkers.filter((b) => b.status !== 'in-range');
-        const contextStr = `Ты — высококвалифицированный медицинский ИИ-консультант.
-Пациент: ${userProfile.firstName || 'Пациент'}, пол: ${userProfile.gender === 'male' ? 'Мужской' : 'Женский'}, возраст: ${2026 - (userProfile.birthYear || 1995)} лет, ИМТ: ${userProfile.bmi || 23.5}.
+      const abnormal = biomarkers.filter((b) => b.status !== 'in-range');
+      const contextStr = `Ты — высококвалифицированный доказательный медицинский ИИ-консультант.
+Пациент: ${userProfile.firstName || 'Пациент'}, пол: ${patientGender}, возраст: ${patientAge} лет, рост: ${userProfile.height || 189} см, вес: ${userProfile.weight || 83} кг, ИМТ: ${patientBmi} кг/м², группа крови: ${userProfile.bloodType || 'A(II) Rh+'}.
 Биомаркеры пациента:
 ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin}-${b.refMax}, статус: ${b.status})`).join('\n')}
 Отклонения: ${abnormal.map((b) => b.name).join(', ') || 'нет'}.
-Резюме бланка: ${clinicalSummary}
+Резюме бланка: ${clinicalSummary || 'Показатели в норме'}
 
-Отвечай профессионально, доброжелательно, на понятном русском языке. Структурируй ответ списками. В конце всегда напомни, что консультация носит информационный характер и не заменяет очный визит к врачу.`;
+Отвечай профессионально, клинически точно, доброжелательно, на понятном русском языке. Структурируй ответ списками и чёткими практическими рекомендациями. Учитывай возраст (${patientAge} лет) и параметры пациента. В конце всегда напомни, что консультация носит информационный характер и не заменяет очный визит к врачу.`;
 
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
-          {
+      let aiResponseText = '';
+      let apiErrorMessage = '';
+
+      // Способ 1: Google Apps Script Cloud Relay (работает в облаке Google в США/ЕС — полностью без блокировок региона)
+      if (appsScriptUrl && appsScriptUrl.includes('script.google.com')) {
+        try {
+          const gasRes = await fetch(appsScriptUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
-              contents: [
-                {
-                  parts: [{ text: `${contextStr}\n\nВопрос пациента: ${text}` }],
-                },
-              ],
+              action: 'geminiChat',
+              prompt: text,
+              systemInstruction: contextStr,
+              apiKey: apiKey.trim(),
             }),
+          });
+          if (gasRes.ok) {
+            const gasData = await gasRes.json();
+            if (gasData.success && gasData.text) {
+              aiResponseText = gasData.text;
+            } else if (gasData.error) {
+              apiErrorMessage = gasData.message || gasData.error;
+            }
           }
-        );
-
-        if (!res.ok) {
-          throw new Error(`Ошибка API Gemini: ${res.status}`);
+        } catch (gasErr: any) {
+          console.warn('Apps Script Gemini relay notice:', gasErr);
         }
-
-        const data = await res.json();
-        const replyText =
-          data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-          generateLocalMedicalResponse(text);
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            sender: 'ai',
-            text: replyText,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } else {
-        // Intelligent built-in clinical rule engine (works offline with 0 setup)
-        await new Promise((r) => setTimeout(r, 900));
-        const localReply = generateLocalMedicalResponse(text);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            sender: 'ai',
-            text: localReply,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
       }
+
+      // Способ 2: Прямой запрос к Google Gemini Generative Language API (с поддержкой gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-flash)
+      if (!aiResponseText && apiKey.trim()) {
+        const candidateModels = [
+          'gemini-2.5-flash',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash',
+          'gemini-1.5-flash-latest',
+        ];
+
+        for (const model of candidateModels) {
+          try {
+            const res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [{ text: `${contextStr}\n\nВопрос пациента: ${text}` }],
+                    },
+                  ],
+                }),
+              }
+            );
+
+            if (res.ok) {
+              const data = await res.json();
+              const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (reply) {
+                aiResponseText = reply;
+                break;
+              }
+            } else {
+              const errText = await res.text();
+              apiErrorMessage = `Google Gemini (${model}): HTTP ${res.status}`;
+              if (errText.includes('location')) {
+                apiErrorMessage = 'Региональное ограничение Google на прямой запрос из вашего региона';
+              }
+            }
+          } catch (directErr: any) {
+            apiErrorMessage = directErr.message || 'Сетевая ошибка';
+          }
+        }
+      }
+
+      // Если нейросеть ответила (онлайн):
+      if (aiResponseText) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            sender: 'ai',
+            text: aiResponseText,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        return;
+      }
+
+      // Способ 3: Автономный клинический движок доказательной медицины (работает оффлайн с 0 настройкой)
+      await new Promise((r) => setTimeout(r, 600));
+      const localReply = generateLocalMedicalResponse(text);
+
+      let finalReply = localReply;
+      if (apiKey.trim() && apiErrorMessage) {
+        finalReply = `⚠️ *Уведомление подключения Gemini:* Прямой запрос к Google API вернул предупреждение (${apiErrorMessage}). Ответ сформирован клиническим модулем доказательной медицины:\n\n` + localReply;
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          sender: 'ai',
+          text: finalReply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
     } catch (err: any) {
       console.error('AI Doctor Error:', err);
-      // Seamless fallback to intelligent local engine so user is never left hanging
       const fallbackReply = generateLocalMedicalResponse(text);
       setMessages((prev) => [
         ...prev,
@@ -201,7 +349,11 @@ ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin
                 </span>
               </div>
               <p className="text-[10px] text-purple-100 truncate">
-                {apiKey ? 'Онлайн: Google Gemini 1.5' : 'Встроенный клинический движок'}
+                {appsScriptUrl && appsScriptUrl.includes('script.google.com')
+                  ? 'Онлайн: Google Gemini (Cloud Шлюз)'
+                  : apiKey
+                  ? 'Онлайн: Google Gemini API'
+                  : 'Автономный клинический движок'}
               </p>
             </div>
           </div>

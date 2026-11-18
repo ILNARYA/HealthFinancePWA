@@ -200,7 +200,7 @@ export const AddChildModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <select
                   value={bloodType}
                   onChange={(e) => setBloodType(e.target.value)}
-                  className="w-full px-2.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer"
+                  className="w-full pl-2.5 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold appearance-none cursor-pointer"
                 >
                   <option value="A(II) Rh+">A(II) Rh+</option>
                   <option value="O(I) Rh+">O(I) Rh+</option>

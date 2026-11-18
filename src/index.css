@@ -117,6 +117,17 @@ input[type="number"] {
   color-scheme: dark;
 }
 
+/* Universal select reset across Chrome, Edge, Safari, Firefox to prevent double arrows */
+select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+}
+select::-ms-expand {
+  display: none !important;
+}
+
 select option {
   background-color: #ffffff;
   color: #0f172a;
