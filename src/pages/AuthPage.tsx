@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse, ShieldCheck, Lock, Mail, Eye, EyeOff,
   Sparkles, Scale, ArrowRight, Sun, Moon,
-  ChevronDown, CheckCircle2, X, UserPlus, Check, Loader2
+  ChevronDown, CheckCircle2, X, UserPlus, Check, Loader2, KeyRound
 } from 'lucide-react';
 import { useFamily, knownAdultRegistry } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
@@ -13,7 +13,9 @@ import {
   fetchRemoteUsers,
   findUserByEmail,
   appendUserToRemoteSheet,
-  deleteRemoteUser
+  deleteRemoteUser,
+  sendPasswordResetOtp,
+  resetRemoteUserPassword
 } from '../config/api';
 
 export const AuthPage: React.FC = () => {
@@ -21,7 +23,7 @@ export const AuthPage: React.FC = () => {
   const { login, register, loadDemoData } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
-  const [mode, setMode] = useState<'welcome' | 'login' | 'register'>('welcome');
+  const [mode, setMode] = useState<'welcome' | 'login' | 'register' | 'forgot_password'>('welcome');
 
   // Login form state
   const [loginId, setLoginId] = useState('');
@@ -36,10 +38,10 @@ export const AuthPage: React.FC = () => {
   const [regMiddleName, setRegMiddleName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [regBirthYear, setRegBirthYear] = useState<number>(1998);
+  const [regBirthYear, setRegBirthYear] = useState<number | ''>(1998);
   const [regGender, setGender] = useState<'male' | 'female'>('male');
-  const [regHeight, setRegHeight] = useState<number>(175);
-  const [regWeight, setRegWeight] = useState<number>(70);
+  const [regHeight, setRegHeight] = useState<number | ''>(175);
+  const [regWeight, setRegWeight] = useState<number | ''>(70);
   const [regBloodType, setRegBloodType] = useState('A(II) Rh+');
   const [regPolicyOMS, setRegPolicyOMS] = useState('');
 
@@ -52,6 +54,18 @@ export const AuthPage: React.FC = () => {
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [duplicatePromptEmail, setDuplicatePromptEmail] = useState<string | null>(null);
 
+  // Password Reset state ("Забыли пароль?")
+  const [resetStep, setResetStep] = useState<'email' | 'verify'>('email');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [resetEnteredCode, setResetEnteredCode] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetCountdown, setResetCountdown] = useState<number>(0);
+
   React.useEffect(() => {
     let timer: any;
     if (countdown > 0) {
@@ -59,6 +73,14 @@ export const AuthPage: React.FC = () => {
     }
     return () => clearTimeout(timer);
   }, [countdown]);
+
+  React.useEffect(() => {
+    let timer: any;
+    if (resetCountdown > 0) {
+      timer = setTimeout(() => setResetCountdown(resetCountdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resetCountdown]);
 
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
@@ -69,9 +91,11 @@ export const AuthPage: React.FC = () => {
   const [customGoogleName, setCustomGoogleName] = useState('');
 
   // Real-time BMI calculation for register
-  const heightM = (regHeight || 170) / 100;
-  const bmi = Math.round(((regWeight || 70) / (heightM * heightM)) * 10) / 10;
-  const age = 2026 - regBirthYear;
+  const numHeight = Number(regHeight) || 170;
+  const numWeight = Number(regWeight) || 70;
+  const heightM = numHeight / 100;
+  const bmi = Math.round((numWeight / (heightM * heightM)) * 10) / 10;
+  const age = 2026 - (Number(regBirthYear) || 1998);
 
   const getBmiBadge = (val: number) => {
     if (val < 18.5) return { label: 'Дефицит веса', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/60 border-amber-200' };
@@ -283,10 +307,10 @@ export const AuthPage: React.FC = () => {
         lastName: regLastName.trim(),
         middleName: regMiddleName.trim(),
         password: regPassword.trim() || 'google_oauth_verified',
-        birthYear: regBirthYear,
+        birthYear: Number(regBirthYear) || 1995,
         gender: regGender,
-        height: regHeight,
-        weight: regWeight,
+        height: Number(regHeight) || 175,
+        weight: Number(regWeight) || 70,
         bmi,
         bloodType: regBloodType,
         policyOMS: regPolicyOMS.trim() || '1694 0000 0000 0000',
@@ -399,10 +423,10 @@ export const AuthPage: React.FC = () => {
       lastName: regLastName.trim(),
       middleName: regMiddleName.trim(),
       password: regPassword.trim() || 'pass1234',
-      birthYear: regBirthYear,
+      birthYear: Number(regBirthYear) || 1995,
       gender: regGender,
-      height: regHeight,
-      weight: regWeight,
+      height: Number(regHeight) || 175,
+      weight: Number(regWeight) || 70,
       bmi,
       bloodType: regBloodType,
       policyOMS: regPolicyOMS.trim() || '1694 0000 0000 0000',
@@ -425,6 +449,118 @@ export const AuthPage: React.FC = () => {
     setTimeout(() => {
       navigate('/');
     }, 500);
+  };
+
+  // Password Recovery Handlers
+  const handleSendResetCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = resetEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setResetError('Пожалуйста, укажите корректный адрес Email');
+      return;
+    }
+
+    setIsResetting(true);
+    setResetError(null);
+
+    // Verify user exists in local DB or remote sheet
+    const existing = await findUserByEmail(cleanEmail);
+    if (!existing) {
+      const isDemo = knownAdultRegistry.find(u => u.email.toLowerCase() === cleanEmail);
+      if (!isDemo) {
+        setIsResetting(false);
+        setResetError(`Пользователь с адресом «${cleanEmail}» не найден в системе. Пожалуйста, пройдите регистрацию.`);
+        return;
+      }
+    }
+
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setResetCode(generatedOtp);
+
+    try {
+      const res = await sendPasswordResetOtp(cleanEmail, generatedOtp);
+      if (!res.success && res.error === 'USER_NOT_FOUND') {
+        setIsResetting(false);
+        setResetError(`Пользователь «${cleanEmail}» не найден в базе Google Таблицы.`);
+        return;
+      }
+    } catch (err: any) {
+      console.warn('sendPasswordResetOtp notice:', err);
+    }
+
+    setIsResetting(false);
+    setResetCountdown(60);
+    setResetStep('verify');
+    setSuccessToast(`📧 Код для восстановления отправлен на ${cleanEmail}`);
+    setTimeout(() => setSuccessToast(null), 4000);
+  };
+
+  const handleConfirmPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetEnteredCode.trim().length !== 6) {
+      setResetError('Введите полный 6-значный код безопасности.');
+      return;
+    }
+    if (resetEnteredCode.trim() !== resetCode) {
+      setResetError('Неверный код безопасности. Проверьте код из письма или запросите новый.');
+      return;
+    }
+    if (!resetNewPassword.trim() || resetNewPassword.trim().length < 4) {
+      setResetError('Пароль должен содержать не менее 4 символов.');
+      return;
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError('Пароли не совпадают. Повторите ввод.');
+      return;
+    }
+
+    setIsResetting(true);
+    setResetError(null);
+    const cleanEmail = resetEmail.trim().toLowerCase();
+
+    // 1. Update in local registry
+    try {
+      const localUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+      const targetUser = localUsers.find((u: any) => u.email?.toLowerCase() === cleanEmail);
+      if (targetUser) {
+        targetUser.password = resetNewPassword.trim();
+        localStorage.setItem('app-users-registry-db', JSON.stringify(localUsers));
+      }
+      const curProfile = JSON.parse(localStorage.getItem('app-user-profile') || '{}');
+      if (curProfile.email && curProfile.email.toLowerCase() === cleanEmail) {
+        curProfile.password = resetNewPassword.trim();
+        localStorage.setItem('app-user-profile', JSON.stringify(curProfile));
+      }
+    } catch (e) {
+      console.warn('Local password update error:', e);
+    }
+
+    // 2. Update in remote Google Apps Script sheet
+    try {
+      await resetRemoteUserPassword(cleanEmail, resetNewPassword.trim());
+    } catch (err) {
+      console.warn('Remote password update error:', err);
+    }
+
+    setIsResetting(false);
+    setSuccessToast('🎉 Пароль успешно обновлён! Выполните вход с новым паролем.');
+    setMode('login');
+    setLoginId(cleanEmail);
+    setLoginPassword(resetNewPassword.trim());
+    setTimeout(() => setSuccessToast(null), 5000);
+  };
+
+  const handleResendResetCode = async () => {
+    const cleanEmail = resetEmail.trim().toLowerCase();
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setResetCode(generatedOtp);
+    setResetError(null);
+    setIsResetting(true);
+    await sendPasswordResetOtp(cleanEmail, generatedOtp);
+    setIsResetting(false);
+    setResetCountdown(60);
+    setSuccessToast(`📧 Новый код отправлен на ${cleanEmail}`);
+    setTimeout(() => setSuccessToast(null), 3000);
   };
 
   return (
@@ -463,29 +599,34 @@ export const AuthPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Back Button to Welcome Hub */}
+        {/* Back Button to Welcome Hub or Login */}
         {mode !== 'welcome' && (
           <div className="flex items-center justify-between mb-3 px-1">
             <button
               type="button"
               onClick={() => {
-                setMode('welcome');
+                if (mode === 'forgot_password') {
+                  setMode('login');
+                } else {
+                  setMode('welcome');
+                }
                 setRegStep('form');
                 setCodeError(null);
+                setResetError(null);
                 setSuccessToast(null);
               }}
               className="text-xs font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-white flex items-center gap-1.5 transition-colors"
             >
-              <span>← На главный экран</span>
+              <span>{mode === 'forgot_password' ? '← Назад ко входу' : '← На главный экран'}</span>
             </button>
             <span className="text-[10px] text-gray-400 font-medium">
-              {mode === 'login' ? 'Авторизация' : 'Анкета профиля'}
+              {mode === 'login' ? 'Авторизация' : mode === 'forgot_password' ? 'Восстановление доступа' : 'Анкета профиля'}
             </span>
           </div>
         )}
 
-        {/* Tab Switcher: Вход / Регистрация (Only shown when not on welcome screen) */}
-        {mode !== 'welcome' && (
+        {/* Tab Switcher: Вход / Регистрация (Only shown for login and register) */}
+        {(mode === 'login' || mode === 'register') && (
           <div className="bg-gray-100 dark:bg-[#161b26] p-1 rounded-2xl flex items-center gap-1 mb-4 border border-gray-200/60 dark:border-gray-800">
             <button
               type="button"
@@ -686,9 +827,18 @@ export const AuthPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[10px] font-bold text-gray-400">Пароль</label>
-                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetEmail(loginId.includes('@') ? loginId.trim() : '');
+                      setResetStep('email');
+                      setResetError(null);
+                      setMode('forgot_password');
+                    }}
+                    className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold hover:underline cursor-pointer"
+                  >
                     Забыли пароль?
-                  </span>
+                  </button>
                 </div>
                 <div className="relative">
                   <input
@@ -751,6 +901,181 @@ export const AuthPage: React.FC = () => {
                 Для публичной демонстрации возможностей хаба
               </span>
             </div>
+          </div>
+        )}
+
+        {/* MODE D: FORGOT PASSWORD (EMAIL OTP RECOVERY) */}
+        {mode === 'forgot_password' && (
+          <div className="bg-white dark:bg-[#161b26] p-5 rounded-3xl border border-purple-100/60 dark:border-purple-500/20 shadow-xl space-y-4 animate-fade-in text-xs">
+            <div className="text-center space-y-1.5">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs">
+                <KeyRound size={22} />
+              </div>
+              <h3 className="text-sm font-black text-gray-900 dark:text-white">
+                {resetStep === 'email' ? 'Восстановление доступа' : 'Новый пароль'}
+              </h3>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                {resetStep === 'email'
+                  ? 'Введите email вашего аккаунта, и мы вышлем 6-значный код безопасности для сброса пароля.'
+                  : `Код безопасности отправлен на ${resetEmail}`}
+              </p>
+            </div>
+
+            {resetError && (
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-[11px] font-bold text-rose-700 dark:text-rose-300 text-center animate-shake">
+                {resetError}
+              </div>
+            )}
+
+            {resetStep === 'email' ? (
+              <form onSubmit={handleSendResetCode} className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">
+                    Ваш зарегистрированный Email
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => {
+                        setResetEmail(e.target.value);
+                        if (resetError) setResetError(null);
+                      }}
+                      placeholder="name@example.com"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required
+                      autoFocus
+                    />
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!resetEmail.trim() || isResetting}
+                  className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-40 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+                >
+                  {isResetting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Mail size={14} />
+                  )}
+                  <span>{isResetting ? 'Отправка кода...' : 'Получить код для сброса'}</span>
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleConfirmPasswordReset} className="space-y-3">
+                {/* 6-digit code */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 block text-center uppercase tracking-wider">
+                    6-значный код из письма
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={resetEnteredCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setResetEnteredCode(val);
+                      if (resetError) setResetError(null);
+                    }}
+                    placeholder="••••••"
+                    autoFocus
+                    className="w-full text-center text-2xl font-black font-mono tracking-[0.3em] py-2 px-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-purple-700 dark:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">
+                    Новый пароль (минимум 4 символа)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showResetPassword ? 'text' : 'password'}
+                      value={resetNewPassword}
+                      onChange={(e) => {
+                        setResetNewPassword(e.target.value);
+                        if (resetError) setResetError(null);
+                      }}
+                      placeholder="Введите новый пароль"
+                      className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showResetPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1">
+                    Повторите новый пароль
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showResetPassword ? 'text' : 'password'}
+                      value={resetConfirmPassword}
+                      onChange={(e) => {
+                        setResetConfirmPassword(e.target.value);
+                        if (resetError) setResetError(null);
+                      }}
+                      placeholder="Повторите новый пароль"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={resetEnteredCode.length !== 6 || !resetNewPassword.trim() || isResetting}
+                  className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-40 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+                >
+                  {isResetting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={15} />
+                  )}
+                  <span>{isResetting ? 'Обновление пароля...' : 'Сохранить новый пароль и войти'}</span>
+                </button>
+
+                {/* Resend and back controls */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetStep('email');
+                      setResetError(null);
+                    }}
+                    className="text-gray-400 hover:text-purple-600 font-semibold"
+                  >
+                    ← Изменить email
+                  </button>
+
+                  {resetCountdown > 0 ? (
+                    <span className="text-gray-400">
+                      Повторно через <span className="font-bold text-purple-600 font-mono">{resetCountdown}с</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendResetCode}
+                      className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
+                    >
+                      Выслать код снова
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
           </div>
         )}
 
@@ -857,12 +1182,16 @@ export const AuthPage: React.FC = () => {
                   <span className="text-[9px] text-purple-600 font-bold">{formatYears(age)}</span>
                 </div>
                 <input
-                  type="number"
-                  min="1940"
-                  max="2026"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
                   value={regBirthYear}
-                  onChange={(e) => setRegBirthYear(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold dark:[color-scheme:dark]"
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                    setRegBirthYear(clean === '' ? '' : Number(clean));
+                  }}
+                  placeholder="1998"
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold"
                 />
               </div>
               <div>
@@ -905,19 +1234,31 @@ export const AuthPage: React.FC = () => {
                 <div>
                   <label className="text-[9px] font-semibold text-gray-400 block">Рост (см)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={3}
                     value={regHeight}
-                    onChange={(e) => setRegHeight(Number(e.target.value))}
-                    className="w-full px-2.5 py-1 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-bold dark:[color-scheme:dark]"
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                      setRegHeight(clean === '' ? '' : Number(clean));
+                    }}
+                    placeholder="175"
+                    className="w-full px-2.5 py-1 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-bold"
                   />
                 </div>
                 <div>
                   <label className="text-[9px] font-semibold text-gray-400 block">Вес (кг)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={3}
                     value={regWeight}
-                    onChange={(e) => setRegWeight(Number(e.target.value))}
-                    className="w-full px-2.5 py-1 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-bold dark:[color-scheme:dark]"
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                      setRegWeight(clean === '' ? '' : Number(clean));
+                    }}
+                    placeholder="70"
+                    className="w-full px-2.5 py-1 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] font-bold"
                   />
                 </div>
               </div>

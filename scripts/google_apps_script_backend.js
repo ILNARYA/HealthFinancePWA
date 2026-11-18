@@ -6,35 +6,61 @@
  * ВОЗМОЖНОСТИ:
  * 1. Реальная отправка 6-значных кодов на Email (Яндекс, Gmail, Mail.ru) через MailApp.
  * 2. Реестр пользователей и защита от повторной регистрации (таблица «Пользователи_и_Семья»).
- * 3. Автоматическое создание всех листов и колонок в новой таблице.
- * 4. Авторизация и синхронизация расходов, биомаркеров и семейных профилей.
- * 5. Поддержка и русских («Пользователи_и_Семья»), и английских («users») названий листов.
+ * 3. Полная поддержка восстановления и смены пароля (action: 'resetPassword').
+ * 4. Поддержка «Свойств скрипта» (PropertiesService): SPREADSHEET_ID или SPREADSHEET_URL.
+ *    Это позволяет хранить ID таблицы внутри настроек Google Apps Script, не раскрывая его в PWA!
+ * 5. Автоматическое создание всех листов и колонок в новой таблице.
+ * 6. Авторизация и синхронизация расходов, биомаркеров и семейных профилей.
  * 
- * ИНСТРУКЦИЯ ПО РАЗВЕРТЫВАНИЮ В 3 КЛИКА:
- * 1. Откройте вашу Google Таблицу на Google Диске (drive.google.com).
- * 2. Меню: Расширения (Extensions) -> Apps Script.
- * 3. Выделите весь старый код (Ctrl+A / Cmd+A), вставьте этот код и нажмите «Сохранить» (Ctrl+S).
- * 4. Нажмите «Развернуть» (Deploy) -> «Управление развертываниями» (Manage deployments).
- * 5. Нажмите значок карандаша (Редактировать) слева от активного развертывания:
- *    - «Версия» (Version): выберите «Новая версия» (New version)
- *    - «Запуск от имени» (Execute as): «От моего имени» (Me)
- *    - «У кого есть доступ» (Who has access): «Все» (Anyone)  <--- КРИТИЧЕСКИ ВАЖНО!
- * 6. Нажмите «Развернуть» (Deploy).
- * 7. В выпадающем списке функций выберите «testSendEmail» и нажмите «Выполнить» (Run),
- *    чтобы один раз подтвердить разрешения Google на отправку писем через MailApp!
+ * НАСТРОЙКА СВОЙСТВ СКРИПТА (По рекомендации пользователя):
+ * 1. В редакторе Apps Script нажмите слева на значок шестерёнки «Настройки проекта» (Project Settings).
+ * 2. Прокрутите вниз до раздела «Свойства скрипта» (Script Properties) и нажмите «Добавить свойство скрипта».
+ * 3. Свойство (Property): SPREADSHEET_ID (или SPREADSHEET_URL)
+ * 4. Значение (Value): ID вашей Google Таблицы (из адресной строки) или полная ссылка на таблицу.
+ * 5. Нажмите «Сохранить свойства скрипта». Теперь скрипт автоматически работает с вашей таблицей!
  */
+
+/**
+ * Получение объекта Google Таблицы:
+ * 1. Сначала из «Свойств скрипта» (Script Properties: SPREADSHEET_ID или SPREADSHEET_URL)
+ * 2. Если не задано — из связанной активной таблицы (SpreadsheetApp.getActiveSpreadsheet())
+ */
+function getSpreadsheet() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var sheetIdOrUrl = props.getProperty('SPREADSHEET_ID') || props.getProperty('SPREADSHEET_URL');
+    if (sheetIdOrUrl) {
+      sheetIdOrUrl = sheetIdOrUrl.trim();
+      if (sheetIdOrUrl.indexOf('http') === 0) {
+        return SpreadsheetApp.openByUrl(sheetIdOrUrl);
+      } else {
+        return SpreadsheetApp.openById(sheetIdOrUrl);
+      }
+    }
+  } catch (err) {
+    Logger.log('Property SPREADSHEET_ID / SPREADSHEET_URL notice: ' + err);
+  }
+
+  try {
+    var active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+  } catch (err2) {
+    Logger.log('Active spreadsheet notice: ' + err2);
+  }
+
+  throw new Error('Не найдена Google Таблица. Укажите свойство скрипта SPREADSHEET_ID или SPREADSHEET_URL в настройках проекта.');
+}
 
 /**
  * Функция для однократной авторизации прав на отправку писем.
  * Выберите эту функцию вверху в Apps Script и нажмите «Выполнить» (Run).
- * При первом запуске Google попросит нажать «Проверить разрешения» -> «Разрешить».
  */
 function testSendEmail() {
   var userEmail = Session.getActiveUser().getEmail() || 'yamayev2010@yandex.ru';
   MailApp.sendEmail({
     to: userEmail,
     subject: 'Тест авторизации — Здоровье & Финансы',
-    htmlBody: '<p>Авторизация MailApp успешна! Теперь веб-приложение может отправлять коды верификации пользователям.</p>'
+    htmlBody: '<p>Авторизация MailApp успешна! Веб-приложение теперь может отправлять коды верификации и сброса паролей.</p>'
   });
   Logger.log('Письмо успешно отправлено на: ' + userEmail);
 }
@@ -86,7 +112,7 @@ function initializeAllSheets(ss) {
     'Email', 'Год_рождения', 'Пол', 'Рост_см', 'Вес_кг', 'ИМТ', 'Группа_крови', 'Полис_ОМС', 'Дата_регистрации', 'Пароль'
   ]);
   getOrCreateSheet(ss, SHEET_NAMES.CODES, [
-    'Email', 'Код', 'Создан', 'Истекает', 'Статус'
+    'Email', 'Код', 'Создан', 'Истекает', 'Статус', 'Назначение'
   ]);
   getOrCreateSheet(ss, SHEET_NAMES.EXPENSES, [
     'ID_Траты', 'Дата', 'Месяц', 'Персональный_ID', 'Член_семьи', 'Категория_расхода',
@@ -128,17 +154,24 @@ function appendRecordToSheet(sheet, record) {
 
 function doGet(e) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSpreadsheet();
     initializeAllSheets(ss);
 
     var action = (e && e.parameter && e.parameter.action) || 'ping';
     var email = (e && e.parameter && e.parameter.email) || '';
 
-    // 1. Отправка 6-значного кода на Email (поддержка GET)
+    // 1. Отправка 6-значного кода на Email (регистрация или сброс пароля)
     if (action === 'sendVerificationCode' && email) {
       var code = (e && e.parameter && e.parameter.code) || '';
       var name = (e && e.parameter && e.parameter.name) || '';
-      return handleSendVerificationCode(ss, email, code, name);
+      var purpose = (e && e.parameter && e.parameter.purpose) || 'register';
+      return handleSendVerificationCode(ss, email, code, name, purpose);
+    }
+
+    // 1.5. Отправка кода для сброса пароля
+    if (action === 'sendPasswordResetCode' && email) {
+      var resetCode = (e && e.parameter && e.parameter.code) || '';
+      return handleSendVerificationCode(ss, email, resetCode, '', 'reset_password');
     }
 
     // 2. Проверка существования пользователя
@@ -147,7 +180,7 @@ function doGet(e) {
       var data = userSheet.getDataRange().getValues();
       var headers = data[0].map(function(h) { return h ? h.toString().trim().replace(/^\ufeff/, '').toLowerCase() : ''; });
       var emailIndex = headers.indexOf('email');
-      if (emailIndex === -1) emailIndex = 6; // fallback
+      if (emailIndex === -1) emailIndex = 6;
 
       var exists = false;
       var userData = null;
@@ -196,15 +229,17 @@ function doGet(e) {
   }
 }
 
-function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
+function handleSendVerificationCode(ss, targetEmail, otpCode, userName, purpose) {
   var cleanEmail = (targetEmail || '').trim().toLowerCase();
   if (!cleanEmail || !cleanEmail.includes('@')) {
     return jsonResponse({ success: false, error: 'INVALID_EMAIL', message: 'Некорректный адрес email' });
   }
 
-  // Проверка: зарегистрирован ли уже пользователь
+  purpose = purpose || 'register';
   var userSheet = resolveSheet(ss, 'users');
   var usersData = userSheet.getDataRange().getValues();
+  var userFound = false;
+
   if (usersData.length > 1) {
     var uHeaders = usersData[0].map(function(h) { return h ? h.toString().trim().replace(/^\ufeff/, '').toLowerCase() : ''; });
     var emailCol = uHeaders.indexOf('email');
@@ -213,13 +248,28 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
     for (var i = 1; i < usersData.length; i++) {
       var curEmail = (usersData[i][emailCol] || '').toString().toLowerCase().trim();
       if (curEmail === cleanEmail) {
-        return jsonResponse({
-          success: false,
-          error: 'USER_ALREADY_EXISTS',
-          message: 'Пользователь с адресом ' + cleanEmail + ' уже зарегистрирован! Пожалуйста, выполните вход.'
-        });
+        userFound = true;
+        break;
       }
     }
+  }
+
+  // Для РЕГИСТРАЦИИ: если уже есть, возвращаем USER_ALREADY_EXISTS
+  if (purpose === 'register' && userFound) {
+    return jsonResponse({
+      success: false,
+      error: 'USER_ALREADY_EXISTS',
+      message: 'Пользователь с адресом ' + cleanEmail + ' уже зарегистрирован! Пожалуйста, выполните вход.'
+    });
+  }
+
+  // Для СБРОСА ПАРОЛЯ: если пользователь НЕ найден, сообщаем об этом
+  if (purpose === 'reset_password' && !userFound) {
+    return jsonResponse({
+      success: false,
+      error: 'USER_NOT_FOUND',
+      message: 'Пользователь с адресом ' + cleanEmail + ' не найден в базе данных.'
+    });
   }
 
   // Генерация / использование кода
@@ -229,10 +279,18 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
 
   // Сохранение в лист Коды_Верификации
   var codeSheet = resolveSheet(ss, 'codes');
-  codeSheet.appendRow([cleanEmail, code, now.toISOString(), expiresAt.toISOString(), 'ACTIVE']);
+  codeSheet.appendRow([cleanEmail, code, now.toISOString(), expiresAt.toISOString(), 'ACTIVE', purpose]);
 
-  // Отправка письма
-  var subject = 'Код подтверждения: ' + code + ' — Здоровье & Финансы';
+  // Заголовок и текст письма в зависимости от назначения
+  var isReset = (purpose === 'reset_password');
+  var subject = isReset 
+    ? 'Код сброса пароля: ' + code + ' — Здоровье & Финансы' 
+    : 'Код подтверждения: ' + code + ' — Здоровье & Финансы';
+
+  var purposeDesc = isReset
+    ? 'Вы запросили сброс пароля для входа в семейный хаб.'
+    : 'Вы указали этот адрес электронной почты для регистрации личного кабинета.';
+
   var greeting = userName ? 'Здравствуйте, ' + userName + '!' : 'Здравствуйте!';
   var htmlBody = 
     '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e9d5ff; border-radius: 20px; background-color: #ffffff; color: #1e1b4b;">' +
@@ -244,10 +302,10 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
         '<p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Единый семейный медицинский хаб</p>' +
       '</div>' +
       '<p style="font-size: 14px; color: #334155; line-height: 1.5; margin-bottom: 16px;">' +
-        greeting + ' Вы указали этот адрес электронной почты для регистрации личного кабинета.' +
+        greeting + ' ' + purposeDesc +
       '</p>' +
       '<p style="font-size: 14px; font-weight: bold; color: #1e1b4b; margin-bottom: 8px;">' +
-        'Ваш одноразовый код подтверждения:' +
+        (isReset ? 'Ваш код для сброса пароля:' : 'Ваш одноразовый код подтверждения:') +
       '</p>' +
       '<div style="text-align: center; margin: 20px 0;">' +
         '<span style="display: inline-block; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #7c3aed; background: #faf5ff; border: 2px dashed #c084fc; padding: 12px 28px; border-radius: 16px;">' +
@@ -257,7 +315,7 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
       '<p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-top: 16px;">' +
         '• Код действует <strong>10 минут</strong>.<br/>' +
         '• Никому не сообщайте этот код.<br/>' +
-        '• Если вы не регистрировались в приложении, просто проигнорируйте это письмо.' +
+        '• Если вы не совершали этот запрос, ваш аккаунт в безопасности — просто проигнорируйте письмо.' +
       '</p>' +
       '<hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0 16px;" />' +
       '<p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">' +
@@ -285,8 +343,56 @@ function handleSendVerificationCode(ss, targetEmail, otpCode, userName) {
 
   return jsonResponse({
     success: true,
-    message: 'Код подтверждения успешно отправлен на адрес ' + cleanEmail
+    message: 'Код успешно отправлен на адрес ' + cleanEmail
   });
+}
+
+function handleResetPassword(ss, targetEmail, newPassword) {
+  var cleanEmail = (targetEmail || '').trim().toLowerCase();
+  if (!cleanEmail || !newPassword) {
+    return jsonResponse({ success: false, error: 'Email and newPassword required' });
+  }
+
+  var userSheet = resolveSheet(ss, 'users');
+  var data = userSheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return jsonResponse({ success: false, error: 'USER_NOT_FOUND', message: 'Таблица пользователей пуста' });
+  }
+
+  var headers = data[0].map(function(h) { return h ? h.toString().trim().replace(/^\ufeff/, '').toLowerCase() : ''; });
+  var emailIndex = headers.indexOf('email');
+  if (emailIndex === -1) emailIndex = 6;
+
+  var passwordIndex = headers.indexOf('пароль');
+  if (passwordIndex === -1) passwordIndex = headers.indexOf('password');
+  if (passwordIndex === -1) {
+    // Добавим колонку «Пароль», если её ещё нет
+    passwordIndex = headers.length;
+    userSheet.getRange(1, passwordIndex + 1).setValue('Пароль');
+  }
+
+  var updated = false;
+  for (var i = 1; i < data.length; i++) {
+    var rowEmail = (data[i][emailIndex] || '').toString().toLowerCase().trim();
+    if (rowEmail === cleanEmail) {
+      userSheet.getRange(i + 1, passwordIndex + 1).setValue(newPassword);
+      updated = true;
+      break;
+    }
+  }
+
+  if (updated) {
+    return jsonResponse({
+      success: true,
+      message: 'Пароль для пользователя ' + cleanEmail + ' успешно обновлён.'
+    });
+  } else {
+    return jsonResponse({
+      success: false,
+      error: 'USER_NOT_FOUND',
+      message: 'Пользователь ' + cleanEmail + ' не найден.'
+    });
+  }
 }
 
 function handleDeleteUser(ss, targetEmail) {
@@ -321,7 +427,7 @@ function handleDeleteUser(ss, targetEmail) {
 
 function doPost(e) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getSpreadsheet();
     initializeAllSheets(ss);
 
     if (!e || !e.postData || !e.postData.contents) {
@@ -332,14 +438,22 @@ function doPost(e) {
     var action = payload.action || 'sync';
 
     // 1. ОТПРАВКА 6-ЗНАЧНОГО КОДА НА EMAIL ЧЕРЕЗ MailApp
-    if (action === 'sendVerificationCode') {
+    if (action === 'sendVerificationCode' || action === 'sendPasswordResetCode') {
       var targetEmail = (payload.email || '').trim().toLowerCase();
       var otpCode = payload.code || '';
       var userName = payload.name || '';
-      return handleSendVerificationCode(ss, targetEmail, otpCode, userName);
+      var purpose = payload.purpose || (action === 'sendPasswordResetCode' ? 'reset_password' : 'register');
+      return handleSendVerificationCode(ss, targetEmail, otpCode, userName, purpose);
     }
 
-    // 2. ВЕРИФИКАЦИЯ КОДА И СОХРАНЕНИЕ ПОЛЬЗОВАТЕЛЯ
+    // 2. СБРОС И ОБНОВЛЕНИЕ ПАРОЛЯ
+    if (action === 'resetPassword' || action === 'updatePassword') {
+      var resetEmail = (payload.email || '').trim().toLowerCase();
+      var newPass = payload.newPassword || payload.password || '';
+      return handleResetPassword(ss, resetEmail, newPass);
+    }
+
+    // 3. ВЕРИФИКАЦИЯ КОДА И СОХРАНЕНИЕ ПОЛЬЗОВАТЕЛЯ
     if (action === 'verifyAndRegister') {
       var verifyEmail = (payload.email || '').trim().toLowerCase();
       var code = (payload.code || '').trim();
@@ -355,12 +469,12 @@ function doPost(e) {
       });
     }
 
-    // 2.5. УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ ОЧИСТКИ И ПЕРЕРЕГИСТРАЦИИ
+    // 4. УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ ОЧИСТКИ И ПЕРЕРЕГИСТРАЦИИ
     if (action === 'deleteUser' && payload.email) {
       return handleDeleteUser(ss, payload.email);
     }
 
-    // 3. ОБЫЧНОЕ ДОБАВЛЕНИЕ ЗАПИСИ (expenses, biomarkers, users)
+    // 5. ОБЫЧНОЕ ДОБАВЛЕНИЕ ЗАПИСИ (expenses, biomarkers, users)
     var targetTable = payload.table || 'expenses';
     var sheetToAppend = resolveSheet(ss, targetTable);
     if (payload.data) {

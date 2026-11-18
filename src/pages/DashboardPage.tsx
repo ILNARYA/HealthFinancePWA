@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import HealthIndex from '../components/dashboard/HealthIndex';
-import BiomarkerRangeChart from '../components/dashboard/BiomarkerRangeChart';
 import BiomarkerCard from '../components/dashboard/BiomarkerCard';
 import SpendingSummary from '../components/dashboard/SpendingSummary';
 import { monthsData, demoHealthTrend } from '../data/demo';
-import { Activity, Sparkles, Moon, Sun, Layers, BarChart3, Lock, Users, FileSearch, EyeOff, Wallet, Bot } from 'lucide-react';
+import { Activity, Sparkles, Moon, Sun, BarChart3, Lock, Users, FileSearch, EyeOff, Wallet, Bot } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useFamily } from '../context/FamilyContext';
 import { FamilySwitcherModal } from '../components/family/FamilySwitcherModal';
@@ -15,7 +14,6 @@ import { AiDoctorModal } from '../components/ai/AiDoctorModal';
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
-  const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const { isDark, toggleTheme } = useTheme();
@@ -164,7 +162,7 @@ const DashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Primary Visual Zone: Charts side-by-side switcher ("диаграмму паука" и графики рядом) */}
+      {/* Primary Visual Zone: Compact Health Radar with deep-link to detailed charts */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
@@ -178,31 +176,14 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
 
-          {/* Quick tab switcher between Spider Radar & Range Dynamics */}
-          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
-            <button
-              onClick={() => setActiveChartTab('radar')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                activeChartTab === 'radar'
-                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <Layers size={11} />
-              <span>Паук (Score)</span>
-            </button>
-            <button
-              onClick={() => setActiveChartTab('range')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                activeChartTab === 'range'
-                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <BarChart3 size={11} />
-              <span>Диапазоны</span>
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/analyses?tab=charts')}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 transition-all active:scale-95 shadow-2xs"
+            title="Открыть все графики и диапазоны на странице Анализы"
+          >
+            <BarChart3 size={12} />
+            <span>Графика и свечи →</span>
+          </button>
         </div>
 
         {isNewUser && (
@@ -222,31 +203,13 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Dynamic active chart view */}
-        {activeChartTab === 'radar' ? (
-          <HealthIndex
-            score={currentMonth.score}
-            selectedMonthId={selectedMonthId}
-            onMonthChange={setSelectedMonthId}
-            availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
-          />
-        ) : (
-          <div className="space-y-3">
-            <BiomarkerRangeChart />
-            {/* Quick switcher back or month info */}
-            <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/50 flex items-center justify-between text-xs">
-              <span className="text-purple-900 dark:text-purple-200 font-semibold">
-                Выбран месяц: {currentMonth.label}
-              </span>
-              <button
-                onClick={() => setActiveChartTab('radar')}
-                className="text-purple-700 dark:text-purple-400 font-bold hover:underline"
-              >
-                К радар-диаграмме →
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Compact Health Radar Widget */}
+        <HealthIndex
+          score={currentMonth.score}
+          selectedMonthId={selectedMonthId}
+          onMonthChange={setSelectedMonthId}
+          availableMonths={monthsData.map((m) => ({ id: m.id, label: m.label }))}
+        />
       </div>
 
       {/* Monthly Medical Finance Card */}

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Upload, AlertTriangle, CheckCircle2,
   XCircle, Loader2, ShieldAlert, Sparkles,
@@ -64,7 +65,10 @@ const AnalysesPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [showAiDoctor, setShowAiDoctor] = useState(false);
-  const [subTab, setSubTab] = useState<'upload' | 'charts'>('upload');
+  const [searchParams] = useSearchParams();
+  const [subTab, setSubTab] = useState<'upload' | 'charts'>(() => {
+    return searchParams.get('tab') === 'charts' ? 'charts' : 'upload';
+  });
   const [activeChartTab, setActiveChartTab] = useState<'radar' | 'range'>('radar');
   const [selectedMonthId, setSelectedMonthId] = useState<string>('nov2026');
   const currentMonth = monthsData.find((m) => m.id === selectedMonthId) || monthsData[0];

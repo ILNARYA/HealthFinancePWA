@@ -187,3 +187,55 @@ export async function deleteRemoteUser(email: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Send 6-digit OTP code to email specifically for password recovery
+ */
+export async function sendPasswordResetOtp(email: string, code: string): Promise<{ success: boolean; error?: string; message?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return { success: false, error: 'INVALID_EMAIL' };
+  const url = getAppsScriptUrl();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'sendPasswordResetCode',
+        email: cleanEmail,
+        code,
+        purpose: 'reset_password',
+      }),
+    });
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    console.warn('sendPasswordResetOtp error:', err);
+    return { success: false, error: err.message || 'NETWORK_ERROR' };
+  }
+}
+
+/**
+ * Reset user password in remote Google Sheet
+ */
+export async function resetRemoteUserPassword(email: string, newPassword: string): Promise<boolean> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !newPassword) return false;
+  const url = getAppsScriptUrl();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'resetPassword',
+        email: cleanEmail,
+        newPassword,
+      }),
+    });
+    const data = await res.json();
+    return Boolean(data && data.success);
+  } catch (err) {
+    console.warn('resetRemoteUserPassword error:', err);
+    return false;
+  }
+}
+
