@@ -14,6 +14,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>Здоровье и Финансы</title>
+    <style>
+      select,
+      select.appearance-none,
+      select[style*="appearance"] {
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+        background-image: none !important;
+      }
+      select::-ms-expand {
+        display: none !important;
+      }
+    </style>
     <script>
       // Force immediate check for Service Worker updates
       if ('serviceWorker' in navigator) {

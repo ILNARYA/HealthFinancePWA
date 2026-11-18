@@ -31,5 +31,11 @@
     "puppeteer-core": "^25.17.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.6"
-  }
+  },
+  "browserslist": [
+    "Chrome >= 80",
+    "Edge >= 80",
+    "Safari >= 13",
+    "Firefox >= 78"
+  ]
 }
