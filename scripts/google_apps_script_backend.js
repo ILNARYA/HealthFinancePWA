@@ -7,18 +7,55 @@
  * 1. Реальная отправка 6-значных кодов на Email (Яндекс, Gmail, Mail.ru) через MailApp.
  * 2. Реестр пользователей и защита от повторной регистрации (таблица «Пользователи_и_Семья»).
  * 3. Полная поддержка восстановления и смены пароля (action: 'resetPassword').
- * 4. Поддержка «Свойств скрипта» (PropertiesService): SPREADSHEET_ID или SPREADSHEET_URL.
- *    Это позволяет хранить ID таблицы внутри настроек Google Apps Script, не раскрывая его в PWA!
+ * 4. Хранение секретов в «Свойствах скрипта» (PropertiesService):
+ *    - SPREADSHEET_ID или SPREADSHEET_URL (ваша база данных)
+ *    - GEMINI_API_KEY (API ключ нейросети Gemini)
+ *    Это архитектурный стандарт: секреты хранятся на защищенных серверах Google,
+ *    не раскрываются в браузере клиента и работают полностью без региональных блокировок!
  * 5. Автоматическое создание всех листов и колонок в новой таблице.
- * 6. Авторизация и синхронизация расходов, биомаркеров и семейных профилей.
+ * 6. Нейросетевой шлюз к Gemini (gemini-3.8-flash, 2.5-flash) с сохранением диалогов в лист «ИИ_Врач_Чат».
  * 
- * НАСТРОЙКА СВОЙСТВ СКРИПТА (По рекомендации пользователя):
- * 1. В редакторе Apps Script нажмите слева на значок шестерёнки «Настройки проекта» (Project Settings).
- * 2. Прокрутите вниз до раздела «Свойства скрипта» (Script Properties) и нажмите «Добавить свойство скрипта».
- * 3. Свойство (Property): SPREADSHEET_ID (или SPREADSHEET_URL)
- * 4. Значение (Value): ID вашей Google Таблицы (из адресной строки) или полная ссылка на таблицу.
- * 5. Нажмите «Сохранить свойства скрипта». Теперь скрипт автоматически работает с вашей таблицей!
+ * ИНСТРУКЦИЯ ПО ДОБАВЛЕНИЮ ПЕРЕМЕННЫХ (Свойств скрипта):
+ * 1. В левом меню редактора Apps Script нажмите на значок шестерёнки ⚙️ «Настройки проекта» (Project Settings).
+ * 2. Прокрутите страницу вниз до раздела «Свойства скрипта» (Script Properties).
+ * 3. Нажмите «Добавить свойство скрипта» (Add script property) и введите:
+ * 
+ *    • ПЕРЕМЕННАЯ 1 (Google Таблица):
+ *      Свойство (Property): SPREADSHEET_ID   (или SPREADSHEET_URL)
+ *      Значение (Value): ID вашей таблицы (из URL) или полная ссылка https://docs.google.com/spreadsheets/d/...
+ * 
+ *    • ПЕРЕМЕННАЯ 2 (Ключ Gemini API):
+ *      Свойство (Property): GEMINI_API_KEY
+ *      Значение (Value): Ваш ключ из Google AI Studio (начинается с AIzaSy...)
+ * 
+ * 4. Нажмите «Сохранить свойства скрипта».
+ * Теперь скрипт автоматически использует этот ключ для всех запросов ИИ-Врача и OCR чеков!
  */
+
+/**
+ * Получение API ключа Gemini из свойств скрипта (Project Settings -> Script Properties):
+ * 1. Проверяет GEMINI_API_KEY, GEMINI_KEY, API_KEY в ScriptProperties.
+ * 2. Если в свойствах скрипта не задано — использует ключ, переданный из PWA (payload.apiKey).
+ */
+function getGeminiApiKey(passedKey) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var key = props.getProperty('GEMINI_API_KEY')
+           || props.getProperty('GEMINI_KEY')
+           || props.getProperty('API_KEY');
+    if (key && key.trim()) {
+      return key.trim();
+    }
+  } catch (err) {
+    Logger.log('Property GEMINI_API_KEY read notice: ' + err);
+  }
+
+  if (passedKey && typeof passedKey === 'string' && passedKey.trim()) {
+    return passedKey.trim();
+  }
+
+  return '';
+}
 
 /**
  * Получение объекта Google Таблицы:
@@ -159,6 +196,19 @@ function doGet(e) {
 
     var action = (e && e.parameter && e.parameter.action) || 'ping';
     var email = (e && e.parameter && e.parameter.email) || '';
+
+    // 0. Проверка связи и статуса конфигурации (включая GEMINI_API_KEY)
+    if (action === 'ping' || action === 'status' || action === 'checkGeminiConfig') {
+      var geminiKey = getGeminiApiKey();
+      return jsonResponse({
+        success: true,
+        status: 'OK',
+        spreadsheetConnected: true,
+        geminiConfigured: Boolean(geminiKey && geminiKey.length > 5),
+        geminiSource: geminiKey ? 'ScriptProperties' : 'None',
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // 1. Отправка 6-значного кода на Email (регистрация или сброс пароля)
     if (action === 'sendVerificationCode' && email) {
@@ -520,17 +570,16 @@ function doPost(e) {
 function handleGeminiChat(payload) {
   var userPrompt = payload.prompt || payload.text || '';
   var passedSystemInstruction = payload.systemInstruction || '';
-  var passedKey = (payload.apiKey || '').trim();
   var userEmail = (payload.email || '').trim().toLowerCase();
 
-  var props = PropertiesService.getScriptProperties();
-  var apiKey = passedKey || props.getProperty('GEMINI_API_KEY');
+  // Приоритетно берем GEMINI_API_KEY из «Свойств скрипта» (Project Settings), затем из payload
+  var apiKey = getGeminiApiKey(payload.apiKey);
 
   if (!apiKey) {
     return jsonResponse({
       success: false,
       error: 'GEMINI_KEY_MISSING',
-      message: 'Укажите API ключ Gemini в приложении или в свойствах скрипта (GEMINI_API_KEY).'
+      message: 'API ключ Gemini не найден. Добавьте свойство GEMINI_API_KEY в Настройках проекта (Project Settings -> Script Properties) Google Apps Script.'
     });
   }
 
@@ -683,13 +732,16 @@ function handleGeminiVision(payload) {
   var imageBase64 = payload.image || payload.base64 || '';
   var mimeType = payload.mimeType || 'image/jpeg';
   var prompt = payload.prompt || 'Распознай фискальный чек или медицинскую квитанцию на русском языке.';
-  var passedKey = (payload.apiKey || '').trim();
 
-  var props = PropertiesService.getScriptProperties();
-  var apiKey = passedKey || props.getProperty('GEMINI_API_KEY');
+  // Приоритетно берем GEMINI_API_KEY из «Свойств скрипта» (Project Settings), затем из payload
+  var apiKey = getGeminiApiKey(payload.apiKey);
 
   if (!apiKey) {
-    return jsonResponse({ success: false, error: 'GEMINI_KEY_MISSING' });
+    return jsonResponse({
+      success: false,
+      error: 'GEMINI_KEY_MISSING',
+      message: 'API ключ Gemini не найден. Добавьте свойство GEMINI_API_KEY в Настройках проекта (Project Settings -> Script Properties) Google Apps Script.'
+    });
   }
 
   var models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];

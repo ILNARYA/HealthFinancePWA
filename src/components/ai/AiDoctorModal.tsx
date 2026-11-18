@@ -434,7 +434,7 @@ ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin
             </div>
             <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
               {connectionMode === 'cloud'
-                ? 'Cloud Шлюз активен — ключ передаётся в Google Cloud для обхода региональных блокировок.'
+                ? 'Ключ безопасно хранится в Google Apps Script (Свойства проекта: GEMINI_API_KEY). Поле ввода здесь опционально.'
                 : 'Ключ опционален при подключённом Cloud Шлюзе (Apps Script).'}
             </p>
           </div>
