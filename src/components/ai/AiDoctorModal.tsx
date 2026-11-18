@@ -22,10 +22,11 @@ interface Message {
 }
 
 const quickPrompts = [
+  'Как часто сдавать анализы в моем возрасте?',
+  'Когда нужен подробный анализ, а когда минимальный?',
   'Что значат мои отклонения в анализах?',
   'К какому профильному врачу записаться?',
   'Какую диету и образ жизни скорректировать?',
-  'Нужна ли повторная пересдача и через сколько?',
 ];
 
 export const AiDoctorModal: React.FC<Props> = ({
@@ -137,22 +138,32 @@ export const AiDoctorModal: React.FC<Props> = ({
       qLower.includes('периодич') ||
       qLower.includes('график') ||
       qLower.includes('план') ||
-      qLower.includes('параметр')
+      qLower.includes('параметр') ||
+      qLower.includes('подробн') ||
+      qLower.includes('минимальн')
     ) {
-      return `График профилактических обследований для вашего профиля (возраст: ${patientAge} лет, пол: ${patientGender.toLowerCase()}, рост: ${userProfile.height || 189} см, вес: ${userProfile.weight || 83} кг, ИМТ: ${patientBmi}):
+      return `Персональная стратегия медицинского мониторинга (возраст: ${patientAge} лет, пол: ${patientGender.toLowerCase()}, рост: ${userProfile.height || 189} см, вес: ${userProfile.weight || 83} кг, ИМТ: ${patientBmi} — здоровая норма):
 
-1. **Базовый ежегодный лабораторный минимум (1 раз в год):**
-• ОАК с лейкоцитарной формулой и СОЭ
-• Биохимия (АЛТ, АСТ, билирубин, креатинин, мочевина, мочевая кислота)
-• Липидограмма (общий холестерин, ЛПВП, ЛПНП, триглицериды)
-• Углеводный обмен (глюкоза натощак + HbA1c)
-• Витамин D (25-OH) и ферритин
-• ОАМ
+1. **Разделение: когда сдавать подробный анализ, а когда минимальный:**
+• **Подробный (развернутый) чекап** — 1 раз в год планово. Он формирует полную объемную картину метаболизма, сосудистого русла и внутренних органов. Также показан при старте интенсивных спортивных тренировок или планировании семьи.
+• **Минимальный (экспресс-контроль)** — каждые 6 месяцев или точечно (например, контроль ферритина и витамина D через 2–3 месяца курса добавок, либо ОАК через 10–14 дней после перенесенной ОРВИ).
 
-2. **Инструментальная диагностика (1 раз в 1–2 года):**
-• Флюорография 1 раз в год
-• ЭКГ покоя 1 раз в 1–2 года
-• УЗИ брюшной полости 1 раз в 2–3 года
+2. **Ежегодный подробный лабораторный минимум (1 раз в год):**
+• **ОАК с лейкоцитарной формулой и СОЭ** — маркер скрытых воспалений, латентных инфекций, анемии и иммунитета.
+• **Биохимия крови**: АЛТ, АСТ, билирубин общий/прямой (печень и желчеотток), креатинин с расчетом СКФ и мочевина (почки), мочевая кислота (скрининг подагры и метаболического синдрома).
+• **Липидограмма развернутая**: общий холестерин, ЛПВП, ЛПНП, триглицериды, коэф. атерогенности (критически важен для мужчин 25–35 лет для раннего исключения скрытого сосудистого атеросклероза).
+• **Углеводный обмен**: глюкоза натощак + гликированный гемоглобин (HbA1c) — контроль чувствительности к инсулину.
+• **Скрытые дефициты**: Витамин D (25-OH) и сывороточный ферритин (оценка депо железа).
+• **Общий анализ мочи (ОАМ)** с микроскопией осадка.
+
+3. **Инструментальный скрининг (аппаратная диагностика):**
+• **Флюорография / низкодозная КТ ОГК** — ежегодно (1 раз в год).
+• **ЭКГ покоя в 12 отведениях** — 1 раз в 1–2 года.
+• **УЗИ органов брюшной полости и почек** — 1 раз в 2–3 года.
+
+4. **Правила подготовки и тактика пересдачи:**
+• **Подготовка**: кровь сдается строго натощак (8–12 часов голодания, чистая негазированная вода разрешена). За 24 часа исключить алкоголь, жирную пищу, интенсивный спорт и баню/сауну.
+• **Сроки пересдачи**: при незначительных функциональных отклонениях — повторить через 2–4 недели после нормализации режима. При медикаментозной терапии — через 2–3 месяца.
 
 ⚕️ Данная консультация носит информационный характер и не заменяет очный визит к врачу.`;
     }
@@ -255,50 +266,74 @@ ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin
         }
       }
 
-      // Способ 2: Прямой запрос к Gemini API (каскад моделей)
+      // Способ 2: Прямой запрос к Gemini API (каскад моделей Google AI Studio 2026 с Exponential Backoff)
       if (!aiResponseText && apiKey.trim()) {
         const candidateModels = [
+          'gemini-4-hydrogen',
           'gemini-3.8-flash',
-          'gemini-2.5-flash',
-          'gemini-2.0-flash',
+          'gemini-4-argon',
         ];
 
         for (const model of candidateModels) {
-          try {
-            const res = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [
-                    {
-                      parts: [{ text: `${contextStr}\n\nВопрос пациента: ${text}` }],
+          let attemptSuccess = false;
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contents: [
+                      {
+                        parts: [{ text: `${contextStr}\n\nВопрос пациента: ${text}` }],
+                      },
+                    ],
+                    generationConfig: {
+                      temperature: 0.4,
+                      maxOutputTokens: 2500,
+                      thinkingConfig: {
+                        thinkingLevel: 'low',
+                      },
                     },
-                  ],
-                }),
-              }
-            );
+                  }),
+                }
+              );
 
-            if (res.ok) {
-              const data = await res.json();
-              const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (reply) {
-                aiResponseText = reply;
-                responseModel = model;
+              if (res.ok) {
+                const data = await res.json();
+                const parts = data?.candidates?.[0]?.content?.parts || [];
+                let reply = '';
+                for (const part of parts) {
+                  if (part.thought === true) continue;
+                  if (part.text) reply += part.text;
+                }
+                if (reply.trim()) {
+                  aiResponseText = reply.trim();
+                  responseModel = model;
+                  attemptSuccess = true;
+                  break;
+                }
+              } else if (res.status === 503 || res.status === 429) {
+                apiErrorMessage = `${model}: сервер под высокой нагрузкой (HTTP ${res.status}), пауза и повтор...`;
+                if (attempt < 2) {
+                  await new Promise((r) => setTimeout(r, 1500));
+                }
+              } else {
+                const errText = await res.text();
+                if (errText.includes('location')) {
+                  apiErrorMessage = 'Региональное ограничение Google (используйте Cloud Шлюз Google Apps Script)';
+                } else {
+                  apiErrorMessage = `${model}: HTTP ${res.status}`;
+                }
                 break;
               }
-            } else {
-              const errText = await res.text();
-              if (errText.includes('location')) {
-                apiErrorMessage = 'Региональное ограничение Google';
-              } else {
-                apiErrorMessage = `${model}: HTTP ${res.status}`;
-              }
+            } catch (directErr: any) {
+              apiErrorMessage = directErr.message || 'Сетевая ошибка';
+              break;
             }
-          } catch (directErr: any) {
-            apiErrorMessage = directErr.message || 'Сетевая ошибка';
           }
+          if (attemptSuccess) break;
         }
       }
 
@@ -355,9 +390,9 @@ ${biomarkers.map((b) => `${b.name}: ${b.value} ${b.unit} (норма: ${b.refMin
   };
 
   const connectionLabel = connectionMode === 'cloud'
-    ? 'Gemini (Cloud Шлюз)'
+    ? 'Gemini 4 (Cloud Шлюз)'
     : connectionMode === 'direct'
-    ? 'Gemini API (Direct)'
+    ? 'Gemini 4 API (Direct)'
     : 'Автономный движок';
 
   const ConnectionIcon = connectionMode === 'offline' ? WifiOff : Wifi;
