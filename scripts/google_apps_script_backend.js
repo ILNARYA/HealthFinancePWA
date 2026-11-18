@@ -114,7 +114,8 @@ function authorizeAllPermissions() {
 
   // 3. Авторизация SpreadsheetApp (база данных)
   var ss = getSpreadsheet();
-  Logger.log('3. Google Таблица проверена: ' + ss.getName());
+  initializeAllSheets(ss);
+  Logger.log('3. Google Таблица проверена и все листы (включая ИИ_Врач_Чат и Логи_и_Ошибки) созданы: ' + ss.getName());
 
   Logger.log('--- ВСЕ РАЗРЕШЕНИЯ УСПЕШНО ПОЛУЧЕНЫ! Скрипт готов к работе. ---');
 }
@@ -207,6 +208,12 @@ function initializeAllSheets(ss) {
   ]);
   getOrCreateSheet(ss, SHEET_NAMES.INVITES, [
     'ID', 'Кому_ID', 'От_Кого_ID', 'Роль', 'Статус', 'Дата'
+  ]);
+  getOrCreateSheet(ss, 'ИИ_Врач_Чат', [
+    'Email', 'Timestamp', 'Role', 'Message', 'Model', 'PatientContext'
+  ]);
+  getOrCreateSheet(ss, 'Логи_и_Ошибки', [
+    'Дата_и_Время', 'Модуль', 'Тип', 'Описание_Ошибки', 'Email', 'Детали_Запроса'
   ]);
 }
 
@@ -695,16 +702,20 @@ function handleGeminiChat(payload) {
   // ======= ФОРМИРОВАНИЕ ЗАПРОСА С ИСТОРИЕЙ =======
   var contents = [];
 
-  // Системная инструкция как первое сообщение (role: user → model)
-  contents.push({ role: 'user', parts: [{ text: fullSystemPrompt + '\n\nПодтверди, что ты готов помогать пациенту.' }] });
-  contents.push({ role: 'model', parts: [{ text: 'Понял. Я ИИ-Врач Консультант, готов анализировать биомаркеры и давать клинические рекомендации. Жду вопрос пациента.' }] });
-
-  // История предыдущих сообщений
+  // История предыдущих сообщений (строго чередуем user -> model)
   for (var h = 0; h < chatHistory.length; h++) {
-    contents.push({
-      role: chatHistory[h].role,
-      parts: [{ text: chatHistory[h].text }]
-    });
+    var r = chatHistory[h].role;
+    if (contents.length === 0 || contents[contents.length - 1].role !== r) {
+      contents.push({
+        role: r,
+        parts: [{ text: chatHistory[h].text }]
+      });
+    }
+  }
+
+  // Если последнее сообщение в истории было от user, удалим его, чтобы соблюдать чередование
+  if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+    contents.pop();
   }
 
   // Текущий вопрос пользователя
@@ -718,7 +729,12 @@ function handleGeminiChat(payload) {
     var modelName = models[m];
     var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + apiKey;
 
-    var body = { contents: contents };
+    var body = {
+      systemInstruction: {
+        parts: [{ text: fullSystemPrompt }]
+      },
+      contents: contents
+    };
 
     try {
       var options = {
