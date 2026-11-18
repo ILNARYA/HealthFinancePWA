@@ -260,6 +260,47 @@ function doGet(e) {
       });
     }
 
+    // 0.5. Мгновенный тест конкретной модели Gemini (GET ?action=testModel&model=gemini-1.5-flash)
+    if (action === 'testModel') {
+      var testModelName = (e && e.parameter && e.parameter.model) || 'gemini-1.5-flash';
+      var testApiKey = getGeminiApiKey();
+      if (!testApiKey) {
+        return jsonResponse({ success: false, error: 'GEMINI_KEY_MISSING' });
+      }
+      var tStart = new Date().getTime();
+      var testUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + testModelName + ':generateContent?key=' + testApiKey;
+      try {
+        var tRes = UrlFetchApp.fetch(testUrl, {
+          method: 'post',
+          contentType: 'application/json',
+          payload: JSON.stringify({ contents: [{ parts: [{ text: 'Привет! Ответь одним словом: РАБОТАЕТ' }] }] }),
+          muteHttpExceptions: true
+        });
+        var tCode = tRes.getResponseCode();
+        var tText = tRes.getContentText();
+        var tReply = '';
+        try {
+          var tParsed = JSON.parse(tText);
+          tReply = tParsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        } catch (_) {}
+        return jsonResponse({
+          success: tCode >= 200 && tCode < 300,
+          model: testModelName,
+          code: tCode,
+          elapsedMs: new Date().getTime() - tStart,
+          reply: tReply,
+          rawError: tCode >= 300 ? tText : undefined
+        });
+      } catch (tErr) {
+        return jsonResponse({
+          success: false,
+          model: testModelName,
+          error: tErr.toString(),
+          elapsedMs: new Date().getTime() - tStart
+        });
+      }
+    }
+
     // 1. Отправка 6-значного кода на Email (регистрация или сброс пароля)
     if (action === 'sendVerificationCode' && email) {
       var code = (e && e.parameter && e.parameter.code) || '';
@@ -721,8 +762,15 @@ function handleGeminiChat(payload) {
   // Текущий вопрос пользователя
   contents.push({ role: 'user', parts: [{ text: userPrompt }] });
 
-  // ======= КАСКАД МОДЕЛЕЙ (от надёжных и быстрых к новым) =======
-  var models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-3.8-flash'];
+  // ======= КАСКАД МОДЕЛЕЙ С МГНОВЕННЫМ ПЕРЕКЛЮЧЕНИЕМ ПРИ 503 =======
+  // gemini-1.5-flash — самая стабильная рабочая модель (никогда не дает 503)
+  // gemini-2.0-flash, gemini-3.8-flash — новейшие модели (могут иметь временные всплески нагрузки 503)
+  var requestedModel = (payload.model || '').trim();
+  var defaultModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-3.8-flash'];
+  var models = requestedModel
+    ? [requestedModel].concat(defaultModels.filter(function(m){ return m !== requestedModel; }))
+    : defaultModels;
+
   var lastError = '';
 
   for (var m = 0; m < models.length; m++) {
@@ -772,6 +820,11 @@ function handleGeminiChat(payload) {
           model: modelName,
           text: reply
         });
+      } else if (code === 503) {
+        // Временный всплеск нагрузки на конкретную модель — сразу пробуем следующую!
+        lastError = 'HTTP 503 (' + modelName + '): временный всплеск нагрузки на серверах Google, автопереход к следующей модели';
+        Logger.log(lastError);
+        continue;
       } else {
         lastError = 'HTTP ' + code + ' (' + modelName + '): ' + responseText;
       }
