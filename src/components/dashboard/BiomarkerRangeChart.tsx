@@ -350,15 +350,15 @@ const BiomarkerRangeChart: React.FC<Props> = ({ isEmpty = false, onUploadClick }
       )}
 
       {/* Target Corridor & Status Footer */}
-      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-2 pt-2.5 border-t border-gray-100 dark:border-gray-800 gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-gray-400 flex-shrink-0">Целевой коридор:</span>
-          <span className="font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-800 gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-400">Целевой коридор:</span>
+          <span className="font-bold text-gray-800 dark:text-gray-200">
             {biomarker.targetRange} {biomarker.unit}
           </span>
         </div>
-        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold flex-shrink-0">
-          <CheckCircle2 size={12} />
+        <div className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold self-start sm:self-auto text-[11px]">
+          <CheckCircle2 size={13} className="flex-shrink-0" />
           <span>{biomarker.statusText}</span>
         </div>
       </div>
