@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   Plus, Stethoscope, TestTube, Pill, HeartPulse, X,
-  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera, EyeOff, Eye
+  Trash2, Wallet, Moon, Sun, Filter, Lock, Users, Camera, EyeOff, Eye, User
 } from 'lucide-react';
 import { monthsData, demoDoctors, categoryLabels, categoryColors, allDemoExpenses } from '../data/demo';
 import type { Expense } from '../types';
@@ -41,14 +41,14 @@ const FinancesPage: React.FC = () => {
   ]), []);
 
   const [allExpenses, setAllExpenses] = useState<Expense[]>(() => {
-    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    const isDemo = isDemoMode && localStorage.getItem('app-is-demo') === 'true';
     if (!isDemo) {
       const saved = localStorage.getItem('app-expenses-list');
       if (saved !== null) {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            return parsed.filter((e) => !['e1','e2','e3','e4','e5','e6','e7','oe1','oe2','oe3','oe4','oe5','oe6','oe7','se1','se2','se3','se4','se5'].includes(e.id));
+            return parsed.filter((e: any) => !demoExpenseIds.has(e.id));
           }
         } catch {}
       }
@@ -79,7 +79,7 @@ const FinancesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const isDemo = localStorage.getItem('app-is-demo') === 'true';
+    const isDemo = isDemoMode && localStorage.getItem('app-is-demo') === 'true';
     if (!isDemo) {
       const hasDemoData = allExpenses.some((e) => demoExpenseIds.has(e.id));
       if (hasDemoData) {
@@ -95,7 +95,11 @@ const FinancesPage: React.FC = () => {
   const activePrefix = monthPrefixes[selectedMonth] || '2026-11';
   const monthFiltered = allExpenses.filter((e) => e.date ? e.date.startsWith(activePrefix) : true);
   const expenses = viewScope === 'personal' && activeMember
-    ? monthFiltered.filter((e) => !e.memberId || e.memberId === activeMember.id || e.memberName === activeMember.name)
+    ? monthFiltered.filter((e) => {
+        if (e.memberId) return e.memberId === activeMember.id;
+        if (e.memberName) return e.memberName === activeMember.name;
+        return true;
+      })
     : monthFiltered;
 
   const filteredExpenses = selectedCategory === 'all'
@@ -197,6 +201,8 @@ const FinancesPage: React.FC = () => {
       date: nowIso,
       doctor: formData.doctor || undefined,
       specialty: formData.specialty || undefined,
+      memberId: activeMember?.id,
+      memberName: activeMember?.name,
     };
     setAllExpenses((prev) => [newExpense, ...prev]);
     if (nowIso.startsWith('2026-11')) setSelectedMonth('nov2026');
@@ -215,61 +221,33 @@ const FinancesPage: React.FC = () => {
 
   return (
     <div className="px-4 pt-3 pb-6 flex flex-col gap-4">
-      {/* Header with Family Member & Security Lock */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <button
-            onClick={() => setShowFamilyModal(true)}
-            className="flex items-center gap-2 p-1 pr-2.5 rounded-2xl bg-white dark:bg-[#1e2433] border border-purple-100 dark:border-purple-900/50 shadow-xs hover:border-purple-300 transition-all text-left group"
-            title="Переключить профиль члена семьи"
+      {/* Header with Family Member & Action Icons */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          onClick={() => setShowFamilyModal(true)}
+          className="flex items-center gap-2.5 p-1 pr-3 rounded-2xl bg-white dark:bg-[#1e2433] border border-purple-100 dark:border-purple-900/50 shadow-xs hover:border-purple-300 transition-all text-left min-w-0 flex-1 group"
+          title="Семейный кабинет: нажмите для смены профиля"
+        >
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-xs flex-shrink-0"
+            style={{ backgroundColor: activeMember.color }}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-xs"
-              style={{ backgroundColor: activeMember.color }}
-            >
-              {activeMember.avatar}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-black text-gray-900 dark:text-white truncate">
-                  {activeMember.name}
-                </span>
-                <Users size={11} className="text-purple-600 dark:text-purple-400" />
-              </div>
-              <span className="text-[10px] text-gray-400 dark:text-gray-400 block truncate">
-                {activeMember.roleLabel}
+            {activeMember.avatar}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-black text-gray-900 dark:text-white truncate">
+                {activeMember.name || 'Пользователь'}
               </span>
+              <Users size={12} className="text-purple-600 dark:text-purple-400 flex-shrink-0" />
             </div>
-          </button>
-        </div>
+            <span className="text-[11px] text-gray-400 dark:text-gray-400 block truncate font-medium">
+              {activeMember.roleLabel}
+            </span>
+          </div>
+        </button>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {/* View Scope Switcher: Личный vs Семейный */}
-          <div className="flex items-center bg-gray-100/90 dark:bg-[#1e2433] p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800">
-            <button
-              onClick={() => setViewScope('personal')}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                viewScope === 'personal'
-                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-              title="Режим: Только мои личные расходы"
-            >
-              Мой
-            </button>
-            <button
-              onClick={() => setViewScope('family')}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                viewScope === 'family'
-                  ? 'bg-white dark:bg-[#2b3347] text-purple-700 dark:text-purple-300 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-              title="Режим: Общий семейный бюджет"
-            >
-              Семья
-            </button>
-          </div>
-
           <button
             onClick={() => setPrivacyMode(!privacyMode)}
             className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors border shadow-xs ${
@@ -277,7 +255,7 @@ const FinancesPage: React.FC = () => {
                 ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800'
                 : 'bg-white dark:bg-[#1e2433] text-gray-500 hover:text-purple-600 dark:text-gray-400 border-gray-100 dark:border-gray-800'
             }`}
-            title={privacyMode ? 'Приватный режим включен. Нажмите, чтобы показать цифры' : 'Включить приватный режим (скрыть суммы)'}
+            title={privacyMode ? 'Приватный режим включен. Нажмите, чтобы показать суммы' : 'Включить приватный режим (скрыть суммы)'}
           >
             {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -286,30 +264,56 @@ const FinancesPage: React.FC = () => {
             className="w-9 h-9 bg-purple-100/90 dark:bg-purple-950/90 hover:bg-purple-200 text-purple-700 dark:text-purple-300 rounded-2xl flex items-center justify-center border border-purple-200 dark:border-purple-800 shadow-xs active:scale-95 transition-all"
             title="Сфотографировать чек (OCR)"
           >
-            <Camera size={18} />
+            <Camera size={17} />
           </button>
           <button
             onClick={lockApp}
             className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 hover:text-purple-600 dark:text-gray-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
             title="Заблокировать экран (PIN-код)"
           >
-            <Lock size={16} />
+            <Lock size={15} />
           </button>
           <button
             onClick={toggleTheme}
             className="w-9 h-9 bg-white dark:bg-[#1e2433] rounded-2xl flex items-center justify-center text-gray-500 dark:text-yellow-400 shadow-sm border border-gray-100 dark:border-gray-800 transition-colors"
             title={isDark ? 'Светлая тема' : 'Тёмная тема'}
           >
-            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button
             onClick={() => setShowForm(true)}
             className="w-9 h-9 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25 active:scale-95 transition-all"
             title="Добавить расход вручную"
           >
-            <Plus size={20} />
+            <Plus size={19} />
           </button>
         </div>
+      </div>
+
+      {/* Dedicated Scope Switcher: Личный vs Семейный */}
+      <div className="bg-gray-100/90 dark:bg-[#1a202c] p-1 rounded-2xl flex gap-1 border border-gray-200/60 dark:border-gray-800 shadow-2xs">
+        <button
+          onClick={() => setViewScope('personal')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+            viewScope === 'personal'
+              ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
+              : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
+          }`}
+        >
+          <User size={13} />
+          <span>👤 Мои расходы (Личные)</span>
+        </button>
+        <button
+          onClick={() => setViewScope('family')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+            viewScope === 'family'
+              ? 'bg-white dark:bg-[#252d3d] text-purple-700 dark:text-purple-300 shadow-sm scale-[1.01]'
+              : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
+          }`}
+        >
+          <Users size={13} />
+          <span>👨‍👩‍👧‍👦 Семейный бюджет</span>
+        </button>
       </div>
 
       {/* Month Filter Bar */}
@@ -758,7 +762,12 @@ const FinancesPage: React.FC = () => {
         isOpen={showReceiptScanner}
         onClose={() => setShowReceiptScanner(false)}
         onSaveExpense={(newExp) => {
-          setAllExpenses((prev) => [newExp, ...prev]);
+          const taggedExp: Expense = {
+            ...newExp,
+            memberId: newExp.memberId || activeMember?.id,
+            memberName: newExp.memberName || activeMember?.name,
+          };
+          setAllExpenses((prev) => [taggedExp, ...prev]);
           if (newExp.date?.startsWith('2026-11')) setSelectedMonth('nov2026');
           else if (newExp.date?.startsWith('2026-10')) setSelectedMonth('oct2026');
           else if (newExp.date?.startsWith('2026-09')) setSelectedMonth('sep2026');

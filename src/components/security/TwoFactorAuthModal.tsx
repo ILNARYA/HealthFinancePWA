@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ShieldCheck, X, Copy, Check, KeyRound } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, X, Copy, Check, KeyRound, Loader2 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
+import { generateTOTPQRCodeUrl, verifyTOTPCode } from '../../utils/totp';
 
 interface Props {
   isOpen: boolean;
@@ -8,11 +9,29 @@ interface Props {
 }
 
 export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { twoFactorEnabled, setTwoFactorEnabled, totpSecret } = useFamily();
+  const { twoFactorEnabled, setTwoFactorEnabled, totpSecret, userProfile } = useFamily();
   const [code, setCode] = useState('');
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [loadingQr, setLoadingQr] = useState<boolean>(true);
+  const [verifying, setVerifying] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCode('');
+      setErrorMsg(null);
+      setSuccess(false);
+      setLoadingQr(true);
+
+      const targetEmail = userProfile?.email || 'yamayev2010@yandex.ru';
+      generateTOTPQRCodeUrl(totpSecret, targetEmail).then((url) => {
+        setQrCodeDataUrl(url);
+        setLoadingQr(false);
+      });
+    }
+  }, [isOpen, totpSecret, userProfile?.email]);
 
   if (!isOpen) return null;
 
@@ -22,9 +41,20 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length === 6) {
+    if (code.length !== 6) {
+      setErrorMsg('Введите 6 цифр из приложения');
+      return;
+    }
+
+    setVerifying(true);
+    setErrorMsg(null);
+
+    const isValid = await verifyTOTPCode(totpSecret, code);
+    setVerifying(false);
+
+    if (isValid) {
       setSuccess(true);
       setTwoFactorEnabled(true);
       setTimeout(() => {
@@ -32,8 +62,8 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
         onClose();
       }, 1200);
     } else {
-      setError(true);
-      setTimeout(() => setError(false), 1500);
+      setErrorMsg('Неверный код. Проверьте время на телефоне и актуальный код в приложении.');
+      setTimeout(() => setErrorMsg(null), 3000);
     }
   };
 
@@ -44,7 +74,7 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in select-none">
-      <div className="w-full max-w-[360px] bg-white dark:bg-[#161b26] rounded-3xl p-5 border border-purple-500/20 shadow-2xl animate-scale-in text-gray-900 dark:text-white">
+      <div className="w-full max-w-[360px] bg-white dark:bg-[#161b26] rounded-3xl p-5 border border-purple-500/20 shadow-2xl animate-scale-in text-gray-900 dark:text-white max-h-[92vh] overflow-y-auto no-scrollbar">
         <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
@@ -66,44 +96,27 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {!twoFactorEnabled ? (
           <div className="mt-3.5 space-y-3.5 text-xs">
             <p className="text-gray-600 dark:text-gray-300 text-[11px] leading-relaxed">
-              Отсканируйте этот QR-код в приложении <strong>Google Authenticator</strong> или <strong>Яндекс Ключ</strong>:
+              Отсканируйте настоящий QR-код в приложении <strong>Google Authenticator</strong> или <strong>Яндекс Ключ</strong>:
             </p>
 
-            {/* Stylized Crisp SVG QR-Code */}
-            <div className="bg-white p-3 rounded-2xl mx-auto w-44 h-44 shadow-md flex items-center justify-center border border-gray-200">
-              <svg viewBox="0 0 100 100" className="w-full h-full text-gray-900">
-                {/* QR Finder Corners */}
-                <rect x="5" y="5" width="26" height="26" rx="4" fill="none" stroke="currentColor" strokeWidth="6" />
-                <rect x="12" y="12" width="12" height="12" rx="2" fill="currentColor" />
-
-                <rect x="69" y="5" width="26" height="26" rx="4" fill="none" stroke="currentColor" strokeWidth="6" />
-                <rect x="76" y="12" width="12" height="12" rx="2" fill="currentColor" />
-
-                <rect x="5" y="69" width="26" height="26" rx="4" fill="none" stroke="currentColor" strokeWidth="6" />
-                <rect x="12" y="76" width="12" height="12" rx="2" fill="currentColor" />
-
-                {/* QR Code Pixel Matrix Simulation */}
-                <rect x="36" y="8" width="6" height="6" fill="currentColor" />
-                <rect x="46" y="14" width="6" height="6" fill="currentColor" />
-                <rect x="56" y="8" width="6" height="6" fill="currentColor" />
-                <rect x="36" y="24" width="6" height="6" fill="currentColor" />
-                <rect x="46" y="24" width="6" height="6" fill="currentColor" />
-
-                <rect x="8" y="36" width="6" height="6" fill="currentColor" />
-                <rect x="20" y="44" width="6" height="6" fill="currentColor" />
-                <rect x="36" y="36" width="8" height="8" rx="1" fill="#7c3aed" />
-                <rect x="52" y="44" width="6" height="6" fill="currentColor" />
-                <rect x="64" y="36" width="6" height="6" fill="currentColor" />
-                <rect x="76" y="44" width="6" height="6" fill="currentColor" />
-                <rect x="86" y="36" width="6" height="6" fill="currentColor" />
-
-                <rect x="36" y="60" width="6" height="6" fill="currentColor" />
-                <rect x="46" y="68" width="6" height="6" fill="currentColor" />
-                <rect x="56" y="60" width="6" height="6" fill="currentColor" />
-                <rect x="70" y="76" width="8" height="8" fill="currentColor" />
-                <rect x="84" y="68" width="6" height="6" fill="currentColor" />
-                <rect x="84" y="84" width="6" height="6" fill="currentColor" />
-              </svg>
+            {/* Real Crisp Generated Scannable QR-Code */}
+            <div className="bg-white p-3 rounded-2xl mx-auto w-48 h-48 shadow-md flex items-center justify-center border border-purple-100 dark:border-purple-900/50">
+              {loadingQr ? (
+                <div className="flex flex-col items-center gap-2 text-purple-600">
+                  <Loader2 size={28} className="animate-spin" />
+                  <span className="text-[10px] text-gray-400">Генерация QR-кода...</span>
+                </div>
+              ) : qrCodeDataUrl ? (
+                <img
+                  src={qrCodeDataUrl}
+                  alt="2FA TOTP QR Code"
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              ) : (
+                <div className="text-center p-2 text-rose-500 text-[11px]">
+                  Не удалось сгенерировать QR. Используйте секретный ключ ниже.
+                </div>
+              )}
             </div>
 
             {/* Secret Key with Copy */}
@@ -112,7 +125,7 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <span className="text-[9px] uppercase tracking-wider text-purple-700 dark:text-purple-300 font-bold block">
                   Секретный ключ (для ручного ввода)
                 </span>
-                <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">
+                <span className="font-mono text-xs font-bold text-gray-900 dark:text-white tracking-wider">
                   {totpSecret}
                 </span>
               </div>
@@ -129,28 +142,40 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
             {/* Form to enter 6-digit code */}
             <form onSubmit={handleVerify} className="space-y-2.5">
               <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 block">
-                Введите 6-значный код из Authenticator:
+                Введите 6-значный код из Authenticator для подтверждения:
               </label>
               <input
                 type="text"
+                inputMode="numeric"
                 maxLength={6}
                 pattern="[0-9]{6}"
                 placeholder="482 193"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                 className={`w-full py-2.5 px-3 text-center text-xl font-mono tracking-widest rounded-xl border bg-gray-50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                  error ? 'border-rose-500 text-rose-500 animate-bounce' : 'border-gray-200 dark:border-gray-700'
+                  errorMsg ? 'border-rose-500 text-rose-500' : 'border-gray-200 dark:border-gray-700'
                 }`}
                 required
               />
 
+              {errorMsg && (
+                <p className="text-[10px] text-rose-500 font-bold text-center leading-tight">
+                  {errorMsg}
+                </p>
+              )}
+
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  disabled={code.length !== 6}
+                  disabled={code.length !== 6 || verifying}
                   className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
                 >
-                  {success ? (
+                  {verifying ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Проверка...</span>
+                    </>
+                  ) : success ? (
                     <>
                       <Check size={14} />
                       <span>2FA Активирован!</span>
@@ -161,14 +186,6 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
                       <span>Подтвердить и включить</span>
                     </>
                   )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCode('654321')}
-                  className="px-2.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-[10px] text-gray-400 hover:text-purple-600"
-                  title="Автозаполнение демо-кода"
-                >
-                  Тест
                 </button>
               </div>
             </form>
@@ -196,3 +213,5 @@ export const TwoFactorAuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
+export default TwoFactorAuthModal;

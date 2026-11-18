@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Fingerprint, Delete, HeartPulse, X } from 'lucide-react';
+import { ShieldCheck, Delete, HeartPulse, X } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
 
 export const PinLockModal: React.FC = () => {
-  const { isLocked, unlockApp, activeMember, biometricsEnabled } = useFamily();
+  const { isLocked, unlockApp, activeMember } = useFamily();
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [errorShake, setErrorShake] = useState<boolean>(false);
   const [showEmergency, setShowEmergency] = useState<boolean>(false);
@@ -36,8 +36,7 @@ export const PinLockModal: React.FC = () => {
     setEnteredPin((prev) => prev.slice(0, -1));
   };
 
-  const handleBiometrics = () => {
-    unlockApp('faceid');
+  const handleClear = () => {
     setEnteredPin('');
   };
 
@@ -93,14 +92,13 @@ export const PinLockModal: React.FC = () => {
             </button>
           ))}
 
-          {/* Biometrics button */}
+          {/* Clear button */}
           <button
-            onClick={handleBiometrics}
-            className="h-14 rounded-2xl bg-purple-900/40 hover:bg-purple-800/60 active:scale-95 transition-all flex flex-col items-center justify-center border border-purple-500/30 text-purple-300"
-            title={biometricsEnabled ? 'Войти по Face ID / Touch ID' : 'Быстрый вход'}
+            onClick={handleClear}
+            className="h-14 rounded-2xl bg-white/5 hover:bg-white/15 active:scale-95 transition-all flex items-center justify-center border border-white/5 backdrop-blur-md text-xs font-bold text-gray-400 hover:text-white"
+            title="Очистить ввод"
           >
-            <Fingerprint size={22} />
-            <span className="text-[9px] font-semibold mt-0.5">Touch ID</span>
+            Сброс
           </button>
 
           {/* Zero */}
@@ -115,6 +113,7 @@ export const PinLockModal: React.FC = () => {
           <button
             onClick={handleDelete}
             className="h-14 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center border border-white/5 backdrop-blur-md text-gray-300"
+            title="Удалить цифру"
           >
             <Delete size={20} />
           </button>
@@ -134,52 +133,66 @@ export const PinLockModal: React.FC = () => {
 
       {/* Emergency Sheet Modal (Accessible without unlocking) */}
       {showEmergency && (
-        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-end justify-center p-4">
-          <div className="w-full max-w-[360px] bg-[#1e2433] rounded-3xl p-5 border border-rose-500/40 text-white animate-slide-up">
-            <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
-              <div className="flex items-center gap-2 text-rose-400">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-[360px] bg-[#161b26] border border-rose-500/40 rounded-3xl p-5 text-white shadow-2xl space-y-3">
+            <div className="flex items-center justify-between border-b border-rose-500/30 pb-2.5">
+              <div className="flex items-center gap-2 text-rose-400 font-black text-sm">
                 <HeartPulse size={20} />
-                <h3 className="text-sm font-extrabold uppercase">Экстренные медданные</h3>
+                <span>ЭКСТРЕННАЯ КАРТА</span>
               </div>
-              <button onClick={() => setShowEmergency(false)} className="text-gray-400 hover:text-white">
-                <X size={18} />
+              <button
+                onClick={() => setShowEmergency(false)}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400"
+              >
+                <X size={15} />
               </button>
             </div>
+
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-gray-700/50">
-                <span className="text-gray-400">ФИО пациента:</span>
-                <span className="font-bold">{activeMember.name} ({activeMember.roleLabel})</span>
+              <div className="bg-white/5 p-2.5 rounded-xl">
+                <p className="text-[10px] text-gray-400">ФИО пациента:</p>
+                <p className="font-bold text-sm text-white">
+                  {activeMember.lastName} {activeMember.name}
+                </p>
               </div>
-              <div className="flex justify-between py-1 border-b border-gray-700/50">
-                <span className="text-gray-400">Группа крови:</span>
-                <span className="font-bold text-rose-400">{activeMember.bloodType}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-700/50">
-                <span className="text-gray-400">Полис ОМС:</span>
-                <span className="font-mono font-bold">{activeMember.policyOMS}</span>
-              </div>
-              {activeMember.policyDMS && (
-                <div className="flex justify-between py-1 border-b border-gray-700/50">
-                  <span className="text-gray-400">Полис ДМС:</span>
-                  <span className="font-bold text-purple-300">{activeMember.policyDMS}</span>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white/5 p-2 rounded-xl">
+                  <p className="text-[10px] text-gray-400">Группа крови:</p>
+                  <p className="font-bold text-rose-400">{activeMember.bloodType || 'A(II) Rh+'}</p>
                 </div>
-              )}
-              <div className="py-1">
-                <span className="text-gray-400 block mb-0.5">Аллергии и непереносимости:</span>
-                <div className="flex flex-wrap gap-1">
-                  {(activeMember.allergies || ['Нет']).map((a, i) => (
-                    <span key={i} className="bg-rose-950/80 text-rose-300 border border-rose-700/50 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                      {a}
-                    </span>
-                  ))}
+                <div className="bg-white/5 p-2 rounded-xl">
+                  <p className="text-[10px] text-gray-400">Полис ОМС:</p>
+                  <p className="font-mono font-bold text-[11px] text-white">
+                    {activeMember.policyOMS || '1694 0000 0000 0000'}
+                  </p>
                 </div>
+              </div>
+
+              <div className="bg-rose-950/40 border border-rose-800/40 p-2.5 rounded-xl text-rose-200">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400">
+                  Аллергии и непереносимости:
+                </p>
+                <p className="mt-0.5 text-xs font-medium">
+                  {activeMember.allergies?.join(', ') || 'Особых аллергий не заявлено'}
+                </p>
+              </div>
+
+              <div className="bg-white/5 p-2.5 rounded-xl text-gray-300">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                  Хронические заболевания / заметки:
+                </p>
+                <p className="mt-0.5 text-xs">
+                  {activeMember.chronicNotes || 'Данные не внесены'}
+                </p>
               </div>
             </div>
+
             <button
               onClick={() => setShowEmergency(false)}
-              className="mt-4 w-full py-2.5 bg-rose-600 hover:bg-rose-700 rounded-xl font-bold text-xs"
+              className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-md mt-2"
             >
-              Закрыть карту
+              Закрыть экстренную карту
             </button>
           </div>
         </div>
@@ -187,3 +200,5 @@ export const PinLockModal: React.FC = () => {
     </div>
   );
 };
+
+export default PinLockModal;

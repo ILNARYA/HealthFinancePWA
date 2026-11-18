@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Cloud, Table, Upload,
-  Check, Smartphone, ShieldCheck,
+  Check, ShieldCheck,
   RefreshCw, CheckCircle2, FileSpreadsheet, Moon, Sun,
-  Users, Lock, Fingerprint, EyeOff, KeyRound, QrCode,
+  Users, Lock, EyeOff, KeyRound, QrCode,
   UserCheck, UserPlus, Baby, Sparkles, LogOut, Trash2,
-  Link2, Share2, Download, User
+  Share2, Download, User
 } from 'lucide-react';
 import { demoBiomarkers, demoExpenses, demoDoctors, demoHealthScore } from '../data/demo';
 import { exportHealthDataToExcel, parseExcelImport } from '../utils/excelService';
@@ -18,6 +18,7 @@ import { RegisterModal } from '../components/auth/RegisterModal';
 import { InviteMemberModal } from '../components/family/InviteMemberModal';
 import { AddChildModal } from '../components/family/AddChildModal';
 import { formatYears } from '../utils/formatters';
+import { DEFAULT_APPS_SCRIPT_URL } from '../config/api';
 
 interface Connection {
   id: string;
@@ -42,10 +43,7 @@ const SettingsPage: React.FC = () => {
     declineFamilyInvite,
     isPinSet,
     setIsPinSet,
-    setPinCode,
     openPinSetup,
-    biometricsEnabled,
-    setBiometricsEnabled,
     privacyMode,
     setPrivacyMode,
     twoFactorEnabled,
@@ -68,7 +66,8 @@ const SettingsPage: React.FC = () => {
   const [sheetUrlInput, setSheetUrlInput] = useState(googleSheetUrl);
   const [urlSaved, setUrlSaved] = useState(false);
   const [showAdvancedApi, setShowAdvancedApi] = useState(false);
-  const [showScriptUrlMask, setShowScriptUrlMask] = useState(false);
+  const [isEditingScriptUrl, setIsEditingScriptUrl] = useState(false);
+  const [newScriptUrlInput, setNewScriptUrlInput] = useState('');
 
   const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('app-gemini-api-key') || '');
   const [geminiSaved, setGeminiSaved] = useState(false);
@@ -88,6 +87,33 @@ const SettingsPage: React.FC = () => {
     setGoogleSheetUrl(sheetUrlInput);
     setUrlSaved(true);
     setMessage('Настройки Google Таблиц и Apps Script сохранены!');
+    setTimeout(() => {
+      setUrlSaved(false);
+      setMessage(null);
+    }, 3500);
+  };
+
+  const handleSaveNewScriptUrl = () => {
+    if (newScriptUrlInput.trim()) {
+      setAppsScriptUrl(newScriptUrlInput.trim());
+      setScriptUrlInput(newScriptUrlInput.trim());
+      setIsEditingScriptUrl(false);
+      setNewScriptUrlInput('');
+      setUrlSaved(true);
+      setMessage('URL инженерного шлюза Apps Script успешно сохранён!');
+      setTimeout(() => {
+        setUrlSaved(false);
+        setMessage(null);
+      }, 3500);
+    }
+  };
+
+  const handleResetScriptUrl = () => {
+    setAppsScriptUrl(DEFAULT_APPS_SCRIPT_URL);
+    setScriptUrlInput(DEFAULT_APPS_SCRIPT_URL);
+    setIsEditingScriptUrl(false);
+    setUrlSaved(true);
+    setMessage('Восстановлен базовый URL шлюза Google Apps Script');
     setTimeout(() => {
       setUrlSaved(false);
       setMessage(null);
@@ -142,9 +168,7 @@ const SettingsPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showChildModal, setShowChildModal] = useState(false);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
-  const [showPinChangeModal, setShowPinChangeModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
-  const [newPinInput, setNewPinInput] = useState('');
 
   const [connections, setConnections] = useState<Connection[]>([
     {
@@ -201,18 +225,6 @@ const SettingsPage: React.FC = () => {
       } catch {
         setMessage(`Файл «${file.name}» прочитан и проверен.`);
       }
-      setTimeout(() => setMessage(null), 4000);
-    }
-  };
-
-  const handleSaveNewPin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPinInput.length === 4) {
-      setPinCode(newPinInput);
-      setIsPinSet(true);
-      setShowPinChangeModal(false);
-      setNewPinInput('');
-      setMessage('Новый 4-значный PIN-код успешно установлен!');
       setTimeout(() => setMessage(null), 4000);
     }
   };
@@ -495,29 +507,6 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Biometrics Toggle */}
-          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50/50 dark:bg-[#1a202c]/40 border border-gray-100 dark:border-gray-800">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Fingerprint size={17} className="text-purple-600 dark:text-purple-400 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-gray-900 dark:text-white">
-                  Биометрия (Touch / Face ID)
-                </p>
-                <p className="text-[10px] text-gray-400">Мгновенный доступ по отпечатку</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setBiometricsEnabled(!biometricsEnabled)}
-              className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
-                biometricsEnabled ? 'bg-purple-700' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform shadow-xs ${
-                biometricsEnabled ? 'translate-x-5.5' : 'translate-x-0.5'
-              }`} />
-            </button>
-          </div>
-
           {/* Google Authenticator (TOTP 2FA) */}
           <div className="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50/50 dark:bg-[#1a202c]/40 border border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -686,79 +675,27 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 5. Google Services Integrations */}
+      {/* 5. Google Services & Cloud Integration */}
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
-            Сервисы Google
+            Облачные базы данных
           </h3>
-          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">OAuth 2.0</span>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            {appsScriptUrl ? '● Онлайн' : 'Ожидает'}
+          </span>
         </div>
 
-        {/* Connected Google Profile Banner */}
-        <div className="mb-2.5 p-3.5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-blue-50 dark:from-purple-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 border border-purple-200/60 dark:border-purple-800/50 overflow-hidden">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-9 h-9 rounded-2xl bg-white dark:bg-[#1a202c] shadow-xs border border-purple-200 dark:border-purple-800/60 flex items-center justify-center font-black text-purple-700 dark:text-purple-300 text-sm flex-shrink-0">
-                G
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                  Google Таблицы и Облако
-                </p>
-                <p className="text-[10px] text-purple-700 dark:text-purple-300 font-medium truncate mt-0.5">
-                  База данных: «{googleAccount.sheetName || 'Семейная база'}»
-                </p>
-              </div>
-            </div>
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
-              googleAccount.connected
-                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-            }`}>
-              {googleAccount.connected ? '5 листов онлайн' : 'Ожидает подключения'}
-            </span>
-          </div>
-
-          <div className="bg-white/80 dark:bg-[#161b26]/80 rounded-2xl p-2.5 border border-purple-100 dark:border-purple-900/40 text-[10px] space-y-1.5">
-            <div className="flex items-center justify-between text-gray-500 dark:text-gray-400">
-              <span>Синхронизированные таблицы:</span>
-              <span className="font-bold text-purple-700 dark:text-purple-400">5 листов</span>
-            </div>
-            <div className="flex flex-wrap gap-1 text-[9px] font-semibold text-gray-600 dark:text-gray-300">
-              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Пользователи</span>
-              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Биомаркеры</span>
-              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Расходы</span>
-              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Score</span>
-              <span className="bg-purple-100/70 dark:bg-purple-950 px-1.5 py-0.5 rounded">Инвайты</span>
-            </div>
-            {currentSheetLink ? (
-              <a
-                href={currentSheetLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 w-full py-1.5 px-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold flex items-center justify-center gap-1 transition-all text-center block"
-              >
-                <span>Открыть базу в Google Таблицах ↗</span>
-              </a>
-            ) : (
-              <div className="text-[10px] text-gray-400 text-center py-1">
-                Укажите ссылку на вашу Google Таблицу ниже и нажмите «Сохранить»
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Cloud Sync & Google Sheets Card */}
+        {/* Unified Cloud Sync & Google Sheets Card */}
         <div className="mb-2.5 p-3.5 rounded-3xl bg-white dark:bg-[#161b26] border border-purple-200/70 dark:border-purple-800/60 shadow-sm transition-colors overflow-hidden">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400 flex-shrink-0">
-                <Link2 size={16} />
+                <Table size={16} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Облачная база Google Таблиц</p>
-                <p className="text-[10px] text-gray-400 truncate">Сквозной семейный учёт через Apps Script</p>
+                <p className="text-[10px] text-gray-400 truncate">Сквозной семейный учёт и синхронизация</p>
               </div>
             </div>
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
@@ -766,8 +703,32 @@ const SettingsPage: React.FC = () => {
                 ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                 : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
             }`}>
-              {appsScriptUrl ? '● Сервер подключен' : 'Ожидает настройки'}
+              {appsScriptUrl ? '● База подключена' : 'Ожидает настройки'}
             </span>
+          </div>
+
+          <div className="bg-purple-50/50 dark:bg-[#1a202c]/60 rounded-2xl p-2.5 border border-purple-100 dark:border-purple-900/40 text-[10px] space-y-1.5 mb-2.5">
+            <div className="flex items-center justify-between text-gray-500 dark:text-gray-400">
+              <span>Синхронизированные листы базы:</span>
+              <span className="font-bold text-purple-700 dark:text-purple-400">5 листов онлайн</span>
+            </div>
+            <div className="flex flex-wrap gap-1 text-[9px] font-semibold text-gray-600 dark:text-gray-300">
+              <span className="bg-white dark:bg-[#252d3d] px-1.5 py-0.5 rounded shadow-2xs">Пользователи</span>
+              <span className="bg-white dark:bg-[#252d3d] px-1.5 py-0.5 rounded shadow-2xs">Биомаркеры</span>
+              <span className="bg-white dark:bg-[#252d3d] px-1.5 py-0.5 rounded shadow-2xs">Расходы</span>
+              <span className="bg-white dark:bg-[#252d3d] px-1.5 py-0.5 rounded shadow-2xs">Score</span>
+              <span className="bg-white dark:bg-[#252d3d] px-1.5 py-0.5 rounded shadow-2xs">Инвайты</span>
+            </div>
+            {currentSheetLink ? (
+              <a
+                href={currentSheetLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 w-full py-1.5 px-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold flex items-center justify-center gap-1 transition-all text-center block text-[11px]"
+              >
+                <span>Открыть семейную таблицу в Google ↗</span>
+              </a>
+            ) : null}
           </div>
 
           <div className="space-y-2.5">
@@ -808,7 +769,7 @@ const SettingsPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Collapsible Advanced Engineering Gateway Settings (Hidden by default) */}
+            {/* Collapsible Advanced Engineering Gateway Settings (Write-Only Secret) */}
             <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
               <button
                 type="button"
@@ -816,40 +777,82 @@ const SettingsPage: React.FC = () => {
                 className="text-[10px] font-bold text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 flex items-center justify-between w-full transition-colors"
               >
                 <span>⚙️ Инженерный шлюз API (Apps Script)</span>
-                <span>{showAdvancedApi ? 'Скрыть ▲' : 'Показать настройки ▼'}</span>
+                <span>{showAdvancedApi ? 'Скрыть ▲' : 'Показать шлюз ▼'}</span>
               </button>
 
               {showAdvancedApi && (
-                <div className="mt-2 p-2.5 rounded-2xl bg-gray-50/80 dark:bg-[#1a202c]/70 border border-gray-200/60 dark:border-gray-700/60 space-y-2">
+                <div className="mt-2 p-3 rounded-2xl bg-gray-50/80 dark:bg-[#1a202c]/70 border border-gray-200/60 dark:border-gray-700/60 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                      Web App Exec URL:
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowScriptUrlMask(!showScriptUrlMask)}
-                      className="text-[10px] text-purple-600 dark:text-purple-400 font-bold hover:underline"
-                    >
-                      {showScriptUrlMask ? 'Скрыть маской' : 'Показать URL'}
-                    </button>
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                      Web App Exec URL (Защищённый шлюз):
+                    </span>
+                    <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                      Write-Only
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type={showScriptUrlMask ? 'text' : 'password'}
-                      value={scriptUrlInput}
-                      onChange={(e) => setScriptUrlInput(e.target.value)}
-                      placeholder="https://script.google.com/macros/s/.../exec"
-                      className="flex-1 text-xs px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121620] text-gray-900 dark:text-white font-mono text-[10px]"
-                    />
-                    <button
-                      onClick={handleSaveScriptUrl}
-                      className="px-2.5 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl text-[10px] font-bold flex-shrink-0"
-                    >
-                      OK
-                    </button>
-                  </div>
-                  <p className="text-[9px] text-gray-400">
-                    URL защищён от случайного просмотра. Менять только при обновлении версии в Google Apps Script.
+
+                  {!isEditingScriptUrl ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-gray-100/90 dark:bg-[#121620] border border-gray-200 dark:border-gray-700">
+                        <span className="font-mono text-xs text-gray-500 dark:text-gray-400 tracking-widest truncate select-none">
+                          ••••••••••••••••••••••••••••••••••••••••••••••••••
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-400 ml-2">
+                          Скрыт
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingScriptUrl(true);
+                            setNewScriptUrlInput('');
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-[11px] font-bold transition-all shadow-xs"
+                        >
+                          Заменить URL шлюза
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleResetScriptUrl}
+                          className="text-[10px] text-gray-400 hover:text-purple-600 dark:hover:text-purple-300 font-medium underline"
+                        >
+                          Сбросить на базовый
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        value={newScriptUrlInput}
+                        onChange={(e) => setNewScriptUrlInput(e.target.value)}
+                        placeholder="Вставьте новый URL (https://script.google.com/macros/s/.../exec)"
+                        autoFocus
+                        className="w-full text-xs px-2.5 py-2 rounded-xl border border-purple-400 dark:border-purple-600 bg-white dark:bg-[#121620] text-gray-900 dark:text-white font-mono text-[10px] focus:outline-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSaveNewScriptUrl}
+                          disabled={!newScriptUrlInput.trim()}
+                          className="flex-1 py-1.5 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all"
+                        >
+                          Сохранить новый URL
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingScriptUrl(false)}
+                          className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-500"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-[9px] text-gray-400 leading-normal">
+                    URL никогда не отображается в открытом виде для защиты от перехвата и случайного просмотра. Для изменения вставьте новый адрес развёртывания.
                   </p>
                 </div>
               )}
@@ -1013,22 +1016,6 @@ const SettingsPage: React.FC = () => {
               }`} />
             </button>
           </div>
-
-          {/* PWA Offline Mode Badge */}
-          <div className="flex items-center justify-between p-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Smartphone size={16} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-900 dark:text-white">Офлайн-режим (PWA)</p>
-                <p className="text-[10px] text-gray-400">Кэширование Service Worker активно</p>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800">
-              Готово к офлайну
-            </span>
-          </div>
         </div>
       </div>
 
@@ -1143,49 +1130,6 @@ const SettingsPage: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Change PIN Modal */}
-      {showPinChangeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-[340px] bg-white dark:bg-[#161b26] rounded-3xl p-5 border border-purple-500/20 shadow-2xl animate-scale-in">
-            <h3 className="text-sm font-extrabold text-gray-900 dark:text-white mb-1">
-              Установка 4-значного PIN-кода
-            </h3>
-            <p className="text-xs text-gray-400 mb-4">
-              Введите новый 4-значный код для защиты личного и семейного кабинета
-            </p>
-            <form onSubmit={handleSaveNewPin} className="space-y-3">
-              <input
-                type="password"
-                maxLength={4}
-                pattern="[0-9]{4}"
-                placeholder="Например: 1234"
-                value={newPinInput}
-                onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
-                className="w-full text-center text-2xl font-mono tracking-widest py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                autoFocus
-                required
-              />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={newPinInput.length !== 4}
-                  className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold"
-                >
-                  Сохранить PIN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPinChangeModal(false)}
-                  className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-500"
-                >
-                  Отмена
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Family Cabinet Switcher Modal */}
       <FamilySwitcherModal

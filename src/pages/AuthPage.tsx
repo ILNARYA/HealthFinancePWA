@@ -17,10 +17,11 @@ import {
   sendPasswordResetOtp,
   resetRemoteUserPassword
 } from '../config/api';
+import { verifyTOTPCode } from '../utils/totp';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, register, loadDemoData } = useFamily();
+  const { login, register, loadDemoData, totpSecret } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
   const [mode, setMode] = useState<'welcome' | 'login' | 'register' | 'forgot_password'>('welcome');
@@ -30,6 +31,13 @@ export const AuthPage: React.FC = () => {
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+
+  // 2FA Verification modal state for login
+  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
+  const [twoFactorVerifying, setTwoFactorVerifying] = useState(false);
+  const [pending2FaLogin, setPending2FaLogin] = useState<any>(null);
 
   // Register form state
   const [isGooglePreAuth, setIsGooglePreAuth] = useState(false);
@@ -180,6 +188,16 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
+    // 2FA VERIFICATION CHECK:
+    const is2faActive = localStorage.getItem('app-2fa-enabled') === 'true' || matchedUser?.twoFactorEnabled;
+    if (is2faActive) {
+      setPending2FaLogin({ cleanLogin, loginPassword, matchedUser });
+      setTwoFactorCode('');
+      setTwoFactorError(null);
+      setShowTwoFactorModal(true);
+      return;
+    }
+
     // EXECUTE AUTHENTICATION
     const success = login({
       email: cleanLogin,
@@ -195,6 +213,35 @@ export const AuthPage: React.FC = () => {
     } else {
       setSuccessToast('❌ Ошибка авторизации. Пользователь не найден.');
       setTimeout(() => setSuccessToast(null), 3500);
+    }
+  };
+
+  const handleVerify2FaLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (twoFactorCode.length !== 6) {
+      setTwoFactorError('Введите 6-значный код');
+      return;
+    }
+
+    setTwoFactorVerifying(true);
+    setTwoFactorError(null);
+    const isValid = await verifyTOTPCode(totpSecret, twoFactorCode);
+    setTwoFactorVerifying(false);
+
+    if (isValid && pending2FaLogin) {
+      setShowTwoFactorModal(false);
+      const user = pending2FaLogin.matchedUser;
+      login({
+        email: pending2FaLogin.cleanLogin,
+        password: pending2FaLogin.loginPassword,
+        userData: user,
+      });
+      setSuccessToast(`✅ 2FA подтверждён! Добро пожаловать, ${user.firstName || user.name || 'Пользователь'}!`);
+      setTimeout(() => {
+        navigate('/');
+      }, 450);
+    } else {
+      setTwoFactorError('Неверный код 2FA. Проверьте актуальный код в приложении Authenticator.');
     }
   };
 
@@ -245,6 +292,15 @@ export const AuthPage: React.FC = () => {
     }
 
     if (userRecord) {
+      const is2faActive = localStorage.getItem('app-2fa-enabled') === 'true' || userRecord?.twoFactorEnabled;
+      if (is2faActive) {
+        setPending2FaLogin({ cleanLogin: cleanEmail, loginPassword: '', matchedUser: userRecord });
+        setTwoFactorCode('');
+        setTwoFactorError(null);
+        setShowTwoFactorModal(true);
+        return;
+      }
+
       setSuccessToast(`✅ Вход через Google (${email}) выполнен успешно!`);
       setTimeout(() => {
         login({ email: cleanEmail, userData: userRecord });
@@ -1466,6 +1522,86 @@ export const AuthPage: React.FC = () => {
           <span>Шифрование AES-256 GCM · 152-ФЗ Медицинская тайна</span>
         </div>
       </div>
+
+      {/* Two-Factor Authentication (2FA) Verification Modal */}
+      {showTwoFactorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in select-none">
+          <div className="w-full max-w-[340px] bg-white dark:bg-[#161b26] rounded-3xl p-5 border border-purple-500/20 shadow-2xl animate-scale-in text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black tracking-tight">2FA Подтверждение</h3>
+                  <p className="text-[10px] text-gray-400">Google Authenticator / Ключ</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTwoFactorModal(false)}
+                className="w-7 h-7 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-3 mb-3 leading-relaxed">
+              На вашем аккаунте активна двухфакторная защита. Введите 6-значный одноразовый код из приложения Authenticator:
+            </p>
+
+            <form onSubmit={handleVerify2FaLogin} className="space-y-3">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                pattern="[0-9]{6}"
+                placeholder="000 000"
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+                className={`w-full py-3 px-3 text-center text-2xl font-mono tracking-widest rounded-2xl border bg-gray-50 dark:bg-[#1a202c] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  twoFactorError ? 'border-rose-500 text-rose-500' : 'border-gray-200 dark:border-gray-700'
+                }`}
+                required
+              />
+
+              {twoFactorError && (
+                <p className="text-[10px] text-rose-500 font-bold text-center leading-tight">
+                  {twoFactorError}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={twoFactorCode.length !== 6 || twoFactorVerifying}
+                  className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  {twoFactorVerifying ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Проверка...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound size={13} />
+                      <span>Подтвердить вход</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTwoFactorModal(false)}
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-500 hover:text-gray-900"
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Google Account Selector Modal */}
       {showGoogleModal && (

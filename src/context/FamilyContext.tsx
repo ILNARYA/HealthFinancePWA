@@ -59,13 +59,11 @@ interface FamilyContextType {
   isPinSet: boolean;
   pinCode: string;
   isLocked: boolean;
-  biometricsEnabled: boolean;
   privacyMode: boolean;
   twoFactorEnabled: boolean;
   totpSecret: string;
   setPinCode: (pin: string) => void;
   setIsPinSet: (enabled: boolean) => void;
-  setBiometricsEnabled: (enabled: boolean) => void;
   setPrivacyMode: (enabled: boolean) => void;
   setTwoFactorEnabled: (enabled: boolean) => void;
   lockApp: () => void;
@@ -351,10 +349,6 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isPinSet, setIsPinSetState] = useState<boolean>(() => {
     const code = localStorage.getItem('app-pin-code');
     return localStorage.getItem('app-pin-enabled') === 'true' && !!code;
-  });
-
-  const [biometricsEnabled, setBiometricsEnabledState] = useState<boolean>(() => {
-    return localStorage.getItem('app-biometrics-enabled') === 'true';
   });
 
   const [privacyMode, setPrivacyModeState] = useState<boolean>(() => {
@@ -658,11 +652,6 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem('app-pin-code', pin);
   };
 
-  const setBiometricsEnabled = (enabled: boolean) => {
-    setBiometricsEnabledState(enabled);
-    localStorage.setItem('app-biometrics-enabled', String(enabled));
-  };
-
   const setPrivacyMode = (enabled: boolean) => {
     setPrivacyModeState(enabled);
     localStorage.setItem('app-privacy-mode', String(enabled));
@@ -682,7 +671,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const unlockApp = (pin: string) => {
-    if (pin === pinCode || pin === 'faceid') {
+    if (pin === pinCode) {
       setIsLocked(false);
       return true;
     }
@@ -1148,13 +1137,11 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isPinSet,
         pinCode,
         isLocked,
-        biometricsEnabled,
         privacyMode,
         twoFactorEnabled,
         totpSecret,
         setPinCode,
         setIsPinSet,
-        setBiometricsEnabled,
         setPrivacyMode,
         setTwoFactorEnabled,
         lockApp,
