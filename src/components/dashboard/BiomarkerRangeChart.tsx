@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FlaskConical, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { FlaskConical, CheckCircle2 } from 'lucide-react';
+import { CustomSelect } from '../common/CustomSelect';
 
 export interface BiomarkerRangeConfig {
   id: string;
@@ -187,23 +188,12 @@ const BiomarkerRangeChart: React.FC<Props> = ({ isEmpty = false, onUploadClick }
           Выбор биомаркера
         </span>
 
-        {/* Dropdown Selector */}
-        <div className="relative">
-          <select
+        <div className="w-44">
+          <CustomSelect
             value={selectedBioId}
-            onChange={(e) => handleBiomarkerChange(e.target.value)}
-            style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-            className="bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 text-xs font-bold pl-3 pr-7 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/40"
-          >
-            {biomarkerConfigs.map((b) => (
-              <option key={b.id} value={b.id} className="bg-white dark:bg-[#161b26] text-gray-900 dark:text-white">
-                {b.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={14}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-700 dark:text-purple-400 pointer-events-none"
+            onChange={handleBiomarkerChange}
+            options={biomarkerConfigs.map((b) => ({ value: b.id, label: b.name }))}
+            buttonClassName="pl-3 pr-3 py-1.5 border-purple-200 dark:border-purple-800/80 bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200"
           />
         </div>
       </div>

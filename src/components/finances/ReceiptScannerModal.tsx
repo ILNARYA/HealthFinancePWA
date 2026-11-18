@@ -2,10 +2,11 @@ import React, { useState, useRef } from 'react';
 import {
   Camera, Upload, X, Check, Loader2,
   Receipt, Stethoscope, TestTube, Pill, HeartPulse,
-  Store, CloudUpload, ChevronDown
+  Store, CloudUpload
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
 import type { Expense } from '../../types';
+import { CustomSelect } from '../common/CustomSelect';
 
 interface Props {
   isOpen: boolean;
@@ -499,21 +500,12 @@ export const ReceiptScannerModal: React.FC<Props> = ({ isOpen, onClose, onSaveEx
                 <label className="text-[10px] font-bold text-gray-400 block mb-1">
                   Член семьи
                 </label>
-                <div className="relative">
-                  <select
-                    value={targetMemberId}
-                    onChange={(e) => setTargetMemberId(e.target.value)}
-                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-                    className="w-full pl-2.5 pr-8 py-2 rounded-xl bg-gray-50 dark:bg-[#1a202c] border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white cursor-pointer"
-                  >
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.roleLabel})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                </div>
+                <CustomSelect
+                  value={targetMemberId}
+                  onChange={setTargetMemberId}
+                  options={members.map((m) => ({ value: m.id, label: `${m.name} (${m.roleLabel})` }))}
+                  buttonClassName="px-2.5 py-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
+                />
               </div>
             </div>
 

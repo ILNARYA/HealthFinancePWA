@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse, ShieldCheck, Lock, Mail, Eye, EyeOff,
   Sparkles, Scale, ArrowRight, Sun, Moon,
-  ChevronDown, CheckCircle2, X, UserPlus, Check, Loader2, KeyRound
+  CheckCircle2, X, UserPlus, Check, Loader2, KeyRound
 } from 'lucide-react';
 import { useFamily, knownAdultRegistry } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
@@ -18,6 +18,7 @@ import {
   resetRemoteUserPassword
 } from '../config/api';
 import { verifyTOTPCode } from '../utils/totp';
+import { CustomSelect, BLOOD_GROUP_OPTIONS } from '../components/common/CustomSelect';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -1336,20 +1337,11 @@ export const AuthPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 block mb-1">Группа крови</label>
-                <div className="relative">
-                  <select
-                    value={regBloodType}
-                    onChange={(e) => setRegBloodType(e.target.value)}
-                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-                    className="w-full pl-2.5 pr-8 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold cursor-pointer dark:[color-scheme:dark]"
-                  >
-                    <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
-                    <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
-                    <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="B(III) Rh+">B(III) Rh+</option>
-                    <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="AB(IV) Rh+">AB(IV) Rh+</option>
-                  </select>
-                  <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                </div>
+                <CustomSelect
+                  value={regBloodType}
+                  onChange={setRegBloodType}
+                  options={BLOOD_GROUP_OPTIONS}
+                />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 block mb-1">Полис ОМС</label>

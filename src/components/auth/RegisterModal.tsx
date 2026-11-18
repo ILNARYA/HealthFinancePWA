@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-  UserCheck, X, Check, Copy, Sparkles, Scale, ChevronDown, History
+  UserCheck, X, Check, Copy, Sparkles, Scale, History
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
 import { formatYears } from '../../utils/formatters';
+import { CustomSelect, BLOOD_GROUP_OPTIONS } from '../common/CustomSelect';
 
 interface Props {
   isOpen: boolean;
@@ -298,24 +299,12 @@ export const RegisterModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <label className="text-[10px] font-bold text-gray-400 block mb-1">
                 Группа крови
               </label>
-              <div className="relative">
-                <select
-                  value={bloodType}
-                  onChange={(e) => setBloodType(e.target.value)}
-                  style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-                  className="w-full pl-3 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white font-bold cursor-pointer dark:[color-scheme:dark]"
-                >
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh+">O(I) Rh+</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="O(I) Rh-">O(I) Rh-</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="A(II) Rh+">A(II) Rh+</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="A(II) Rh-">A(II) Rh-</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="B(III) Rh+">B(III) Rh+</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="B(III) Rh-">B(III) Rh-</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="AB(IV) Rh+">AB(IV) Rh+</option>
-                  <option className="bg-white dark:bg-[#1a202c] text-gray-900 dark:text-white" value="AB(IV) Rh-">AB(IV) Rh-</option>
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
+              <CustomSelect
+                value={bloodType}
+                onChange={setBloodType}
+                options={BLOOD_GROUP_OPTIONS}
+                buttonClassName="px-3 py-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
+              />
             </div>
 
             <div>

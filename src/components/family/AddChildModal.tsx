@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
   Baby, X, Check, ShieldCheck, AlertCircle,
-  Sparkles, ChevronDown
+  Sparkles
 } from 'lucide-react';
 import { useFamily } from '../../context/FamilyContext';
 import { formatYears } from '../../utils/formatters';
+import { CustomSelect, BLOOD_GROUP_OPTIONS } from '../common/CustomSelect';
 
 interface Props {
   isOpen: boolean;
@@ -196,20 +197,12 @@ export const AddChildModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
             <div>
               <label className="text-[10px] font-bold text-gray-400 block mb-1">Группа крови</label>
-              <div className="relative">
-                <select
-                  value={bloodType}
-                  onChange={(e) => setBloodType(e.target.value)}
-                  style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-                  className="w-full pl-2.5 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white font-bold cursor-pointer"
-                >
-                  <option value="A(II) Rh+">A(II) Rh+</option>
-                  <option value="O(I) Rh+">O(I) Rh+</option>
-                  <option value="B(III) Rh+">B(III) Rh+</option>
-                  <option value="AB(IV) Rh+">AB(IV) Rh+</option>
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
+              <CustomSelect
+                value={bloodType}
+                onChange={setBloodType}
+                options={BLOOD_GROUP_OPTIONS}
+                buttonClassName="px-2.5 py-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white"
+              />
             </div>
           </div>
 
