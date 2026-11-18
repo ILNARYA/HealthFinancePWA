@@ -3,7 +3,7 @@
  */
 
 export const DEFAULT_APPS_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbwSIHt6nVUMf1EBw8RRmWpVwlvZH4m63XDU_jdQ5JU0Qe6MiYMtUyBixOW1wDG-1Mvw/exec';
+  'https://script.google.com/macros/s/AKfycbzbT_ignkyLdWZZsCO2SLfB22GNJ4h0wl1YDgXB54yyUSOU3PIdHZPRiDMPD4p3vfxI/exec';
 
 export const getAppsScriptUrl = (): string => {
   try {
