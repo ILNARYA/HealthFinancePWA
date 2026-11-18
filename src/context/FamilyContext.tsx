@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { FamilyMember, UserProfile, FamilyInvite } from '../types';
 import { allDemoExpenses } from '../data/demo';
+import { DEFAULT_APPS_SCRIPT_URL, getAppsScriptUrl, saveAppsScriptUrl } from '../config/api';
 
 export interface GoogleAccountInfo {
   connected: boolean;
@@ -383,20 +384,20 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (incomingUrl) {
         const decoded = decodeURIComponent(incomingUrl).trim();
         if (decoded.startsWith('http')) {
-          localStorage.setItem('app-google-script-url', decoded);
+          saveAppsScriptUrl(decoded);
           return decoded;
         }
       }
     } catch {
       // fallback
     }
-    return localStorage.getItem('app-google-script-url') || '';
+    return getAppsScriptUrl();
   });
 
   const setAppsScriptUrl = (url: string) => {
     const clean = url.trim();
-    setAppsScriptUrlState(clean);
-    localStorage.setItem('app-google-script-url', clean);
+    setAppsScriptUrlState(clean || DEFAULT_APPS_SCRIPT_URL);
+    saveAppsScriptUrl(clean || DEFAULT_APPS_SCRIPT_URL);
   };
 
   useEffect(() => {

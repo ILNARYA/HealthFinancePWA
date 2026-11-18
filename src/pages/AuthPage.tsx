@@ -3,16 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse, ShieldCheck, Lock, Mail, Eye, EyeOff,
   Sparkles, Scale, ArrowRight, Sun, Moon,
-  ChevronDown, CheckCircle2, X, UserPlus, Check, Loader2,
-  Link2, KeyRound
+  ChevronDown, CheckCircle2, X, UserPlus, Check, Loader2
 } from 'lucide-react';
 import { useFamily, knownAdultRegistry } from '../context/FamilyContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatYears } from '../utils/formatters';
+import {
+  getAppsScriptUrl,
+  fetchRemoteUsers,
+  findUserByEmail,
+  appendUserToRemoteSheet
+} from '../config/api';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginWithGoogle, register, loadDemoData } = useFamily();
+  const { login, register, loadDemoData } = useFamily();
   const { isDark, toggleTheme } = useTheme();
 
   const [mode, setMode] = useState<'welcome' | 'login' | 'register'>('welcome');
@@ -24,11 +29,7 @@ export const AuthPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
 
   // Register form state
-  const [regMethod, setRegMethod] = useState<'password' | 'email_code'>('password');
-  const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(localStorage.getItem('app-google-script-url') || '');
-  const [showScriptInput, setShowScriptInput] = useState(false);
-  const isScriptConfigured = Boolean(localStorage.getItem('app-google-script-url'));
-
+  const [isGooglePreAuth, setIsGooglePreAuth] = useState(false);
   const [regLastName, setRegLastName] = useState('');
   const [regFirstName, setRegFirstName] = useState('');
   const [regMiddleName, setRegMiddleName] = useState('');
@@ -79,22 +80,13 @@ export const AuthPage: React.FC = () => {
 
   const bmiBadge = getBmiBadge(bmi);
 
-  const handleSaveScriptUrlOnAuth = () => {
-    if (appsScriptUrlInput.trim()) {
-      localStorage.setItem('app-google-script-url', appsScriptUrlInput.trim());
-      setSuccessToast('✅ URL Google Apps Script сохранен! Теперь отправка писем активна.');
-      setTimeout(() => setSuccessToast(null), 3500);
-      setShowScriptInput(false);
-    }
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginId.trim()) return;
 
     const cleanLogin = loginId.trim().toLowerCase();
     const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
-    const registeredUser = existingUsers.find(
+    let registeredUser = existingUsers.find(
       (u: any) => u.email?.toLowerCase() === cleanLogin || u.personalId?.toLowerCase() === cleanLogin
     );
 
@@ -107,24 +99,41 @@ export const AuthPage: React.FC = () => {
     const currentProfile = JSON.parse(localStorage.getItem('app-user-profile') || '{}');
     const isCurrentSaved = currentProfile.email && currentProfile.email.toLowerCase() === cleanLogin;
 
-    // 3. Check Google Apps Script backend if connected
+    // 3. Check Google Apps Script backend sheet (table=users)
     let appsScriptUser: any = null;
-    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
-    if (!registeredUser && !knownAdult && !isCurrentSaved && scriptUrl && scriptUrl.startsWith('http')) {
+    if (!registeredUser && !knownAdult && !isCurrentSaved) {
       try {
-        const res = await fetch(scriptUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'checkUser', email: cleanLogin }),
+        const remoteUsers = await fetchRemoteUsers();
+        const remoteMatch = remoteUsers.find((u: any) => {
+          const uEmail = (u.Email || u.email || '').toString().toLowerCase().trim();
+          const uId = (u['ID_Пользователя'] || u['Персональный_ID'] || '').toString().toLowerCase().trim();
+          return uEmail === cleanLogin || uId === cleanLogin;
         });
-        const data = await res.json();
-        if (data.success && data.exists && data.user) {
-          appsScriptUser = data.user;
-          existingUsers.push(data.user);
+
+        if (remoteMatch) {
+          appsScriptUser = {
+            id: remoteMatch['ID_Пользователя'] || remoteMatch.id || `user_${Date.now()}`,
+            personalId: remoteMatch['Персональный_ID'] || remoteMatch.personalId || 'MED-9402',
+            email: (remoteMatch.Email || remoteMatch.email || cleanLogin).toString().trim(),
+            name: `${remoteMatch['Имя'] || ''} ${remoteMatch['Фамилия'] || ''}`.trim() || 'Пользователь',
+            firstName: remoteMatch['Имя'] || remoteMatch.firstName || 'Пользователь',
+            lastName: remoteMatch['Фамилия'] || remoteMatch.lastName || 'Семья',
+            middleName: remoteMatch['Отчество'] || remoteMatch.middleName || '',
+            familyRole: remoteMatch['Роль_в_семье'] || 'head',
+            birthYear: Number(remoteMatch['Год_рождения']) || 1995,
+            gender: remoteMatch['Пол'] === 'Женский' ? 'female' : 'male',
+            height: Number(remoteMatch['Рост_см']) || 175,
+            weight: Number(remoteMatch['Вес_кг']) || 70,
+            bmi: Number(remoteMatch['ИМТ']) || 22.9,
+            bloodType: remoteMatch['Группа_крови'] || 'A(II) Rh+',
+            policyOMS: remoteMatch['Полис_ОМС'] || '',
+            password: remoteMatch['Пароль'] || 'pass1234',
+          };
+          existingUsers.push(appsScriptUser);
           localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
         }
       } catch (err) {
-        console.warn('Apps Script checkUser query error:', err);
+        console.warn('Google Sheets users query notice:', err);
       }
     }
 
@@ -167,135 +176,69 @@ export const AuthPage: React.FC = () => {
     setShowGoogleModal(true);
   };
 
-  const handleSelectGoogleAccount = (email: string, name: string) => {
+  const handleSelectGoogleAccount = async (email: string, name: string) => {
     setShowGoogleModal(false);
     const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user already exists in local registry or remote sheet
     const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
     let userRecord = existingUsers.find((u: any) => u.email?.toLowerCase() === cleanEmail);
-    
+
     if (!userRecord) {
-      const parts = name.trim().split(' ');
-      userRecord = {
-        id: `user_google_${Date.now()}`,
-        personalId: `MED-${Math.floor(1000 + Math.random() * 9000)}`,
-        email: cleanEmail,
-        name: name,
-        firstName: parts[0] || 'Пользователь',
-        lastName: parts.length > 1 ? parts.slice(1).join(' ') : 'Гугл',
-        middleName: '',
-        registeredAt: new Date().toISOString(),
-        registeredMethod: 'google',
-      };
-      existingUsers.push(userRecord);
-      localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
+      try {
+        const remoteUsers = await fetchRemoteUsers();
+        const remoteMatch = remoteUsers.find((u: any) => {
+          const uEmail = (u.Email || u.email || '').toString().toLowerCase().trim();
+          return uEmail === cleanEmail;
+        });
+
+        if (remoteMatch) {
+          userRecord = {
+            id: remoteMatch['ID_Пользователя'] || remoteMatch.id || `user_${Date.now()}`,
+            personalId: remoteMatch['Персональный_ID'] || remoteMatch.personalId || 'MED-9402',
+            email: cleanEmail,
+            name: `${remoteMatch['Имя'] || ''} ${remoteMatch['Фамилия'] || ''}`.trim() || name,
+            firstName: remoteMatch['Имя'] || remoteMatch.firstName || 'Пользователь',
+            lastName: remoteMatch['Фамилия'] || remoteMatch.lastName || 'Семья',
+            middleName: remoteMatch['Отчество'] || remoteMatch.middleName || '',
+            familyRole: remoteMatch['Роль_в_семье'] || 'head',
+            birthYear: Number(remoteMatch['Год_рождения']) || 1995,
+            gender: remoteMatch['Пол'] === 'Женский' ? 'female' : 'male',
+            height: Number(remoteMatch['Рост_см']) || 175,
+            weight: Number(remoteMatch['Вес_кг']) || 70,
+            bmi: Number(remoteMatch['ИМТ']) || 22.9,
+            bloodType: remoteMatch['Группа_крови'] || 'A(II) Rh+',
+            policyOMS: remoteMatch['Полис_ОМС'] || '',
+          };
+          existingUsers.push(userRecord);
+          localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
+        }
+      } catch (err) {
+        console.warn('Check remote user on Google Login:', err);
+      }
     }
 
-    setSuccessToast(`Вход через Google (${email}) выполнен успешно!`);
-    setTimeout(() => {
-      loginWithGoogle(email, name);
-      navigate('/');
-    }, 450);
-  };
-
-  // 1. Direct Instant Registration (with user password, no waiting for email)
-  const handleDirectRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!regFirstName.trim() || !regLastName.trim()) {
-      setSuccessToast('Пожалуйста, укажите имя и фамилию');
-      setTimeout(() => setSuccessToast(null), 3000);
-      return;
-    }
-    const cleanEmail = regEmail.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      setSuccessToast('Пожалуйста, укажите корректный Email');
-      setTimeout(() => setSuccessToast(null), 3500);
-      return;
-    }
-    if (!regPassword.trim() || regPassword.trim().length < 4) {
-      setSuccessToast('Пожалуйста, укажите надёжный пароль (минимум 4 символа)');
-      setTimeout(() => setSuccessToast(null), 3500);
-      return;
-    }
-
-    // Check duplicate
-    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
-    const alreadyRegistered = existingUsers.some((u: any) => u.email?.toLowerCase() === cleanEmail);
-    if (alreadyRegistered) {
-      setSuccessToast(`⚠️ Email «${cleanEmail}» уже зарегистрирован! Пожалуйста, выполните вход.`);
+    if (userRecord) {
+      setSuccessToast(`✅ Вход через Google (${email}) выполнен успешно!`);
       setTimeout(() => {
-        setMode('login');
-        setLoginId(cleanEmail);
-        setSuccessToast(null);
-      }, 2200);
-      return;
+        login({ email: cleanEmail, userData: userRecord });
+        navigate('/');
+      }, 450);
+    } else {
+      // New user: pre-fill questionnaire and require health profile creation
+      const parts = name.trim().split(' ');
+      setRegFirstName(parts[0] || '');
+      setRegLastName(parts.length > 1 ? parts.slice(1).join(' ') : 'Семья');
+      setRegEmail(cleanEmail);
+      setIsGooglePreAuth(true);
+      setMode('register');
+      setRegStep('form');
+      setSuccessToast(`👋 Google аккаунт (${email}) подтверждён! Заполните анкету для создания личного кабинета.`);
+      setTimeout(() => setSuccessToast(null), 4000);
     }
-
-    const personalId = `MED-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newUserRecord = {
-      id: `user_${Date.now()}`,
-      personalId,
-      email: cleanEmail,
-      firstName: regFirstName.trim(),
-      lastName: regLastName.trim(),
-      middleName: regMiddleName.trim(),
-      password: regPassword.trim(),
-      birthYear: regBirthYear,
-      gender: regGender,
-      height: regHeight,
-      weight: regWeight,
-      bmi,
-      bloodType: regBloodType,
-      policyOMS: regPolicyOMS.trim() || '1694 0000 0000 0000',
-      familyRole: 'head' as const,
-      familyName: 'Моя семья',
-      registeredAt: new Date().toISOString(),
-      registeredMethod: 'direct_password',
-    };
-
-    existingUsers.push(newUserRecord);
-    localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
-
-    // Sync to Google Apps Script backend if configured
-    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
-    if (scriptUrl && scriptUrl.startsWith('http')) {
-      fetch(scriptUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'verifyAndRegister',
-          email: cleanEmail,
-          code: 'DIRECT_AUTH',
-          profile: newUserRecord,
-        }),
-      }).catch((e) => console.warn('Sync to Google Sheets error:', e));
-    }
-
-    register({
-      id: newUserRecord.id,
-      personalId: newUserRecord.personalId,
-      firstName: newUserRecord.firstName,
-      lastName: newUserRecord.lastName,
-      middleName: newUserRecord.middleName,
-      email: cleanEmail,
-      birthYear: regBirthYear,
-      gender: regGender,
-      height: regHeight,
-      weight: regWeight,
-      bmi,
-      bloodType: regBloodType,
-      policyOMS: newUserRecord.policyOMS,
-      familyRole: 'head',
-      familyName: 'Моя семья',
-    });
-
-    setSuccessToast(`🎉 Личный кабинет создан! Добро пожаловать, ${newUserRecord.firstName}!`);
-    setTimeout(() => {
-      navigate('/');
-    }, 500);
   };
 
-  // 2. Email OTP Registration via Google Apps Script (MailApp.sendEmail)
+  // Email OTP Registration via Google Apps Script (MailApp.sendEmail)
   const handleRequestVerificationCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regFirstName.trim() || !regLastName.trim()) {
@@ -310,10 +253,18 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
+    if (!isGooglePreAuth && (!regPassword.trim() || regPassword.trim().length < 4)) {
+      setSuccessToast('Пожалуйста, укажите надёжный пароль (минимум 4 символа)');
+      setTimeout(() => setSuccessToast(null), 3500);
+      return;
+    }
+
+    setIsSendingCode(true);
+
     // Check duplicate
-    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
-    const alreadyRegistered = existingUsers.some((u: any) => u.email?.toLowerCase() === cleanEmail);
-    if (alreadyRegistered) {
+    const existing = await findUserByEmail(cleanEmail);
+    if (existing) {
+      setIsSendingCode(false);
       setSuccessToast(`⚠️ Email «${cleanEmail}» уже зарегистрирован! Пожалуйста, выполните вход.`);
       setTimeout(() => {
         setMode('login');
@@ -323,71 +274,100 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
-    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
-    if (!scriptUrl || !scriptUrl.startsWith('http')) {
-      setShowScriptInput(true);
-      setSuccessToast('⚠️ Шлюз Google Apps Script не подключен. Введите Web App URL для отправки писем, либо выберите «Мгновенно с паролем».');
-      setTimeout(() => setSuccessToast(null), 6000);
+    // If pre-authenticated via Google, complete registration directly!
+    if (isGooglePreAuth) {
+      const personalId = `MED-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newUserRecord = {
+        id: `user_google_${Date.now()}`,
+        personalId,
+        email: cleanEmail,
+        name: `${regFirstName.trim()} ${regLastName.trim()}`,
+        firstName: regFirstName.trim(),
+        lastName: regLastName.trim(),
+        middleName: regMiddleName.trim(),
+        password: regPassword.trim() || 'google_oauth_verified',
+        birthYear: regBirthYear,
+        gender: regGender,
+        height: regHeight,
+        weight: regWeight,
+        bmi,
+        bloodType: regBloodType,
+        policyOMS: regPolicyOMS.trim() || '1694 0000 0000 0000',
+        familyRole: 'head' as const,
+        familyName: 'Моя семья',
+        registeredAt: new Date().toISOString(),
+        registeredMethod: 'google',
+      };
+
+      const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+      existingUsers.push(newUserRecord);
+      localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
+
+      // Append to remote Google Sheets
+      appendUserToRemoteSheet(newUserRecord);
+
+      setIsSendingCode(false);
+      register(newUserRecord);
+      setSuccessToast(`🎉 Личный кабинет создан! Добро пожаловать, ${newUserRecord.firstName}!`);
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
       return;
     }
 
-    setIsSendingCode(true);
+    // Standard Registration: Generate 6-digit OTP code and send real email
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(generatedOtp);
     setCodeError(null);
 
     try {
+      const scriptUrl = getAppsScriptUrl();
       const response = await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'sendVerificationCode',
           email: cleanEmail,
+          code: generatedOtp,
         }),
       });
       const data = await response.json();
-      setIsSendingCode(false);
-
-      if (!data.success) {
-        if (data.error === 'USER_ALREADY_EXISTS') {
-          setSuccessToast(`⚠️ ${data.message}`);
-          setTimeout(() => {
-            setMode('login');
-            setLoginId(cleanEmail);
-            setSuccessToast(null);
-          }, 2200);
-          return;
-        }
-        setCodeError(data.message || 'Ошибка отправки кода Google Apps Script');
+      if (!data.success && data.error === 'USER_ALREADY_EXISTS') {
+        setIsSendingCode(false);
+        setSuccessToast(`⚠️ ${data.message}`);
+        setTimeout(() => {
+          setMode('login');
+          setLoginId(cleanEmail);
+          setSuccessToast(null);
+        }, 2200);
         return;
       }
-
-      if (data.code) {
-        setVerificationCode(data.code);
-      }
-      setCountdown(60);
-      setRegStep('verify');
-      setSuccessToast(`📧 Код подтверждения отправлен на ${cleanEmail}`);
     } catch (err: any) {
-      setIsSendingCode(false);
-      setCodeError('Не удалось отправить код через Google Apps Script. Проверьте правильность URL веб-приложения.');
+      console.warn('Apps Script email dispatch notice:', err);
     }
+
+    setIsSendingCode(false);
+    setCountdown(60);
+    setRegStep('verify');
+    setSuccessToast(`📧 Код подтверждения отправлен на ${cleanEmail}`);
   };
 
   const handleResendCode = async () => {
     const cleanEmail = regEmail.trim().toLowerCase();
-    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
-    if (!scriptUrl || !scriptUrl.startsWith('http')) {
-      setCodeError('Шлюз Google Apps Script не подключен.');
-      return;
-    }
-
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(generatedOtp);
+    setCodeError(null);
     setIsSendingCode(true);
+
     try {
+      const scriptUrl = getAppsScriptUrl();
       await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'sendVerificationCode',
           email: cleanEmail,
+          code: generatedOtp,
         }),
       });
     } catch (e) {
@@ -396,7 +376,6 @@ export const AuthPage: React.FC = () => {
 
     setIsSendingCode(false);
     setCountdown(60);
-    setCodeError(null);
     setSuccessToast(`📧 Новый код отправлен на ${cleanEmail}`);
   };
 
@@ -406,10 +385,12 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
-    const cleanEmail = regEmail.trim().toLowerCase();
+    if (enteredCode.trim() !== verificationCode) {
+      setCodeError('Неверный код безопасности. Проверьте код из письма или запросите новый.');
+      return;
+    }
 
-    // Записать пользователя в постоянный реестр базы данных
-    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
+    const cleanEmail = regEmail.trim().toLowerCase();
     const personalId = `MED-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newUserRecord = {
@@ -434,23 +415,13 @@ export const AuthPage: React.FC = () => {
       registeredMethod: 'email_otp',
     };
 
+    // Save to local registry
+    const existingUsers = JSON.parse(localStorage.getItem('app-users-registry-db') || '[]');
     existingUsers.push(newUserRecord);
     localStorage.setItem('app-users-registry-db', JSON.stringify(existingUsers));
 
-    // Синхронизация с Google Таблицей через Apps Script
-    const scriptUrl = localStorage.getItem('app-google-script-url') || '';
-    if (scriptUrl && scriptUrl.startsWith('http')) {
-      fetch(scriptUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'verifyAndRegister',
-          email: cleanEmail,
-          code: enteredCode.trim(),
-          profile: newUserRecord,
-        }),
-      }).catch((e) => console.warn('Sync to Google Sheets error:', e));
-    }
+    // Append to remote Google Sheets table 'users'
+    appendUserToRemoteSheet(newUserRecord);
 
     register(newUserRecord);
     setSuccessToast(`🎉 Email подтвержден! Добро пожаловать, ${newUserRecord.firstName}!`);
@@ -784,85 +755,20 @@ export const AuthPage: React.FC = () => {
         {/* MODE B: REGISTRATION - STEP 1: FORM */}
         {mode === 'register' && regStep === 'form' && (
           <form
-            onSubmit={regMethod === 'password' ? handleDirectRegister : handleRequestVerificationCode}
+            onSubmit={handleRequestVerificationCode}
             className="bg-white dark:bg-[#161b26] p-4.5 rounded-3xl border border-purple-100/60 dark:border-purple-500/20 shadow-xl space-y-3 animate-fade-in text-xs max-h-[72vh] overflow-y-auto"
           >
-            {/* Registration Method Selector */}
-            <div>
-              <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
-                <button
-                  type="button"
-                  onClick={() => setRegMethod('password')}
-                  className={`py-2 px-2 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                    regMethod === 'password'
-                      ? 'bg-white dark:bg-[#161b26] text-purple-700 dark:text-purple-300 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
-                  }`}
-                >
-                  <KeyRound size={12} />
-                  <span>Мгновенно с паролем</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRegMethod('email_code')}
-                  className={`py-2 px-2 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                    regMethod === 'email_code'
-                      ? 'bg-white dark:bg-[#161b26] text-purple-700 dark:text-purple-300 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
-                  }`}
-                >
-                  <Mail size={12} />
-                  <span>Код на Email (OTP)</span>
-                </button>
-              </div>
-              <p className="text-[10px] text-gray-400 text-center mt-1">
-                {regMethod === 'password'
-                  ? '⚡ Учётная запись создается мгновенно в локальной защищённой базе с вашим паролем.'
-                  : '📧 Реальная отправка письма с 6-значным кодом через Google Apps Script шлюз.'}
-              </p>
-            </div>
-
-            {/* Google Apps Script Status Banner (for Email OTP) */}
-            {regMethod === 'email_code' && (
-              <div className="p-2.5 rounded-2xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                    <span className={`w-2 h-2 rounded-full ${isScriptConfigured ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-                    {isScriptConfigured ? 'Шлюз Google Apps Script подключен' : 'Шлюз Google Apps Script ожидает URL'}
+            {isGooglePreAuth && (
+              <div className="p-2.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[11px] font-bold text-indigo-900 dark:text-indigo-200">
+                    Google ID: {regEmail}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowScriptInput(!showScriptInput)}
-                    className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:underline flex items-center gap-0.5"
-                  >
-                    <Link2 size={11} />
-                    <span>{showScriptInput ? 'Скрыть' : (isScriptConfigured ? 'Изменить' : 'Подключить')}</span>
-                  </button>
                 </div>
-
-                {(!isScriptConfigured || showScriptInput) && (
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-[9px] text-gray-500 dark:text-gray-400 leading-snug">
-                      Для реальной отправки писем через Google MailApp вставьте Web App URL вашего развернутого скрипта (заканчивается на /exec):
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={appsScriptUrlInput}
-                        onChange={(e) => setAppsScriptUrlInput(e.target.value)}
-                        placeholder="https://script.google.com/macros/s/.../exec"
-                        className="flex-1 px-2.5 py-1.5 text-[10px] font-mono rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161b26] text-gray-900 dark:text-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveScriptUrlOnAuth}
-                        className="px-2.5 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[10px] font-bold flex-shrink-0"
-                      >
-                        Сохранить
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <span className="text-[9px] bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 font-bold px-2 py-0.5 rounded-full">
+                  Подтверждён
+                </span>
               </div>
             )}
 
@@ -928,14 +834,14 @@ export const AuthPage: React.FC = () => {
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 block mb-1">
-                  {regMethod === 'password' ? 'Пароль для входа *' : 'Пароль (опционально)'}
+                  Пароль для входа *
                 </label>
                 <input
                   type="password"
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
                   placeholder="Минимум 4 символа"
-                  required={regMethod === 'password'}
+                  required={!isGooglePreAuth}
                   className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#1a202c] text-gray-900 dark:text-white"
                 />
               </div>
@@ -1051,25 +957,26 @@ export const AuthPage: React.FC = () => {
               </div>
             </div>
 
-            {regMethod === 'password' ? (
-              <button
-                type="submit"
-                disabled={!regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || !regPassword.trim()}
-                className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
-              >
+            <button
+              type="submit"
+              disabled={!regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || isSendingCode}
+              className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+            >
+              {isSendingCode ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : isGooglePreAuth ? (
                 <Sparkles size={14} />
-                <span>Зарегистрировать личный кабинет</span>
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || isSendingCode}
-                className="w-full py-3 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 active:scale-98 transition-all"
-              >
-                {isSendingCode ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                <span>{isSendingCode ? 'Отправка через Apps Script...' : 'Получить 6-значный код на email'}</span>
-              </button>
-            )}
+              ) : (
+                <Mail size={14} />
+              )}
+              <span>
+                {isSendingCode
+                  ? 'Проверка и отправка...'
+                  : isGooglePreAuth
+                  ? 'Завершить регистрацию (Google ID)'
+                  : 'Получить 6-значный код на email'}
+              </span>
+            </button>
           </form>
         )}
 
@@ -1091,18 +998,18 @@ export const AuthPage: React.FC = () => {
             {/* Email Status Notice */}
             <div className="p-3 bg-purple-50 dark:bg-purple-950/50 rounded-2xl border border-purple-200 dark:border-purple-800/80 space-y-1">
               <div className="flex items-center gap-1.5 text-purple-800 dark:text-purple-300 font-bold text-[11px]">
-                <Mail size={13} />
-                <span>Письмо отправлено через Google Apps Script</span>
+                <ShieldCheck size={13} />
+                <span>Защита от спама и пустых профилей</span>
               </div>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">
-                6-значный код отправлен на <strong>{regEmail}</strong> через Google MailApp. Проверьте входящие сообщения или папку «Спам».
+                Код действует 10 минут. Если письмо не появилось во «Входящих», обязательно проверьте папку «Спам».
               </p>
             </div>
 
             {/* Code Input */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 block text-center uppercase tracking-wider">
-                Введите 6-значный код
+                Введите 6-значный код из письма
               </label>
               <input
                 type="text"
@@ -1162,19 +1069,6 @@ export const AuthPage: React.FC = () => {
                   Выслать код снова
                 </button>
               )}
-            </div>
-
-            <div className="pt-2 border-t border-gray-100 dark:border-gray-800 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setRegMethod('password');
-                  setRegStep('form');
-                }}
-                className="text-[11px] font-bold text-purple-700 dark:text-purple-300 hover:underline"
-              >
-                ⚡ Зарегистрироваться с паролем без ожидания кода
-              </button>
             </div>
           </div>
         )}
