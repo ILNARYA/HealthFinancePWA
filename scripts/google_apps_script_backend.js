@@ -89,17 +89,60 @@ function getSpreadsheet() {
 }
 
 /**
- * Функция для однократной авторизации прав на отправку писем.
- * Выберите эту функцию вверху в Apps Script и нажмите «Выполнить» (Run).
+ * ==============================================================================
+ * ГЛАВНАЯ ФУНКЦИЯ ДЛЯ ОДНОКРАТНОЙ АВТОРИЗАЦИИ ВСЕХ ПРАВ (MailApp, UrlFetchApp, Sheets)
+ * ==============================================================================
+ * 
+ * ИНСТРУКЦИЯ:
+ * 1. В верхней панели редактора Google Apps Script в списке функций выберите:
+ *    «authorizeAllPermissions»
+ * 2. Нажмите кнопку «Выполнить» (Run ▶).
+ * 3. Google запросит доступ к «Подключению к внешним службам (UrlFetchApp)».
+ *    Нажмите «Просмотреть разрешения» -> выберите аккаунт -> «Дополнительно» -> «Разрешить».
+ * 4. В журнале отобразится «ВСЕ РАЗРЕШЕНИЯ УСПЕШНО ПОЛУЧЕНЫ!».
  */
-function testSendEmail() {
+function authorizeAllPermissions() {
+  Logger.log('--- Запуск первичной авторизации всех разрешений ---');
+
+  // 1. Авторизация MailApp (отправка писем с кодами)
   var userEmail = Session.getActiveUser().getEmail() || 'yamayev2010@yandex.ru';
-  MailApp.sendEmail({
-    to: userEmail,
-    subject: 'Тест авторизации — Здоровье & Финансы',
-    htmlBody: '<p>Авторизация MailApp успешна! Веб-приложение теперь может отправлять коды верификации и сброса паролей.</p>'
-  });
-  Logger.log('Письмо успешно отправлено на: ' + userEmail);
+  Logger.log('1. MailApp проверен для: ' + userEmail);
+
+  // 2. Авторизация UrlFetchApp (вызовы Gemini API для ИИ-Врача и OCR)
+  var res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com', { muteHttpExceptions: true });
+  Logger.log('2. UrlFetchApp проверен, код ответа: ' + res.getResponseCode());
+
+  // 3. Авторизация SpreadsheetApp (база данных)
+  var ss = getSpreadsheet();
+  Logger.log('3. Google Таблица проверена: ' + ss.getName());
+
+  Logger.log('--- ВСЕ РАЗРЕШЕНИЯ УСПЕШНО ПОЛУЧЕНЫ! Скрипт готов к работе. ---');
+}
+
+function testSendEmail() {
+  authorizeAllPermissions();
+}
+
+/**
+ * Логирование ошибок и системных событий в специальный лист «Логи_и_Ошибки».
+ */
+function logErrorToSheet(module, errorDesc, userEmail, details) {
+  try {
+    var ss = getSpreadsheet();
+    var logSheet = ss.getSheetByName('Логи_и_Ошибки');
+    if (!logSheet) {
+      logSheet = ss.insertSheet('Логи_и_Ошибки');
+      logSheet.appendRow(['Дата_и_Время', 'Модуль', 'Тип', 'Описание_Ошибки', 'Email', 'Детали_Запроса']);
+      var hdr = logSheet.getRange(1, 1, 1, 6);
+      hdr.setFontWeight('bold');
+      hdr.setBackground('#fee2e2');
+      hdr.setFontColor('#991b1b');
+    }
+    var now = new Date().toISOString();
+    logSheet.appendRow([now, module, 'ERROR', String(errorDesc).substring(0, 500), userEmail || '', String(details || '').substring(0, 500)]);
+  } catch (e) {
+    Logger.log('Could not log error to sheet: ' + e);
+  }
 }
 
 const SHEET_NAMES = {
@@ -667,8 +710,8 @@ function handleGeminiChat(payload) {
   // Текущий вопрос пользователя
   contents.push({ role: 'user', parts: [{ text: userPrompt }] });
 
-  // ======= КАСКАД МОДЕЛЕЙ: gemini-3.8-flash (Free) → gemini-2.5-flash → gemini-2.0-flash =======
-  var models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  // ======= КАСКАД МОДЕЛЕЙ (от надёжных и быстрых к новым) =======
+  var models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-3.8-flash'];
   var lastError = '';
 
   for (var m = 0; m < models.length; m++) {
@@ -721,6 +764,19 @@ function handleGeminiChat(payload) {
     }
   }
 
+  // Ошибка отсутствия прав UrlFetchApp
+  if (lastError.indexOf('UrlFetchApp') !== -1 || lastError.indexOf('external_request') !== -1) {
+    var authMsg = 'В Google Apps Script не подтверждены права на внешние запросы к Gemini (UrlFetchApp). Выберите функцию "authorizeAllPermissions" в редакторе скрипта и нажмите "Выполнить" (Run ▶).';
+    logErrorToSheet('GeminiChat', 'Отсутствует разрешение UrlFetchApp', userEmail, authMsg);
+    return jsonResponse({
+      success: false,
+      error: 'URLFETCH_NOT_AUTHORIZED',
+      message: authMsg
+    });
+  }
+
+  logErrorToSheet('GeminiChat', lastError, userEmail, userPrompt.substring(0, 100));
+
   return jsonResponse({
     success: false,
     error: 'GEMINI_FAILED',
@@ -744,7 +800,7 @@ function handleGeminiVision(payload) {
     });
   }
 
-  var models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  var models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-3.8-flash'];
   var lastError = '';
   for (var m = 0; m < models.length; m++) {
     var modelName = models[m];
@@ -778,6 +834,14 @@ function handleGeminiVision(payload) {
       lastError = e.toString();
     }
   }
+
+  if (lastError.indexOf('UrlFetchApp') !== -1 || lastError.indexOf('external_request') !== -1) {
+    var authMsg = 'В Google Apps Script не подтверждены права на вызовы Gemini (UrlFetchApp). Выберите функцию "authorizeAllPermissions" в редакторе скрипта и нажмите "Выполнить" (Run ▶).';
+    logErrorToSheet('GeminiVision', 'Отсутствует разрешение UrlFetchApp', '', authMsg);
+    return jsonResponse({ success: false, error: 'URLFETCH_NOT_AUTHORIZED', message: authMsg });
+  }
+
+  logErrorToSheet('GeminiVision', lastError, '', prompt);
   return jsonResponse({ success: false, error: 'VISION_FAILED', message: lastError });
 }
 

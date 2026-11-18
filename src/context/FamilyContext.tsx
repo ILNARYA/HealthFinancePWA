@@ -369,7 +369,11 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const totpSecret = 'JBSWY3DPEHPK3PXP'; // Standard Base32 TOTP demo secret key
 
-  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [isLocked, setIsLocked] = useState<boolean>(() => {
+    const pin = localStorage.getItem('app-pin-code');
+    const enabled = localStorage.getItem('app-pin-enabled') === 'true';
+    return Boolean(enabled && pin);
+  });
 
   // Google Account state
   const [googleAccount, setGoogleAccount] = useState<GoogleAccountInfo>(() => {
